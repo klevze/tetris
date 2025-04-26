@@ -49,9 +49,9 @@ export function setCanvasSize() {
     const containerWidth = container ? container.clientWidth : viewportWidth;
     const containerHeight = container ? container.clientHeight : viewportHeight;
     
-    // Set canvas logical size to match container
-    canvas.style.width = `${containerWidth}px`;
-    canvas.style.height = `${containerHeight}px`;
+    // Set canvas logical size to match container (100% of container)
+    canvas.style.width = `100%`;
+    canvas.style.height = `100%`;
     
     // Handle high DPI displays for sharper rendering
     devicePixelRatio = window.devicePixelRatio || 1;

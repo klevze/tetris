@@ -4,8 +4,6 @@
  */
 
 :root {
-  --game-width: 800px;  
-  --game-height: 600px;
   --background-color: #000;
   --border-color: #222;
   --highlight-color: #ffcc00;
@@ -40,7 +38,6 @@ body {
 #main {
   position: relative;
   width: 100%;
-  max-width: var(--game-width);
   height: auto;
   margin: 0 auto;
   border: solid 5px var(--border-color);

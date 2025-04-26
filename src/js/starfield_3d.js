@@ -2,8 +2,8 @@ import { rect } from './functions.js';
 
 // Variables that will be initialized later
 let ctx;
-let WIDTH = 800;
-let height_3d = 440;
+let WIDTH = window.innerWidth || 800; // Default to window width or fallback to 800
+let height_3d = window.innerHeight || 600; // Default to window height or fallback to 600
 
 const MAX_DEPTH = 32;
 let d = 0;
@@ -14,9 +14,11 @@ let num_stars = 300;
 let stars = new Array(num_stars);
 let dif = 128.0;
 
+// Field of view values for star perspective
 let hfov = 100 * Math.PI / 180;
 let vfov = 80 * Math.PI / 180;
 
+// View distance variables
 let hViewDistance, vViewDistance;
 let cx, cy, distance;
 
@@ -113,8 +115,8 @@ export function Draw3DStars() {
 // Initialize function that should be called when setting up the starfield
 export function init3DStarfield(context, canvasWidth, canvasHeight) {
     ctx = context;
-    WIDTH = canvasWidth;
-    height_3d = canvasHeight;
+    WIDTH = canvasWidth || window.innerWidth || 800; // Default to canvas width, window width, or fallback to 800
+    height_3d = canvasHeight || window.innerHeight || 600; // Default to canvas height, window height, or fallback to 600
     
     cx = WIDTH / 2;
     cy = height_3d / 2;

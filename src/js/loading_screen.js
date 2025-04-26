@@ -1,12 +1,13 @@
 // filepath: d:\Sites\games\Tetris\src\js\loading_screen.js
 import { canvas, ctx, WIDTH, HEIGHT, DrawBitmapText, DrawBitmapTextSmall, clearScreen } from './functions.js';
 import { Draw3DStars } from './starfield_3d.js';
+import { UI } from './config/config.js';
 
 /**
  * LOADING SCREEN MODULE
  * 
  * This module implements a graphical loading screen that displays:
- * - A logo with sine wave animation
+ * - A logo centered on screen
  * - 3D star field background
  * - Loading progress bar
  * - "Press SPACE to start" prompt after loading completes
@@ -19,7 +20,6 @@ import { Draw3DStars } from './starfield_3d.js';
 let logo_img;           // Game logo image
 let fonts_big_img;      // Big font bitmap
 let fonts_small_img;    // Small font bitmap
-let background_img;     // Background image
 
 // Loading screen state variables
 let loadingProgress = 0;      // Progress from 0.0 to 1.0
@@ -32,13 +32,11 @@ let logoSineCounter = 0;      // Counter for sine wave animation of logo
  * Initialize the loading screen module with required images
  * 
  * @param {Image} logoImage - The game logo image
- * @param {Image} backImage - Background image for loading screen
  * @param {Image} fontsBigImage - Big fonts image
  * @param {Image} fontsSmallImage - Small fonts image
  */
-export function initLoadingScreen(logoImage, backImage, fontsBigImage, fontsSmallImage) {
+export function initLoadingScreen(logoImage, fontsBigImage, fontsSmallImage) {
     logo_img = logoImage;
-    background_img = backImage;
     fonts_big_img = fontsBigImage;
     fonts_small_img = fontsSmallImage;
 }
@@ -63,8 +61,7 @@ export function updateLoadingProgress(current, total) {
  * Draw the loading screen with all its elements
  * - Clears the screen
  * - Draws 3D stars background
- * - Shows background image (if loaded)
- * - Animates and displays the logo (if loaded)
+ * - Displays the logo (static, centered)
  * - Draws loading progress bar
  * - Shows "Press SPACE to start" when loading is complete
  */
@@ -75,45 +72,48 @@ export function drawLoadingScreen() {
     // Draw 3D stars in background
     Draw3DStars();
     
-    // Draw background if loaded (with slight transparency)
-    if (background_img && background_img.complete) {
-        ctx.globalAlpha = 0.7; // Make background slightly transparent
-        ctx.drawImage(background_img, 0, 0, WIDTH, HEIGHT);
-        ctx.globalAlpha = 1.0;
-    }
+    // Calculate the vertical center of the screen
+    const screenCenterY = HEIGHT / 2;
     
-    // Draw animated logo with sine wave effect if loaded
-    if (logo_img && logo_img.complete) {
-        logoSineCounter += 0.8;
-        for (let l = 0; l < 100; l++) {
-            const n = (logoSineCounter + l) * 2;
-            let m = Math.sin(n/180*3.14) * 30;
-            let height = m + 15;
-            
-            if (height < 5) height = 5;
-            if (height > 20) height = 20;
-
-            ctx.drawImage(logo_img, 0, l, 321, 1, m + 240, l+60, 321, height);
-        }
-    }
-    
-    // Draw loading bar container and progress
-    const barWidth = 400;
-    const barHeight = 20;
+    // Define loading bar dimensions and position
+    const barWidth = UI.LOADING_BAR_WIDTH;
+    const barHeight = UI.LOADING_BAR_HEIGHT;
     const barX = (WIDTH - barWidth) / 2;
-    const barY = HEIGHT / 2 + 50;
     
-    // Bar border (dark gray)
-    ctx.fillStyle = '#444';
-    ctx.fillRect(barX - 3, barY - 3, barWidth + 6, barHeight + 6);
+    // The loading bar will be positioned slightly below the center
+    const barY = screenCenterY + 80;
     
-    // Bar background (darker gray)
-    ctx.fillStyle = '#222';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
-    
-    // Progress bar (gold color)
-    ctx.fillStyle = '#ffcc00';
-    ctx.fillRect(barX, barY, barWidth * loadingProgress, barHeight);
+    // Draw static logo without sine wave effect if loaded
+    if (logo_img && logo_img.complete) {
+        // Use new logo dimensions
+        const logoWidth = 872;
+        const logoHeight = 273;
+        
+        // Calculate available space with respect to MAX_LOGO_WIDTH setting
+        const maxLogoWidth = UI.MAX_LOGO_WIDTH;
+        const availableWidth = Math.min(WIDTH * 0.9, maxLogoWidth);
+        const availableHeight = HEIGHT * 0.4; // Use up to 40% of screen height for logo
+        
+        // Calculate the scaling factors for both dimensions
+        const scaleFactorWidth = availableWidth / logoWidth;
+        const scaleFactorHeight = availableHeight / logoHeight;
+        
+        // Use the smaller scale factor to ensure the logo fits entirely
+        const scaleFactor = Math.min(scaleFactorWidth, scaleFactorHeight);
+        
+        // Calculate the display dimensions
+        const displayWidth = logoWidth * scaleFactor;
+        const displayHeight = logoHeight * scaleFactor;
+        
+        // Center the logo horizontally and position it above "LOADING" text
+        const logoX = (WIDTH - displayWidth) / 2;
+        
+        // Position logo at 25% from top on smaller screens, higher up on larger screens
+        const logoY = HEIGHT * 0.25 - displayHeight / 2;
+        
+        // Draw the logo as a complete image without slicing or sine effect
+        ctx.drawImage(logo_img, logoX, logoY, displayWidth, displayHeight);
+    }
     
     // Create a beautiful "LOADING" text above the bar - NO SINE EFFECT
     if (fonts_big_img && fonts_big_img.complete) {
@@ -151,6 +151,18 @@ export function drawLoadingScreen() {
         ctx.shadowBlur = 0;
         ctx.shadowColor = 'transparent';
     }
+    
+    // Bar border (dark gray)
+    ctx.fillStyle = '#444';
+    ctx.fillRect(barX - 3, barY - 3, barWidth + 6, barHeight + 6);
+    
+    // Bar background (darker gray)
+    ctx.fillStyle = '#222';
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+    
+    // Progress bar (gold color)
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(barX, barY, barWidth * loadingProgress, barHeight);
     
     // Progress percentage - position it below the loading bar with a subtle fade effect
     const percentText = `${Math.floor(loadingProgress * 100)}%`;

@@ -213,7 +213,7 @@ function loadGraphicsAsync() {
     // Initialize the loading screen with the required images
     // We pass images immediately even though they might not be fully loaded yet
     // The loading screen will handle this gracefully
-    initLoadingScreen(logo_img, back_intro_img, fonts_big_img, fonts_small_img);
+    initLoadingScreen(logo_img, fonts_big_img, fonts_small_img);
     
     // Setup onload handler for each image
     const onImageLoad = (img, id) => {

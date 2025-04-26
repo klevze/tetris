@@ -14,10 +14,10 @@ export const GAME_STATES = {
     PAUSED: 'paused'
 };
 
-// Canvas dimensions
+// Canvas dimensions (these will be overridden by setCanvasSize in functions.js)
 export const CANVAS = {
-    WIDTH: 800,
-    HEIGHT: 600
+    WIDTH: window.innerWidth || 800,   // Default to window width or 800px fallback
+    HEIGHT: window.innerHeight || 600  // Default to window height or 600px fallback
 };
 
 // Grid settings
@@ -88,7 +88,7 @@ export const IMAGES = {
     INTRO_BACKGROUND: '/images/back_intro_screen.jpg',
     FONTS_BIG: '/images/fonts_big.png',
     FONTS_SMALL: '/images/fonts_small.png',
-    LOGO: '/images/logo_gold.png',
+    LOGO: '/images/logo.webp',
     CONTROLS: '/images/controls.png'
 };
 
@@ -106,6 +106,13 @@ export const POINTS = {
     DOUBLE: 300,      // Points for 2 lines clear
     TRIPLE: 500,      // Points for 3 lines clear
     TETRIS: 800       // Points for 4 lines clear
+};
+
+// User Interface settings
+export const UI = {
+    MAX_LOGO_WIDTH: 800,     // Maximum width for the logo in pixels
+    LOADING_BAR_WIDTH: 400,  // Width of the loading progress bar
+    LOADING_BAR_HEIGHT: 20   // Height of the loading progress bar
 };
 
 // Touch controls settings
