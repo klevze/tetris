@@ -126,11 +126,16 @@ export function drawLoadingScreen() {
         ctx.fillText("LOADING", WIDTH / 2, barY - 20);
     }
     
-    // Progress percentage inside bar
-    ctx.fillStyle = '#fff';
-    ctx.font = '14px Arial';
+    // Progress percentage - position it below the loading bar
+    ctx.fillStyle = '#444'; // Text shadow for better readability
+    ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(`${Math.floor(loadingProgress * 100)}%`, WIDTH / 2, barY + 15);
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${Math.floor(loadingProgress * 100)}%`, WIDTH / 2 + 1, barY + barHeight + 5 + 1);
+    
+    // Actual text in white on top of the shadow
+    ctx.fillStyle = '#fff';
+    ctx.fillText(`${Math.floor(loadingProgress * 100)}%`, WIDTH / 2, barY + barHeight + 5);
     
     // Show "Press SPACE to start" when loading is done, with blinking effect
     if (showPressSpace) {
@@ -140,13 +145,13 @@ export function drawLoadingScreen() {
         // Only show text during first half of blink cycle
         if (spaceBlinkCounter < 30) {
             if (fonts_small_img && fonts_small_img.complete) {
-                DrawBitmapTextSmall("PRESS SPACE TO START", 0, barY + 80, 1, 1, 20);
+                DrawBitmapTextSmall("PRESS SPACE TO START", 0, barY + barHeight + 40, 1, 1, 20);
             } else {
                 // Fallback text if font image not loaded
                 ctx.fillStyle = '#fff';
                 ctx.font = '18px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText("PRESS SPACE TO START", WIDTH / 2, barY + 80);
+                ctx.fillText("PRESS SPACE TO START", WIDTH / 2, barY + barHeight + 40);
             }
         }
     }
