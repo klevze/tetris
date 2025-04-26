@@ -11,20 +11,25 @@ import {
 } from './block.js';
 import { initEventHandlers, updateGameState, eventSpace, eventSpaceFunc, game_state as events_game_state } from './events.js';
 import { ShowGameOver, initGameOver, saveHighScoreData, player_name } from './game_over.js';
-import { initHighScore, ShowHighScore, LoadHighScoreData, ShowIntroScreen, setGameStats } from './high_score.js';
-import { initLoadingScreen, updateLoadingProgress, drawLoadingScreen, isLoadingComplete, hidePressSpace } from './loading_screen.js';
+import { initHighScore, ShowHighScore, LoadHighScoreData } from './high_score.js';
+import {
+  initLoadingScreen, updateLoadingProgress, isLoadingComplete, hidePressSpace, handleLoadingState
+} from './gameplay/loading_state.js';
 import {
   FPS, GRID_WIDTH, GRID_HEIGHT, BLOCK_WIDTH, GRID_POS_X, GRID_POS_Y,
   INITIAL_SCORE, INITIAL_LINES, INITIAL_LEVEL, INITIAL_LEVEL_GOAL, INITIAL_GAME_STATE,
   IMAGES, AUDIO, ANIMATION, STORAGE_KEYS, GAME_STATES
 } from './config/config.js';
 import { registerImage } from './assetManager.js';
+import {
+  initMainState, startMainGame, handleMainGameState, startGameTimer,
+  togglePause, getGameStats, setBlockFinish
+} from './gameplay/main_state.js';
+import {
+  initIntroState, handleIntroState, setGameStats, startNewGame
+} from './gameplay/intro_state.js';
 
 // Game variables
-let score = INITIAL_SCORE;
-let lines = INITIAL_LINES;
-let level = INITIAL_LEVEL;
-let level_goal = INITIAL_LEVEL_GOAL;
 let game_state = INITIAL_GAME_STATE; // Initial game state set to loading screen
 
 // Make game_state accessible globally to allow other modules to update it
@@ -32,17 +37,6 @@ window.game_state = game_state;
 
 let game_pause = false;
 let music_on = true;
-let TotalSeconds = 0;
-let spc = 0;
-let fsx = 0;
-let block_finish = true;
-let crs = 0;
-let showAddScore = false;
-let sine_counter = 0;
-let sine_counterS = 0;
-let high_scores = [];
-let sac = 0;
-let addScore = 0;
 let audioInitialized = false; // Flag to track audio initialization status
 
 // Animation frame timing variables
@@ -102,11 +96,7 @@ export async function init() {
   init3DStarfield(ctx, WIDTH, HEIGHT);
   
   // Initialize high score module with game state change callback
-  initHighScore(ctx, WIDTH, logo_img, {
-    keyDown: function(){}, 
-    keyUp: function(){}, 
-    mouseDown: function(){}
-  }, handleGameStateChange);
+  initHighScore(ctx, WIDTH);
   
   // Start game loop using requestAnimationFrame
   requestAnimationFrame(gameLoop);
@@ -232,6 +222,36 @@ function loadGraphicsAsync() {
       if (loadedImages === totalImages) {
         console.log('All images loaded successfully');
         imagesLoaded = true;
+        
+        // Initialize main game state module with loaded assets
+        const imageAssets = {
+          background,
+          controls: controls_img,
+          back_intro: back_intro_img,
+          logo: logo_img,
+          level2: level2_img,
+          level3: level3_img,
+          level4: level4_img,
+          level5: level5_img,
+          level6: level6_img,
+          level7: level7_img,
+          level8: level8_img,
+          level9: level9_img,
+          level10: level10_img,
+          grid: grid_img,
+          blocks: lego,
+          fonts_big: fonts_big_img,
+          fonts_small: fonts_small_img
+        };
+        
+        const audioAssets = {
+          clear_line: clear_line_audio
+        };
+        
+        // Initialize all state modules
+        initMainState(imageAssets, audioAssets, handleGameStateChange);
+        initIntroState(imageAssets, handleGameStateChange);
+        
         resolve();
       }
     };
@@ -302,95 +322,6 @@ function loadAudioAsync() {
   });
 }
 
-function startGameTimer() {
-  // Update game timer
-  if (game_pause !== true) {
-    TotalSeconds += 1;
-  }
-  setTimeout(startGameTimer, 1000);
-}
-
-function showScore() {
-  // Display the game score, lines, level and time
-  let timer;
-  
-  const hours = parseInt(TotalSeconds / 3600) % 24;
-  const minutes = parseInt(TotalSeconds / 60) % 60;
-  const seconds = TotalSeconds % 60;
-  
-  spc++;
-  let seper = ' : ';
-  if (spc > 30) {
-    seper = '   ';
-  }
-  if (spc > 60) {
-    spc = 0;
-  }
-  
-  timer = (minutes < 10 ? "0" + minutes : minutes) + seper + (seconds < 10 ? "0" + seconds : seconds);
-  
-  ctx.font = 'normal 15px sans-serif';
-  ctx.textBaseline = 'top';
-  ctx.textAlign = 'right';
-
-  ctx.fillStyle = '#000';
-  ctx.fillText(score, 235, 345);
-  ctx.fillText(lines, 235, 405);
-  ctx.fillText(level, 235, 465);
-  ctx.fillText(timer, 235, 525);
-  
-  ctx.fillStyle = '#ccc';
-  ctx.fillText(score, 234, 344);
-  ctx.fillText(lines, 234, 404);
-  ctx.fillText(level, 234, 464);
-  ctx.fillText(timer, 234, 524);
-  
-  // Show score addition animation when clearing lines
-  if (showAddScore) {
-    DrawBitmapTextSmall("+" + addScore, 360, 235, 0, 0);
-    sac++;
-    if (sac > ANIMATION.SCORE_DISPLAY_FRAMES) {
-      sac = 0;
-      showAddScore = false;
-    }
-  }
-}
-
-function startMainGame() {
-  // Start a new game
-  score = INITIAL_SCORE;
-  lines = INITIAL_LINES;
-  level = INITIAL_LEVEL;
-  level_goal = INITIAL_LEVEL_GOAL;
-  
-  // Initialize the game grid first
-  const gridParams = { 
-    grid_width: GRID_WIDTH, 
-    grid_height: GRID_HEIGHT, 
-    grid_pos_x: GRID_POS_X, 
-    grid_pos_y: GRID_POS_Y, 
-    block_width: BLOCK_WIDTH 
-  };
-  setupGrid(ctx, gridParams, clear_line_audio);
-  initGrid();
-  
-  // Get the initialized grid state and pass it to the block handler
-  const gridState = getGridState(); 
-  
-  // Initialize the block handler with the properly initialized grid
-  setupBlockHandler(ctx, gridState, lego, gridParams);
-  
-  // Connect the drawBlock function from block.js to grid.js
-  setDrawBlockFunction(drawBlock);
-  
-  // Setup game state
-  game_state = GAME_STATES.PLAY_GAME;
-  window.game_state = GAME_STATES.PLAY_GAME; // Update the global reference
-  block_finish = true;
-  TotalSeconds = 0;
-  updateGameState(game_state);
-}
-
 /**
  * Main game loop - renders different screens based on game state
  * Handles transitions between game states (loading → intro → play → etc)
@@ -410,16 +341,11 @@ function draw() {
 
   // Handle loading screen state
   if (game_state === GAME_STATES.LOADING) {
-    // Show the loading screen with progress bar and stars
-    drawLoadingScreen();
-    
-    // If loading is complete and space is pressed, proceed to intro screen
-    if (isLoadingComplete() && eventSpace.pressed) {
-      hidePressSpace();           // Hide "Press SPACE" prompt
-      game_state = GAME_STATES.GAME_INTRO;  // Switch to intro screen
-      window.game_state = GAME_STATES.GAME_INTRO; // Update the global reference
-      eventSpace.pressed = false; // Reset space key state
-    }
+    // Use the loading state module
+    handleLoadingState(eventSpace, (newState) => {
+      game_state = newState;
+      window.game_state = newState;
+    });
     return;
   }
   
@@ -437,139 +363,50 @@ function draw() {
   // Handle appropriate action based on game state
   if (game_state === GAME_STATES.GAME_START) {
     console.log("Starting main game");
-    startMainGame();
+    game_state = startMainGame();
+    window.game_state = game_state;
+    updateGameState(game_state);
   }
   
   if (game_state === GAME_STATES.GAME_INTRO) {
-    clearScreen('#000');
-    showBackground(back_intro_img, fsx, 0, WIDTH, HEIGHT);
-    Draw3DStars();
-    
-    // No need to re-initialize high score module here as we do it in init()
-    if (!high_scores || high_scores.length === 0) {
-      high_scores = LoadHighScoreData();
-    }
-    
-    // Show intro screen
-    ShowIntroScreen();
+    // Use the intro state module to handle the intro screen
+    handleIntroState((newState) => {
+      game_state = newState;
+      window.game_state = newState;
+      updateGameState(newState);
+    });
+    return;
   }
   
   if (game_state === GAME_STATES.GAME_OVER) {
     clearScreen('#000');
-    showBackground(back_intro_img, fsx, 0, WIDTH, HEIGHT);
+    showBackground(back_intro_img, 0, 0, WIDTH, HEIGHT);
     Draw3DStars();
     
     // Initialize game over screen
-    initGameOver(ctx, score, function(){});
+    initGameOver(ctx, getGameStats().score, function(){});
     ShowGameOver();
     
     // Save game stats for high scores
-    setGameStats(lines, level, TotalSeconds);
+    setGameStats(getGameStats().lines, getGameStats().level, getGameStats().time);
     return;
   }
   
   if (game_state === GAME_STATES.HIGH_SCORE) {
     clearScreen('#000');
-    showBackground(background, fsx, 0, 1280, HEIGHT);
+    showBackground(background, 0, 0, 1280, HEIGHT);
     Draw3DStars();
     ShowHighScore();
     return;
   }
   
   if (game_state === GAME_STATES.PLAY_GAME) {
-    if (game_pause === true) {
-      // Show pause screen
-      clearScreen('#000');
-      showBackground(back_intro_img, fsx, 0, WIDTH, HEIGHT);
-      showBackground(controls_img, fsx, 510, WIDTH, 89);
-      Draw3DStars();
-      
-      // Animate logo
-      let k = 0;
-      k += 0.8;
-      for (let l = 0; l < 100; l++) {
-        const n = (k + l) * 2;
-        let m = Math.sin(n/180*3.14) * 30;
-        let height = m + 15;
-        
-        if (height < 5) {
-          height = 5;
-        }
-        if (height > 20) {
-          height = 20;
-        }
-
-        ctx.drawImage(logo_img, 0, l, 321, 1, m + 240, l+60, 321, height);
-      }
-      
-      DrawBitmapText("GAME PAUSED", 0, HEIGHT/2-80, 1, 1, 50);
-      DrawBitmapTextSmall("PRESS P TO RESUME YOUR GAME", 0, HEIGHT/2+40, 0, 1, 20);
-      
-      return;
-    } else {
-      // Normal gameplay
-      clearScreen('#000');
-      
-      // Show appropriate background based on level
-      if (level === 10) {
-        showBackground(level10_img, fsx, 0, WIDTH, HEIGHT);
-      } else if (level === 9) {
-        showBackground(level9_img, fsx, 0, WIDTH, HEIGHT);
-      } else if (level === 8) {
-        showBackground(level8_img, fsx, 0, WIDTH, HEIGHT);
-      } else if (level === 7) {
-        showBackground(level7_img, fsx, 0, WIDTH, HEIGHT);
-      } else if (level === 6) {
-        showBackground(level6_img, fsx, 0, WIDTH, HEIGHT);
-      } else if (level === 5) {
-        showBackground(level5_img, fsx, 0, WIDTH, HEIGHT);
-      } else if (level === 4) {
-        showBackground(level4_img, fsx, 0, WIDTH, HEIGHT);
-      } else if (level === 3) {
-        showBackground(level3_img, fsx, 0, WIDTH, HEIGHT);
-      } else if (level === 2) {
-        showBackground(level2_img, fsx, 0, WIDTH, HEIGHT);
-      } else {
-        showBackground(background, fsx, 0, WIDTH, HEIGHT);
-      }
-      
-      showBackground(grid_img, 0, 0, WIDTH, HEIGHT);
-     
-      if (block_finish === true) {
-        newBlock();
-        block_finish = false;
-      }
-      
-      // Process block movement
-      const moveResult = moveBlock(level);
-      if (!moveResult) {
-        // Game over condition
-        game_state = GAME_STATES.GAME_OVER;
-        window.game_state = GAME_STATES.GAME_OVER; // Update the global reference
-      }
-      
-      // Check for completed rows and update score
-      const rowResult = checkRows();
-      if (rowResult) {
-        score = rowResult.score;
-        lines = rowResult.lines;
-        level = rowResult.level;
-        showAddScore = rowResult.showAddScore;
-        addScore = rowResult.addScore;
-      }
-      
-      // Render the game elements
-      fillGrid();
-      showNextBlock(575, 100);
-      showHoldBlock(110, 100);
-      showScore();
-      
-      // Process row clearing
-      crs++;
-      if (crs % 10 === 0) {
-        clearRows();
-      }
-    }
+    // Use the main state module to handle the gameplay
+    handleMainGameState((newState) => {
+      game_state = newState;
+      window.game_state = newState;
+      updateGameState(newState);
+    });
   }
 }
 
@@ -584,11 +421,6 @@ window.addEventListener("keydown", function(e) {
     e.preventDefault();
   }
 }, false);
-
-// Confirm before leaving the page
-window.onbeforeunload = function() {
-//  return 'Do you want to leave Tetris game?';
-};
 
 // Function to initialize audio after user interaction
 export function initAudio() {
@@ -607,4 +439,10 @@ export function initAudio() {
         });
     }
   }
+}
+
+// Export game pause toggle for events.js to use
+export function toggleGamePause() {
+  game_pause = togglePause();
+  return game_pause;
 }

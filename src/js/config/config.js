@@ -25,8 +25,12 @@ export const GRID = {
     WIDTH: 10,
     HEIGHT: 18,
     BLOCK_WIDTH: 30,
-    POS_X: 277 ,
-    POS_Y: 28  // Increased from 10 to move blocks down by 15px
+    // We'll calculate these dynamically in the setupGrid function
+    POS_X: 277,
+    POS_Y: 28,  // Increased from 10 to move blocks down by 15px
+    // Offset values for aligning blocks with grid image
+    OFFSET_X: 80, // Horizontal adjustment to align blocks with grid (changed from 85 to 80)
+    OFFSET_Y: -10  // Vertical adjustment (move blocks up by 10px)
 };
 
 // Individual grid values (for backwards compatibility)
@@ -85,7 +89,7 @@ export const IMAGES = {
     BACKGROUND_LEVEL8: '/images/tetris_main_back_level8.jpg',
     BACKGROUND_LEVEL9: '/images/tetris_main_back_level9.jpg',
     BACKGROUND_LEVEL10: '/images/tetris_main_back_level10.jpg',
-    INTRO_BACKGROUND: '/images/back_intro_screen.jpg',
+    INTRO_BACKGROUND: '/images/main_background.webp',
     FONTS_BIG: '/images/fonts_big.png',
     FONTS_SMALL: '/images/fonts_small.png',
     LOGO: '/images/logo.webp',

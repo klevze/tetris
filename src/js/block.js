@@ -9,9 +9,6 @@ let game_state, score = 0;
 let frame = 0, change_block = false, change_block_frame = 0;
 let level = 1; // Default level
 
-// X-offset for block rendering to match the background image
-const BLOCK_X_OFFSET = -30; // 30px left offset for all blocks
-
 /**
  * Block object - represents the currently active falling tetromino
  */
@@ -71,21 +68,22 @@ export function rotate() {
  * Render the current block at its position
  */
 export function showBlock() {
-    const x = Math.floor(grid_pos_x + Block.x * 30 + BLOCK_X_OFFSET);
-    const y = Math.floor(grid_pos_y + Block.y * 30);
+    // Calculate position of block in grid coordinates
+    const x = Math.floor(grid_pos_x + Block.x * block_width);
+    const y = Math.floor(grid_pos_y + Block.y * block_width);
     
     let xx = x;
     let yy = y;
     
     for (let i = 0; i < Block.shape.length; i++) {
         if (i % 4 == 0 && i > 0) {
-            yy += 30; // Use exact 30px height
+            yy += block_width; // Use exact block width
             xx = x;
         }
         if (Block.shape[i] == 1) {
             drawBlock(xx, yy, Block.type);
         }
-        xx += 30; // Use exact 30px width
+        xx += block_width; // Use exact block width
     }
 }
 
@@ -94,20 +92,20 @@ export function showBlock() {
  */
 export function showNextBlock(x, y) {
     // Move the next block 50px to the right by adding 50 to the x position
-    let xx = Math.floor(x + 50 + BLOCK_X_OFFSET);
+    let xx = Math.floor(x + 50);
     let yy = Math.floor(y);
     
     const next_shape = shapes[0][next_block];
     
     for (let i = 0; i < next_shape.length; i++) {
         if (i % 4 == 0 && i > 0) {
-            yy += 30; // Use exact 30px height
-            xx = Math.floor(x + 50 + BLOCK_X_OFFSET); // Also update this line with +50
+            yy += block_width; // Use exact block width
+            xx = Math.floor(x + 50); // Also update this line with +50
         }
         if (next_shape[i] == 1) {
             drawBlock(xx, yy, next_block);
         }
-        xx += 30; // Use exact 30px width
+        xx += block_width; // Use exact block width
     }
 }
 
@@ -119,20 +117,20 @@ export function showHoldBlock(x, y) {
         return;
     }
     
-    let xx = Math.floor(x + BLOCK_X_OFFSET);
+    let xx = Math.floor(x);
     let yy = Math.floor(y);
     
     const block_shape = shapes[0][hold_block];
     
     for (let i = 0; i < block_shape.length; i++) {
         if (i % 4 == 0 && i > 0) {
-            yy += 30; // Use exact 30px height
-            xx = Math.floor(x + BLOCK_X_OFFSET);
+            yy += block_width; // Use exact block width
+            xx = Math.floor(x);
         }
         if (block_shape[i] == 1) {
             drawBlock(xx, yy, hold_block);
         }
-        xx += 30; // Use exact 30px width
+        xx += block_width; // Use exact block width
     }
 }
 
@@ -182,8 +180,8 @@ export function drawBlock(x, y, type) {
         30 - bufferHeight, 
         drawX, 
         drawY, 
-        30, // Force 30px width
-        30  // Force 30px height
+        block_width, // Use block_width instead of hardcoded 30
+        block_width  // Use block_width instead of hardcoded 30
     );
 }
 
@@ -197,7 +195,8 @@ export function drawFallingBlock(x, y, type, color_block) {
         landingY++;
     }
     
-    const x_pos = Math.floor(grid_pos_x + Block.x * block_width + BLOCK_X_OFFSET);
+    // Calculate position based on grid coordinates - ensure perfect alignment
+    const x_pos = Math.floor(grid_pos_x + Block.x * block_width);
     const y_pos = Math.floor(grid_pos_y + landingY * block_width);
     
     let xx = x_pos;
@@ -206,12 +205,12 @@ export function drawFallingBlock(x, y, type, color_block) {
     // Draw ghost blocks
     for (let i = 0; i < Block.shape.length; i++) {
         if (i % 4 == 0 && i > 0) {
-            yy += 30; // Use exact 30px height
+            yy += block_width; // Use exact block width
             xx = x_pos;
         }
         
         if (Block.shape[i] == 1) {
-            const w = 28; // 30px - 2px buffer
+            const w = block_width - 2; // block_width - 2px buffer
             
             ctx.globalAlpha = 0.15;
             ctx.beginPath();
@@ -223,7 +222,7 @@ export function drawFallingBlock(x, y, type, color_block) {
             ctx.stroke();
             ctx.globalAlpha = 1;
         }
-        xx += 30; // Use exact 30px width
+        xx += block_width; // Use exact block width
     }
 }
 
@@ -237,7 +236,10 @@ export function newBlock() {
     score += level * 4;
     
     Block.rotate = 0;
-    Block.x = Math.floor(grid_width / 2) - 1; // Center block
+    
+    // Precisely center the block in the grid
+    // Math.floor ensures consistent positioning
+    Block.x = Math.floor(grid_width / 2) - 1;
     Block.y = 0;
     
     Block.shape = shapes[0][Block.type];

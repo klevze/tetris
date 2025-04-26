@@ -134,6 +134,94 @@ export function showBackground(image, x, y, width, height) {
 }
 
 /**
+ * Draw a background image centered on screen with exact dimensions
+ * @param {HTMLImageElement} image - Image to draw
+ * @param {number} width - Width to draw (or original image width if not specified)
+ * @param {number} height - Height to draw (or original image height if not specified)
+ */
+export function showCenteredBackground(image, width, height) {
+    if (!ctx) return;
+    
+    try {
+        // Check if image is valid
+        if (image && image.complete && image.naturalWidth !== 0) {
+            // Use image's natural dimensions if width/height not specified
+            const imgWidth = width || image.naturalWidth;
+            const imgHeight = height || image.naturalHeight;
+            
+            // Calculate centered position
+            const x = Math.floor((WIDTH - imgWidth) / 2);
+            const y = Math.floor((HEIGHT - imgHeight) / 2);
+            
+            // Draw the image centered on screen
+            ctx.drawImage(image, x, y, imgWidth, imgHeight);
+        } else {
+            // Fallback if image isn't loaded
+            ctx.fillStyle = '#333';
+            const w = width || WIDTH;
+            const h = height || HEIGHT;
+            const x = Math.floor((WIDTH - w) / 2);
+            const y = Math.floor((HEIGHT - h) / 2);
+            ctx.fillRect(x, y, w, h);
+        }
+    } catch (e) {
+        console.error("Error drawing centered background image:", e);
+        // Draw fallback
+        ctx.fillStyle = '#333';
+        const w = width || WIDTH;
+        const h = height || HEIGHT;
+        const x = Math.floor((WIDTH - w) / 2);
+        const y = Math.floor((HEIGHT - h) / 2);
+        ctx.fillRect(x, y, w, h);
+    }
+}
+
+/**
+ * Draw a background image stretched to cover the entire screen
+ * @param {HTMLImageElement} image - Image to draw
+ */
+export function showBackgroundCover(image) {
+    if (!ctx) return;
+    
+    try {
+        // Check if image is valid
+        if (image && image.complete && image.naturalWidth !== 0) {
+            // Calculate scaling to cover entire screen while maintaining aspect ratio
+            const imageRatio = image.naturalWidth / image.naturalHeight;
+            const screenRatio = WIDTH / HEIGHT;
+            
+            let drawWidth, drawHeight, x, y;
+            
+            if (screenRatio > imageRatio) {
+                // Screen is wider than image
+                drawWidth = WIDTH;
+                drawHeight = WIDTH / imageRatio;
+                x = 0;
+                y = (HEIGHT - drawHeight) / 2;
+            } else {
+                // Screen is taller than image
+                drawWidth = HEIGHT * imageRatio;
+                drawHeight = HEIGHT;
+                x = (WIDTH - drawWidth) / 2;
+                y = 0;
+            }
+            
+            // Draw the image to cover the entire screen
+            ctx.drawImage(image, x, y, drawWidth, drawHeight);
+        } else {
+            // Fallback if image isn't loaded
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        }
+    } catch (e) {
+        console.error("Error drawing background cover image:", e);
+        // Draw fallback
+        ctx.fillStyle = '#333';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    }
+}
+
+/**
  * Draw an image at a specific position
  * @param {HTMLImageElement} image - Image to draw
  * @param {number} x - X position

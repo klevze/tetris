@@ -20,9 +20,6 @@ let scoreTextPosition = { x: 0, y: 0 };
 let drawBlock; // Function reference for drawing blocks
 let rowsToBeCleared = []; // Track which rows are marked for clearing
 
-// X-offset for block rendering to match the background image
-const GRID_X_OFFSET = -30; // 30px left offset for all blocks
-
 /**
  * Check all rows for completions and mark them for clearing
  * @returns {Object} Game state including score, lines, level and animation state
@@ -162,8 +159,8 @@ export function fillGrid() {
             
             const blockType = gridData[x][y];
             if (blockType > 0) {
-                const renderX = grid_pos_x + x * 30 + GRID_X_OFFSET; // Use exact 30px width
-                const renderY = grid_pos_y + y * 30; // Use exact 30px height
+                const renderX = grid_pos_x + x * block_width; // Use block_width for dynamic sizing
+                const renderY = grid_pos_y + y * block_width; // Use block_width for dynamic sizing
                 
                 // Draw only if we have a valid block type
                 const blockTypeIndex = blockType - 1;
@@ -199,14 +196,14 @@ function renderScoreText() {
 export function showGrid(color) {
     // Draw vertical lines
     for (let x = 0; x <= grid_width; x++) {
-        const x1 = grid_pos_x + x * 30 + GRID_X_OFFSET;
-        DrawLine(x1, grid_pos_y, x1, grid_pos_y + grid_height * 30, color);
+        const x1 = grid_pos_x + x * block_width;
+        DrawLine(x1, grid_pos_y, x1, grid_pos_y + grid_height * block_width, color);
     }
     
     // Draw horizontal lines
     for (let y = 0; y <= grid_height; y++) {
-        const y1 = grid_pos_y + y * 30;
-        DrawLine(grid_pos_x + GRID_X_OFFSET, y1, grid_pos_x + grid_width * 30 + GRID_X_OFFSET, y1, color);
+        const y1 = grid_pos_y + y * block_width;
+        DrawLine(grid_pos_x, y1, grid_pos_x + grid_width * block_width, y1, color);
     }
 }
 
@@ -226,14 +223,50 @@ export function initGrid() {
  * @param {CanvasRenderingContext2D} context - Canvas context
  * @param {Object} params - Grid parameters
  * @param {HTMLAudioElement} audio - Audio for line clearing
+ * @param {HTMLImageElement} gridImage - The grid image
  */
-export function setupGrid(context, params, audio) {
+export function setupGrid(context, params, audio, gridImage) {
     ctx = context;
     grid_width = params.grid_width;
     grid_height = params.grid_height;
-    grid_pos_x = params.grid_pos_x;
-    grid_pos_y = params.grid_pos_y;
     block_width = params.block_width;
+    
+    // Get canvas dimensions from context
+    const canvasWidth = ctx.canvas.width / (window.devicePixelRatio || 1);
+    const canvasHeight = ctx.canvas.height / (window.devicePixelRatio || 1);
+    
+    // If grid image is provided and loaded, use its dimensions to calculate positioning
+    if (gridImage && gridImage.complete && gridImage.naturalWidth !== 0) {
+        const gridImgWidth = gridImage.naturalWidth;
+        const gridImgHeight = gridImage.naturalHeight;
+        
+        // Calculate centered position for grid image
+        const gridImgX = Math.floor((canvasWidth - gridImgWidth) / 2);
+        const gridImgY = Math.floor((canvasHeight - gridImgHeight) / 2);
+        
+        // Define the position of the actual play area within the grid image
+        // These are the offsets from the top-left corner of the grid image to the play area
+        // Using the horizontal offset from config
+        const playAreaOffsetX = 169 + 80; // X offset from grid image left edge to play area (adjusted to 80px)
+        const playAreaOffsetY = 48 - 15;  // Y offset from grid image top edge to play area (with -15px adjustment to move blocks up 5px more)
+        
+        // Set grid position - this is where the blocks will be drawn
+        grid_pos_x = gridImgX + playAreaOffsetX;
+        grid_pos_y = gridImgY + playAreaOffsetY;
+        
+        console.log(`Grid positioned at: ${grid_pos_x},${grid_pos_y} (based on grid image at ${gridImgX},${gridImgY})`);
+    } else {
+        // Fallback if grid image isn't available
+        const totalGridWidth = grid_width * block_width;
+        const totalGridHeight = grid_height * block_width;
+        
+        grid_pos_x = Math.floor((canvasWidth - totalGridWidth) / 2) + 80; // Add 80px right offset
+        grid_pos_y = Math.floor((canvasHeight - totalGridHeight) / 2) - 45; // Move up by 15px (was -40, adding 5px more)
+        
+        console.log(`Grid positioned at: ${grid_pos_x},${grid_pos_y} (fallback calculation with 80px right offset)`);
+    }
+    
+    // Store audio and reset game state
     clear_line_audio = audio;
     
     // Reset game state
