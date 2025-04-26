@@ -93,7 +93,8 @@ export function showBlock() {
  * Show next tetromino in the preview area
  */
 export function showNextBlock(x, y) {
-    let xx = Math.floor(x + BLOCK_X_OFFSET);
+    // Move the next block 50px to the right by adding 50 to the x position
+    let xx = Math.floor(x + 50 + BLOCK_X_OFFSET);
     let yy = Math.floor(y);
     
     const next_shape = shapes[0][next_block];
@@ -101,7 +102,7 @@ export function showNextBlock(x, y) {
     for (let i = 0; i < next_shape.length; i++) {
         if (i % 4 == 0 && i > 0) {
             yy += 30; // Use exact 30px height
-            xx = Math.floor(x + BLOCK_X_OFFSET);
+            xx = Math.floor(x + 50 + BLOCK_X_OFFSET); // Also update this line with +50
         }
         if (next_shape[i] == 1) {
             drawBlock(xx, yy, next_block);
