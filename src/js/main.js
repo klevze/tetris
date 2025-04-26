@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM content loaded, initializing Tetris game');
   
   // Get canvas reference
-  const canvas = document.getElementById('myCanvas');
+  const canvas = document.getElementById('mainCanvas');
   
   if (!canvas || !canvas.getContext) {
     console.error("Canvas not supported by browser");
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * Initialize the loading screen
  */
 function initializeLoadingScreen() {
-  const canvas = document.getElementById('myCanvas');
+  const canvas = document.getElementById('mainCanvas');
   const ctx = canvas.getContext('2d');
   
   // Simple loading animation while the asset manager initializes
@@ -76,7 +76,7 @@ function initializeLoadingScreen() {
  * @param {number} progress - Loading progress from 0 to 1
  */
 function updateLoadingProgress(progress) {
-  const canvas = document.getElementById('myCanvas');
+  const canvas = document.getElementById('mainCanvas');
   const ctx = canvas.getContext('2d');
   
   // Clear screen
@@ -261,7 +261,7 @@ function handleResize() {
   // Only redraw immediately if we're not in the game loop yet
   const state = getState();
   if (state.currentState === GAME_STATES.LOADING) {
-    const canvas = document.getElementById('myCanvas');
+    const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
     
     // Force a redraw of loading screen

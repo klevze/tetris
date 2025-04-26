@@ -81,7 +81,7 @@ export function initEventHandlers(blockRef, audioRef, stateRef, gridParams) {
     }
     
     // Initialize touch events
-    const canvas = document.getElementById('myCanvas');
+    const canvas = document.getElementById('mainCanvas');
     if (canvas) {
         // Touch events
         canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -103,7 +103,7 @@ export function initEventHandlers(blockRef, audioRef, stateRef, gridParams) {
  * Remove all event handlers
  */
 export function removeEventHandlers() {
-    const canvas = document.getElementById('myCanvas');
+    const canvas = document.getElementById('mainCanvas');
     
     document.removeEventListener('keydown', handleKeyDown);
     document.removeEventListener('keyup', handleKeyUp);

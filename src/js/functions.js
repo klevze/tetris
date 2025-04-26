@@ -21,7 +21,7 @@ let devicePixelRatio = 1;
 
 // Initialize canvas when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    canvas = document.getElementById('myCanvas');
+    canvas = document.getElementById('mainCanvas');
     if (canvas) {
         ctx = canvas.getContext('2d', { alpha: false }); // Alpha false for better performance
         setCanvasSize();
