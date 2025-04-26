@@ -17,14 +17,14 @@
   padding: 0;
 }
 
-html, body { 
+html, body {
   height: 100%;
   overflow: hidden; // Prevent scrolling on mobile
   touch-action: none; // Disable browser touch actions for better game control
 }
 
 body {
-  background: #000 url('/images/wood.jpg') no-repeat center center fixed;
+  background: #000 url('/images/background.webp') no-repeat center center fixed;
   background-size: cover;
   display: flex;
   align-items: center;
@@ -166,7 +166,13 @@ canvas {
 
 // Press animation for buttons
 @keyframes buttonPress {
-  0% { transform: scale(1); }
-  50% { transform: scale(0.95); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
