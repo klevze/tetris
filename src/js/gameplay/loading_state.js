@@ -1,7 +1,7 @@
-// filepath: d:\Sites\games\Tetris\src\js\loading_screen.js
-import { canvas, ctx, WIDTH, HEIGHT, DrawBitmapText, DrawBitmapTextSmall, clearScreen } from './functions.js';
-import { Draw3DStars } from './starfield_3d.js';
-import { UI } from './config/config.js';
+// filepath: d:\Sites\games\Tetris\src\js\gameplay\loading_state.js
+import { canvas, ctx, WIDTH, HEIGHT, DrawBitmapText, DrawBitmapTextSmall, clearScreen } from '../functions.js';
+import { Draw3DStars } from '../starfield_3d.js';
+import { UI, GAME_STATES } from '../config/config.js';
 
 /**
  * LOADING SCREEN MODULE
@@ -240,4 +240,28 @@ export function isLoadingComplete() {
  */
 export function hidePressSpace() {
     showPressSpace = false;
+}
+
+/**
+ * Handle the loading state
+ * Shows loading screen and handles transition to intro screen
+ * 
+ * @param {Object} eventSpace - Space key event object
+ * @param {Function} setGameState - Function to update the game state
+ * @returns {boolean} True if state was handled, false otherwise
+ */
+export function handleLoadingState(eventSpace, setGameState) {
+    // Show the loading screen with progress bar and stars
+    drawLoadingScreen();
+    
+    // If loading is complete and space is pressed, proceed to intro screen
+    if (isLoadingComplete() && eventSpace.pressed) {
+        hidePressSpace();           // Hide "Press SPACE" prompt
+        setGameState(GAME_STATES.GAME_INTRO); // Switch to intro screen
+        eventSpace.pressed = false; // Reset space key state
+        return true; // State transition handled
+    }
+    
+    // Still in loading state
+    return true;
 }
