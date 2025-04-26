@@ -18,6 +18,7 @@ import {
   INITIAL_SCORE, INITIAL_LINES, INITIAL_LEVEL, INITIAL_LEVEL_GOAL, INITIAL_GAME_STATE,
   IMAGES, AUDIO, ANIMATION, STORAGE_KEYS, GAME_STATES
 } from './config/config.js';
+import { registerImage } from './assetManager.js';
 
 // Game variables
 let score = INITIAL_SCORE;
@@ -215,9 +216,15 @@ function loadGraphicsAsync() {
     initLoadingScreen(logo_img, back_intro_img, fonts_big_img, fonts_small_img);
     
     // Setup onload handler for each image
-    const onImageLoad = () => {
+    const onImageLoad = (img, id) => {
       loadedImages++;
       console.log(`Loaded ${loadedImages} of ${totalImages} images`);
+      
+      // Register key images with the asset manager
+      if (id === 'LOGO') {
+        registerImage('LOGO', img);
+        console.log('Registered logo with asset manager');
+      }
       
       // Update loading progress for the loading screen
       updateLoadingProgress(loadedImages, totalImages);
@@ -247,7 +254,8 @@ function loadGraphicsAsync() {
     
     // Start loading all images
     imageObjects.forEach(item => {
-      item.img.onload = onImageLoad;
+      const id = Object.keys(IMAGES).find(key => IMAGES[key] === item.src);
+      item.img.onload = () => onImageLoad(item.img, id);
       item.img.onerror = () => onImageError(item.img, item.src);
       item.img.src = item.src;
     });

@@ -18,6 +18,19 @@ let progressCallback = null;
 let completeCallback = null;
 
 /**
+ * Register an externally loaded image with the asset manager
+ * This allows images loaded elsewhere to be retrieved via getImage()
+ * @param {string} id - Image identifier
+ * @param {HTMLImageElement} image - Already loaded image
+ */
+export function registerImage(id, image) {
+    if (image && image instanceof HTMLImageElement) {
+        assetCache.images[id] = image;
+        console.log(`Image '${id}' registered with asset manager`);
+    }
+}
+
+/**
  * Preload all game assets
  * @param {Function} onProgress - Progress callback with value between 0-1
  * @param {Function} onComplete - Called when all assets are loaded

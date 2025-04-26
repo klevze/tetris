@@ -209,205 +209,129 @@ export function DrawLine(x1, y1, x2, y2, color) {
 }
 
 /**
- * Draw text using bitmap font
+ * Draw text using standard canvas fonts instead of bitmap
+ * Preserves the same functionality as the original DrawBitmapText
  * @param {string} text - Text to display
  * @param {number} x - X position (0 for center)
  * @param {number} y - Y position
- * @param {number} color - Color index for bitmap font
+ * @param {number} colorIndex - Color index (0-5)
  * @param {number} sinEffect - Apply sine wave effect (0 or 1)
  * @param {number} sineSpeed - Speed of sine wave animation
  */
-export function DrawBitmapText(text, x, y, color, sinEffect, sineSpeed) {
+export function DrawBitmapText(text, x, y, colorIndex = 0, sinEffect = 0, sineSpeed = 0) {
     if (!ctx) return;
     
-    const fontsImage = getImage('FONTS_BIG');
+    // Define font properties
+    const fontSize = 28;
+    ctx.font = `bold ${fontSize}px 'Press Start 2P', 'Courier New', monospace`;
+    ctx.textBaseline = 'top';
     
-    // If the font image isn't available, fall back to regular text
-    if (!fontsImage || !fontsImage.complete || fontsImage.naturalWidth === 0) {
-        ctx.font = 'bold 24px Arial';
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = x === 0 ? 'center' : 'left';
-        ctx.textBaseline = 'top';
-        
-        if (x === 0) {
-            ctx.fillText(text, WIDTH/2, y);
-        } else {
-            ctx.fillText(text, x, y);
-        }
-        return;
+    // Determine text color based on colorIndex
+    const colors = [
+        '#FFFFFF', // white (default)
+        '#FFD700', // gold
+        '#FF0000', // red
+        '#00FF00', // green 
+        '#0000FF', // blue
+        '#FF00FF'  // magenta
+    ];
+    ctx.fillStyle = colors[colorIndex] || colors[0];
+    
+    // Add text shadow for depth
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    
+    // Calculate position (center if x is 0)
+    let posX = x;
+    if (x === 0) {
+        ctx.textAlign = 'center';
+        posX = WIDTH/2;
+    } else {
+        ctx.textAlign = 'left';
     }
     
-    try {
-        // Default values if not provided
-        sineSpeed = sineSpeed || 0;
-        sinEffect = sinEffect || 0;
-        
-        const font_width = 38;
-        const font_height = 36;
-        color *= font_height;
-        
-        const length = text.length + 1;
-        let posX = x;
-        
-        if (x === 0) {
-            posX = WIDTH/2 - length * font_width/2;
-        }
-        
-        // Process each character
-        for (let i = 0; i < text.length; i++) {
-            const charCode = text.charCodeAt(i);
-            
-            if (charCode === 32) { // Space
-                posX += font_width;
-                continue;
-            }
-            
-            // Calculate source position in bitmap font
-            let sourceX;
-            if (charCode >= 65 && charCode <= 90) { // A-Z
-                sourceX = (charCode - 65) * font_width;
-            } else if (charCode >= 49 && charCode <= 57) { // 1-9
-                sourceX = (charCode - 23) * font_width;
-            } else if (charCode === 48) { // 0
-                sourceX = (charCode - 13) * font_width;
-            } else {
-                posX += font_width;
-                continue; // Skip unsupported characters
-            }
-            
-            // Apply sine wave effect if enabled
-            let posY = y;
-            if (sinEffect) {
-                posY = y + Math.floor(Math.sin(sine_counter/20) * 2);
-                sine_counter += sineSpeed;
-            }
-            
-            // Draw the character
-            ctx.drawImage(
-                fontsImage,
-                sourceX, color,
-                font_width, font_height,
-                posX, posY,
-                font_width, font_height
-            );
-            
-            posX += font_width;
-        }
-    } catch (e) {
-        console.error("Error drawing bitmap text:", e);
-        
-        // Fall back to regular text
-        ctx.font = 'bold 24px Arial';
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = x === 0 ? 'center' : 'left';
-        ctx.textBaseline = 'top';
-        
-        if (x === 0) {
-            ctx.fillText(text, WIDTH/2, y);
-        } else {
-            ctx.fillText(text, x, y);
-        }
+    // Apply sine wave effect if enabled
+    let posY = y;
+    if (sinEffect) {
+        posY = y + Math.floor(Math.sin(sine_counter/20) * 3);
+        sine_counter += sineSpeed || 1;
     }
+    
+    // Draw the text with stroke for better visibility
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.strokeText(text, posX, posY);
+    ctx.fillText(text, posX, posY);
+    
+    // Reset shadow effects
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 }
 
 /**
- * Draw text using small bitmap font
+ * Draw small text using standard canvas fonts instead of bitmap
+ * Preserves the same functionality as the original DrawBitmapTextSmall
  * @param {string} text - Text to display
  * @param {number} x - X position (0 for center)
  * @param {number} y - Y position
- * @param {number} color - Color index for bitmap font
+ * @param {number} colorIndex - Color index (0-5)
  * @param {number} sinEffect - Apply sine wave effect (0 or 1)
  * @param {number} sineSpeed - Speed of sine wave animation
  */
-export function DrawBitmapTextSmall(text, x, y, color, sinEffect, sineSpeed) {
+export function DrawBitmapTextSmall(text, x, y, colorIndex = 0, sinEffect = 0, sineSpeed = 0) {
     if (!ctx) return;
     
-    const fontsImage = getImage('FONTS_SMALL');
+    // Define font properties
+    const fontSize = 16;
+    ctx.font = `bold ${fontSize}px 'Press Start 2P', 'Courier New', monospace`;
+    ctx.textBaseline = 'top';
     
-    // If the font image isn't available, fall back to regular text
-    if (!fontsImage || !fontsImage.complete || fontsImage.naturalWidth === 0) {
-        ctx.font = 'bold 16px Arial';
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = x === 0 ? 'center' : 'left';
-        ctx.textBaseline = 'top';
-        
-        if (x === 0) {
-            ctx.fillText(text, WIDTH/2, y);
-        } else {
-            ctx.fillText(text, x, y);
-        }
-        return;
+    // Determine text color based on colorIndex
+    const colors = [
+        '#FFFFFF', // white (default)
+        '#FFD700', // gold
+        '#FF0000', // red
+        '#00FF00', // green 
+        '#0000FF', // blue
+        '#FF00FF'  // magenta
+    ];
+    ctx.fillStyle = colors[colorIndex] || colors[0];
+    
+    // Add subtle text shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
+    
+    // Calculate position (center if x is 0)
+    let posX = x;
+    if (x === 0) {
+        ctx.textAlign = 'center';
+        posX = WIDTH/2;
+    } else {
+        ctx.textAlign = 'left';
     }
     
-    try {
-        // Default values if not provided
-        sineSpeed = sineSpeed || 0;
-        sinEffect = sinEffect || 0;
-        
-        const font_width = 19;
-        const font_height = 18;
-        color *= font_height;
-        
-        const length = text.length + 1;
-        let posX = x;
-        
-        if (x === 0) {
-            posX = WIDTH/2 - length * font_width/2;
-        }
-        
-        // Process each character
-        for (let i = 0; i < text.length; i++) {
-            const charCode = text.charCodeAt(i);
-            
-            if (charCode === 32) { // Space
-                posX += font_width;
-                continue;
-            }
-            
-            // Calculate source position in bitmap font
-            let sourceX;
-            if (charCode >= 65 && charCode <= 90) { // A-Z
-                sourceX = (charCode - 65) * font_width;
-            } else if (charCode >= 49 && charCode <= 57) { // 1-9
-                sourceX = (charCode - 23) * font_width;
-            } else if (charCode === 48) { // 0
-                sourceX = (charCode - 13) * font_width;
-            } else {
-                posX += font_width;
-                continue; // Skip unsupported characters
-            }
-            
-            // Apply sine wave effect if enabled
-            let posY = y;
-            if (sinEffect) {
-                posY = y + Math.floor(Math.sin(sine_counterS) * 2);
-                sine_counterS += sineSpeed;
-            }
-            
-            // Draw the character
-            ctx.drawImage(
-                fontsImage,
-                sourceX, color,
-                font_width, font_height,
-                posX, posY,
-                font_width, font_height
-            );
-            
-            posX += font_width;
-        }
-    } catch (e) {
-        console.error("Error drawing bitmap text small:", e);
-        
-        // Fall back to regular text
-        ctx.font = 'bold 16px Arial';
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = x === 0 ? 'center' : 'left';
-        ctx.textBaseline = 'top';
-        
-        if (x === 0) {
-            ctx.fillText(text, WIDTH/2, y);
-        } else {
-            ctx.fillText(text, x, y);
-        }
+    // Apply sine wave effect if enabled
+    let posY = y;
+    if (sinEffect) {
+        posY = y + Math.floor(Math.sin(sine_counterS) * 2);
+        sine_counterS += sineSpeed || 0.5;
     }
+    
+    // Draw the text with thin stroke for better visibility
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeText(text, posX, posY);
+    ctx.fillText(text, posX, posY);
+    
+    // Reset shadow effects
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 }

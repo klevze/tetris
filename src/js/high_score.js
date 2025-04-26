@@ -1,7 +1,7 @@
 import { DrawBitmapText, DrawBitmapTextSmall } from './functions.js';
 import { changeState } from './gameState.js';
 import { getImage } from './assetManager.js';
-import { GAME_STATES } from './config/config.js';
+import { GAME_STATES, IMAGES } from './config/config.js';
 
 // Variables that will be initialized
 let ctx, WIDTH;
@@ -214,12 +214,16 @@ export function ShowIntroScreen() {
 
     k += .8;
     
-    // Get logo from asset manager instead of passing as parameter
+    // Use direct image access to make sure we get the logo
     const logo_img = getImage('LOGO');
     
     try {
         // Check if logo_img is valid before drawing
         if (logo_img && logo_img.complete && logo_img.naturalWidth !== 0) {
+            // Debug - log the size of the logo image
+            console.log("Logo dimensions:", logo_img.width, "x", logo_img.height);
+            
+            // Draw the logo with sine wave animation
             for (let l = 0; l < 100; l++) {
                 const n = (k + l) * 2;
                 let m = Math.sin(n/180*3.14) * 30;
@@ -232,10 +236,12 @@ export function ShowIntroScreen() {
                     height = 30;
                 }
 
-                ctx.drawImage(logo_img, 0, l, 321, 1, m + 240, l, 321, height);
+                // Draw each horizontal slice of the logo
+                ctx.drawImage(logo_img, 0, l, 321, 1, m + 240, l+60, 321, height);
             }
         } else {
             // Fallback if the image isn't loaded yet
+            console.warn("Logo image not available, using fallback text");
             ctx.font = 'bold 40px Arial';
             ctx.fillStyle = '#ffcc00';
             ctx.textAlign = 'center';
