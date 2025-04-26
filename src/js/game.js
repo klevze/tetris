@@ -10,7 +10,6 @@ import {
   drawFallingBlock, newBlock, moveBlock, Block, storeBlock, drawBlock 
 } from './block.js';
 import { initEventHandlers, updateGameState, eventSpace, eventSpaceFunc, game_state as events_game_state } from './events.js';
-import { ShowGameOver, initGameOver, saveHighScoreData, player_name } from './game_over.js';
 import { initHighScore, ShowHighScore, LoadHighScoreData } from './high_score.js';
 import {
   initLoadingScreen, updateLoadingProgress, isLoadingComplete, hidePressSpace, handleLoadingState
@@ -28,6 +27,9 @@ import {
 import {
   initIntroState, handleIntroState, setGameStats, startNewGame
 } from './gameplay/intro_state.js';
+import {
+  initGameOverState, handleGameOverState, resetGameOverState, setGameOverData
+} from './gameplay/game_over_state.js';
 
 // Game variables
 let game_state = INITIAL_GAME_STATE; // Initial game state set to loading screen
@@ -251,6 +253,7 @@ function loadGraphicsAsync() {
         // Initialize all state modules
         initMainState(imageAssets, audioAssets, handleGameStateChange);
         initIntroState(imageAssets, handleGameStateChange);
+        initGameOverState(imageAssets, handleGameStateChange);
         
         resolve();
       }
@@ -379,16 +382,21 @@ function draw() {
   }
   
   if (game_state === GAME_STATES.GAME_OVER) {
-    clearScreen('#000');
-    showBackground(back_intro_img, 0, 0, WIDTH, HEIGHT);
-    Draw3DStars();
+    // Get current game stats before showing the game over screen
+    const gameStats = getGameStats();
     
-    // Initialize game over screen
-    initGameOver(ctx, getGameStats().score, function(){});
-    ShowGameOver();
+    // Update game over state with final score data
+    setGameOverData(gameStats.score, gameStats.level, gameStats.lines, gameStats.time);
     
-    // Save game stats for high scores
-    setGameStats(getGameStats().lines, getGameStats().level, getGameStats().time);
+    // Use the game over state module to handle the game over screen
+    handleGameOverState((newState) => {
+      game_state = newState;
+      window.game_state = newState;
+      updateGameState(newState);
+    });
+    
+    // Save game stats for high scores display on intro screen
+    setGameStats(gameStats.lines, gameStats.level, gameStats.time);
     return;
   }
   
