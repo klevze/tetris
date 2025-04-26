@@ -220,10 +220,7 @@ export function ShowIntroScreen() {
     try {
         // Check if logo_img is valid before drawing
         if (logo_img && logo_img.complete && logo_img.naturalWidth !== 0) {
-            // Debug - log the size of the logo image
-            console.log("Logo dimensions:", logo_img.width, "x", logo_img.height);
-            
-            // Draw the logo with sine wave animation
+            // Draw the logo with sine wave animation, moving it 20px higher (from 60 to 40)
             for (let l = 0; l < 100; l++) {
                 const n = (k + l) * 2;
                 let m = Math.sin(n/180*3.14) * 30;
@@ -236,8 +233,8 @@ export function ShowIntroScreen() {
                     height = 30;
                 }
 
-                // Draw each horizontal slice of the logo
-                ctx.drawImage(logo_img, 0, l, 321, 1, m + 240, l+60, 321, height);
+                // Draw each horizontal slice of the logo (changed y-position from l+60 to l+40)
+                ctx.drawImage(logo_img, 0, l, 321, 1, m + 240, l+40, 321, height);
             }
         } else {
             // Fallback if the image isn't loaded yet
@@ -245,7 +242,7 @@ export function ShowIntroScreen() {
             ctx.font = 'bold 40px Arial';
             ctx.fillStyle = '#ffcc00';
             ctx.textAlign = 'center';
-            ctx.fillText("TETRIS", WIDTH/2, 50);
+            ctx.fillText("TETRIS", WIDTH/2, 40); // Also moved higher (from 50 to 40)
         }
     } catch (e) {
         console.error("Error drawing logo:", e);
@@ -253,12 +250,14 @@ export function ShowIntroScreen() {
         ctx.font = 'bold 40px Arial';
         ctx.fillStyle = '#ffcc00';
         ctx.textAlign = 'center';
-        ctx.fillText("TETRIS", WIDTH/2, 50);
+        ctx.fillText("TETRIS", WIDTH/2, 40); // Also moved higher (from 50 to 40)
     }
 
-    DrawBitmapTextSmall("TOP PLAYERS", 0, 130, 1, 0, 66);
+    // Move "TOP PLAYERS" text further down to avoid overlap with the logo
+    // Changed from y=130 to y=170
+    DrawBitmapTextSmall("TOP PLAYERS", 0, 170, 1, 0, 0);
     
-    let y = 150;
+    let y = 200; // Changed initial y position from 150 to 200
     let p = 0;
     let ps = 0;
     
@@ -271,7 +270,8 @@ export function ShowIntroScreen() {
         }
         
         if(ps < 12) {
-            const m = Math.sin((k+ps*20) / 180 * 3.14) * 30;
+            // Reduce sine wave effect for score listings by dividing by 2
+            const m = Math.sin((k+ps*20) / 180 * 3.14) * 15; // Reduced from 30 to 15
             
             ctx.font = "15px Arial";
             ctx.textAlign = "left";
@@ -311,7 +311,8 @@ export function ShowIntroScreen() {
         y += 25;
     });
     
-    DrawBitmapTextSmall("PRESS SPACE OR CLICK TO START A NEW GAME", 0, 525, 1, 1, 1);
+    // Fix the jumping bottom text by removing the sine effect (changed 1,1,1 to 1,0,0)
+    DrawBitmapTextSmall("PRESS SPACE OR CLICK TO START A NEW GAME", 0, 525, 1, 0, 0);
 }
 
 /**

@@ -115,43 +115,100 @@ export function drawLoadingScreen() {
     ctx.fillStyle = '#ffcc00';
     ctx.fillRect(barX, barY, barWidth * loadingProgress, barHeight);
     
-    // "LOADING" text above bar
+    // Create a beautiful "LOADING" text above the bar - NO SINE EFFECT
     if (fonts_big_img && fonts_big_img.complete) {
-        DrawBitmapText("LOADING", 0, barY - 40, 1, 1, 30);
+        // Use DrawBitmapText but with sinEffect=0 to prevent jumping
+        DrawBitmapText("LOADING", 0, barY - 40, 1, 0, 0);
     } else {
-        // Fallback text if font image not loaded
-        ctx.fillStyle = '#fff';
-        ctx.font = '20px Arial';
+        // Enhanced fallback text if font image not loaded
+        ctx.font = 'bold 24px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText("LOADING", WIDTH / 2, barY - 20);
+        ctx.textBaseline = 'top';
+        
+        // Add a stylish glow effect
+        ctx.shadowColor = '#ffcc00';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        
+        // Draw text stroke for better visibility
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 5;
+        ctx.strokeText("LOADING", WIDTH / 2, barY - 44);
+        
+        // Fill the text with gold gradient
+        const gradient = ctx.createLinearGradient(
+            WIDTH / 2 - 60, barY - 44, 
+            WIDTH / 2 + 60, barY - 24
+        );
+        gradient.addColorStop(0, '#ffcc00');
+        gradient.addColorStop(0.5, '#fff');
+        gradient.addColorStop(1, '#ffcc00');
+        ctx.fillStyle = gradient;
+        ctx.fillText("LOADING", WIDTH / 2, barY - 44);
+        
+        // Reset shadow
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
     }
     
-    // Progress percentage - position it below the loading bar
-    ctx.fillStyle = '#444'; // Text shadow for better readability
+    // Progress percentage - position it below the loading bar with a subtle fade effect
+    const percentText = `${Math.floor(loadingProgress * 100)}%`;
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(`${Math.floor(loadingProgress * 100)}%`, WIDTH / 2 + 1, barY + barHeight + 5 + 1);
     
-    // Actual text in white on top of the shadow
-    ctx.fillStyle = '#fff';
-    ctx.fillText(`${Math.floor(loadingProgress * 100)}%`, WIDTH / 2, barY + barHeight + 5);
+    // Add a gentle shadow for depth
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
     
-    // Show "Press SPACE to start" when loading is done, with blinking effect
+    // Draw text with outline
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.strokeText(percentText, WIDTH / 2, barY + barHeight + 5);
+    
+    // Fill with gold color matching progress bar
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillText(percentText, WIDTH / 2, barY + barHeight + 5);
+    
+    // Reset shadow effects
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Show "PRESS SPACE TO START" when loading is done, with smooth blinking effect
     if (showPressSpace) {
         spaceBlinkCounter++;
-        if (spaceBlinkCounter > 60) spaceBlinkCounter = 0;
+        if (spaceBlinkCounter > 90) spaceBlinkCounter = 0;
         
-        // Only show text during first half of blink cycle
-        if (spaceBlinkCounter < 30) {
+        // Create a smooth fade effect rather than an abrupt on/off
+        const alpha = Math.sin(spaceBlinkCounter * Math.PI / 45);
+        
+        if (alpha > 0) {
             if (fonts_small_img && fonts_small_img.complete) {
-                DrawBitmapTextSmall("PRESS SPACE TO START", 0, barY + barHeight + 40, 1, 1, 20);
+                // Use sine effect 0 to prevent jumpiness
+                DrawBitmapTextSmall("PRESS SPACE TO START", 0, barY + barHeight + 40, 1, 0, 0);
             } else {
-                // Fallback text if font image not loaded
+                // Enhanced fallback with fade effect
+                ctx.globalAlpha = alpha;
                 ctx.fillStyle = '#fff';
-                ctx.font = '18px Arial';
+                ctx.font = 'bold 18px Arial';
                 ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                
+                // Add glow effect
+                ctx.shadowColor = '#ffcc00';
+                ctx.shadowBlur = 10;
+                
                 ctx.fillText("PRESS SPACE TO START", WIDTH / 2, barY + barHeight + 40);
+                
+                // Reset effects
+                ctx.shadowBlur = 0;
+                ctx.shadowColor = 'transparent';
+                ctx.globalAlpha = 1.0;
             }
         }
     }
