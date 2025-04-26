@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=800, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tetris</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="description" content="Tetris game - HTML5 implementation with modern features">
+  <meta name="keywords" content="tetris, game, puzzle, html5, canvas, free">
+  <script type="module">
+    import './styles/main.scss'
+  </script>
+</head>
+<body>
+  <div id="main">
+    <canvas id="myCanvas" width="800" height="600">
+      Your browser does not support HTML5 Canvas. Please use a modern browser.
+    </canvas>
+  </div>
+  
+  <!-- Touch controls for mobile devices -->
+  <div class="touch-controls">
+    <div class="controls-row">
+      <button id="rotate-btn">↻</button>
+    </div>
+    <div class="controls-row">
+      <button id="left-btn">←</button>
+      <button id="down-btn">↓</button>
+      <button id="right-btn">→</button>
+    </div>
+    <div class="controls-row">
+      <button id="hold-btn">H</button>
+      <button id="drop-btn">⤓</button>
+      <button id="pause-btn">‖</button>
+    </div>
+  </div>
+  
+  <!-- Orientation warning for mobile landscape -->
+  <div class="orientation-warning" style="display: none;">
+    <div>
+      <h2>Please rotate your device</h2>
+      <p>Tetris plays best in portrait orientation on mobile devices.</p>
+    </div>
+  </div>
+  
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
