@@ -1,12 +1,14 @@
 import { shapes, TETROMINOES } from './data_structures.js';
-import { isAnimationInProgress } from './grid.js';
+import { isAnimationInProgress, gridToScreenCoordinates, getGridState } from './grid.js';
 import { BLOCK } from './config/config.js'; // Import block configuration
+import { EVENTS, eventDispatcher } from './utils/functions.js';
 
 // Export the Block class and create wrapper functions for backward compatibility
 export { Block, currentBlock };
 
 // Variables that will be initialized by the game module
-let grid_width, grid_height, grid_pos_x, grid_pos_y, block_width;
+let grid_width, grid_height, block_width;
+let origin = { x: 0, y: 0 }; // Grid origin point (top-left corner)
 let gridData = {}; // Renamed from "mreza" to "gridData" for consistency
 let ctx, lego;
 let next_block, hold_block = -1;
@@ -103,13 +105,12 @@ class Block {
     }
 
     showBlock() {
-        // Calculate position of block in grid coordinates with consistent offset
-        const verticalOffset = -15; // Match the -5px offset used for placed blocks
-        const x = Math.floor(grid_pos_x + this.x * block_width);
-        const y = Math.floor(grid_pos_y + this.y * block_width) + verticalOffset;
+        // Calculate position of block in grid coordinates
+        // Remove the incorrect vertical offset
+        const screenPos = gridToScreenCoordinates(this.x, this.y);
         
-        let xx = x;
-        let yy = y;
+        let xx = screenPos.x;
+        let yy = screenPos.y;
         
         // Add a slight glow effect to make the active piece more visible
         ctx.save();
@@ -117,7 +118,7 @@ class Block {
         for (let i = 0; i < this.shape.length; i++) {
             if (i % 4 == 0 && i > 0) {
                 yy += block_width; // Use exact block width
-                xx = x;
+                xx = screenPos.x;
             }
             if (this.shape[i] == 1) {
                 // Draw with slight glow
@@ -138,19 +139,17 @@ class Block {
             landingY++;
         }
         
-        // Use the same consistent vertical offset as the other blocks
-        const verticalOffset = -15; // Match the -5px offset used for other blocks
-        const x_pos = Math.floor(grid_pos_x + this.x * block_width);
-        const y_pos = Math.floor(grid_pos_y + landingY * block_width) + verticalOffset;
+        // Remove the incorrect vertical offset
+        const screenPos = gridToScreenCoordinates(this.x, landingY);
         
-        let xx = x_pos;
-        let yy = y_pos;
+        let xx = screenPos.x;
+        let yy = screenPos.y;
         
         // Draw ghost blocks at landing position
         for (let i = 0; i < this.shape.length; i++) {
             if (i % 4 == 0 && i > 0) {
                 yy += block_width; // Use exact block width
-                xx = x_pos;
+                xx = screenPos.x;
             }
             
             if (this.shape[i] == 1) {
@@ -470,9 +469,14 @@ export function setupBlockHandler(context, gridState, blockImg, params) {
     lego = blockImg;
     grid_width = params.grid_width;
     grid_height = params.grid_height;
-    grid_pos_x = params.grid_pos_x;
-    grid_pos_y = params.grid_pos_y;
     block_width = params.block_width;
+    
+    // Use origin from gridState instead of separate x and y coordinates
+    if (gridState.origin) {
+        origin = gridState.origin;
+    } else {
+        origin = { x: params.grid_pos_x || 0, y: params.grid_pos_y || 0 };
+    }
     
     // Ensure gridData is properly initialized
     if (!gridData) {
@@ -502,6 +506,24 @@ export function setupBlockHandler(context, gridState, blockImg, params) {
     
     // Initialize game state
     game_state = "playing";
+    
+    // Listen for window resize events to update the grid origin
+    eventDispatcher.addEventListener(EVENTS.WINDOW_RESIZE, handleResize);
+}
+
+/**
+ * Handle window resize - update origin from grid state
+ * This keeps the falling block's position relative to the grid
+ */
+function handleResize() {
+    // Get updated grid state with new origin position
+    const gridState = getGridState();
+    
+    if (gridState.origin) {
+        // Update only the origin position, not the block's grid coordinates
+        // This maintains the block's relative position in the grid
+        origin = gridState.origin;
+    }
 }
 
 /**

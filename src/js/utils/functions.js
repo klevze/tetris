@@ -19,6 +19,30 @@ export let sine_counterS = 0;
 // Device pixel ratio for high DPI displays
 let devicePixelRatio = 1;
 
+// Event for notifying about canvas resize
+export const EVENTS = {
+    WINDOW_RESIZE: 'window_resize'
+};
+
+// Custom event dispatcher for resize events
+export const eventDispatcher = {
+    listeners: {},
+    addEventListener(event, callback) {
+        if (!this.listeners[event]) {
+            this.listeners[event] = [];
+        }
+        this.listeners[event].push(callback);
+    },
+    removeEventListener(event, callback) {
+        if (!this.listeners[event]) return;
+        this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+    },
+    dispatchEvent(event, data) {
+        if (!this.listeners[event]) return;
+        this.listeners[event].forEach(callback => callback(data));
+    }
+};
+
 // Initialize canvas when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     canvas = document.getElementById('mainCanvas');
@@ -29,10 +53,28 @@ document.addEventListener('DOMContentLoaded', () => {
         // Listen for orientation changes on mobile
         window.addEventListener('orientationchange', handleOrientationChange);
         handleOrientationChange(); // Check initial orientation
+
+        // Listen for window resize events
+        window.addEventListener('resize', handleWindowResize);
     } else {
         console.error('Canvas element not found');
     }
 });
+
+/**
+ * Handle window resize events
+ */
+function handleWindowResize() {
+    // Debounce the resize event to avoid excessive recalculations
+    if (handleWindowResize.timeoutId) {
+        clearTimeout(handleWindowResize.timeoutId);
+    }
+
+    handleWindowResize.timeoutId = setTimeout(() => {
+        const dimensions = setCanvasSize();
+        eventDispatcher.dispatchEvent(EVENTS.WINDOW_RESIZE, dimensions);
+    }, 100); // 100ms debounce time
+}
 
 /**
  * Set canvas size based on device and adjust for pixel ratio

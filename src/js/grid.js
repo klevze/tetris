@@ -1,5 +1,6 @@
 import { DrawLine } from './functions.js';
 import { BLOCK } from './config/config.js'; // Import block configuration
+import { EVENTS, eventDispatcher } from './utils/functions.js';
 
 /**
  * GRID MODULE
@@ -23,10 +24,18 @@ const ANIMATION_FRAMES = {
   DROP_BLOCKS: 20           // Time for blocks to drop down
 };
 
-// Variables that will be initialized by the game module
-let grid_width, grid_height, grid_pos_x, grid_pos_y, block_width;
+// Grid properties
+let grid_width, grid_height, block_width;
 let gridData = {}; // Grid storage - switched to object-based grid for memory efficiency
+
+// Grid origin point (top-left corner)
+let origin = { x: 0, y: 0 }; 
+
+// Canvas context and audio
 let ctx, clear_line_audio;
+
+// Remember parameters for grid recalculation on resize
+let canvasWidth, canvasHeight, verticalOffsetFactor;
 
 // Game variables
 let lines = 0, level = 1, level_goal = 10, score = 0;
@@ -93,8 +102,8 @@ class Particle {
  */
 function createParticles(row) {
   for (let x = 0; x < grid_width; x++) {
-    const posX = grid_pos_x + x * block_width + block_width / 2;
-    const posY = grid_pos_y + row * block_width + block_width / 2;
+    const posX = origin.x + x * block_width + block_width / 2;
+    const posY = origin.y + row * block_width + block_width / 2;
 
     // Create multiple particles per block
     for (let i = 0; i < 5; i++) {
@@ -125,7 +134,7 @@ function renderClearAnimation() {
 
     // Draw the entire cleared rows as solid WHITE rectangles - no gradual fade
     rowsToBeCleared.forEach(row => {
-      const rowY = grid_pos_y + row * block_width;
+      const rowY = origin.y + row * block_width;
 
       // SOLID WHITE with blue glow around it
       ctx.shadowColor = "rgba(100, 150, 255, 0.9)";
@@ -136,12 +145,12 @@ function renderClearAnimation() {
 
       // Draw a very visible white rectangle covering the entire row
       ctx.fillStyle = `rgba(255, 255, 255, ${flashOpacity})`;
-      ctx.fillRect(grid_pos_x - 4, rowY - 4, grid_width * block_width + 8, block_width + 8);
+      ctx.fillRect(origin.x - 4, rowY - 4, grid_width * block_width + 8, block_width + 8);
 
       // Draw bright white border
       ctx.strokeStyle = "rgb(255, 255, 255)";
       ctx.lineWidth = 3;
-      ctx.strokeRect(grid_pos_x - 4, rowY - 4, grid_width * block_width + 8, block_width + 8);
+      ctx.strokeRect(origin.x - 4, rowY - 4, grid_width * block_width + 8, block_width + 8);
 
       // Reset shadow for other drawing
       ctx.shadowBlur = 0;
@@ -180,8 +189,8 @@ function renderClearAnimation() {
 
     rowsToBeCleared.forEach(row => {
       for (let x = 0; x < grid_width; x++) {
-        const drawX = grid_pos_x + x * block_width;
-        const drawY = grid_pos_y + row * block_width;
+        const drawX = origin.x + x * block_width;
+        const drawY = origin.y + row * block_width;
 
         // White blocks gradually fade out (from solid white to transparent)
         ctx.fillStyle = `rgba(255, 255, 255, ${1 - fadeOutProgress})`;
@@ -205,8 +214,8 @@ function renderClearAnimation() {
         const particleCount = Math.floor(8 * (1 - fadeOutProgress));
         for (let i = 0; i < particleCount; i++) {
           const randomX = Math.floor(Math.random() * grid_width);
-          const posX = grid_pos_x + randomX * block_width + block_width / 2;
-          const posY = grid_pos_y + row * block_width + block_width / 2;
+          const posX = origin.x + randomX * block_width + block_width / 2;
+          const posY = origin.y + row * block_width + block_width / 2;
           particles.push(new Particle(posX, posY));
         }
       });
@@ -246,8 +255,8 @@ function renderClearAnimation() {
 
           if (dropDistance === 0) {
             // This block doesn't need to drop, draw it normally
-            const drawX = grid_pos_x + x * block_width;
-            const drawY = grid_pos_y + y * block_width;
+            const drawX = origin.x + x * block_width;
+            const drawY = origin.y + y * block_width;
 
             if (drawBlock && typeof drawBlock === 'function') {
               drawBlock(drawX, drawY, blockTypeIndex);
@@ -269,9 +278,9 @@ function renderClearAnimation() {
             }
           } else {
             // This block needs to drop, animate it
-            const drawX = grid_pos_x + x * block_width;
-            const fromDrawY = grid_pos_y + y * block_width;
-            const toDrawY = grid_pos_y + (y + dropDistance) * block_width;
+            const drawX = origin.x + x * block_width;
+            const fromDrawY = origin.y + y * block_width;
+            const toDrawY = origin.y + (y + dropDistance) * block_width;
 
             // Apply easing function for smoother drop
             let easedProgress;
@@ -512,22 +521,22 @@ export function drawCustomGrid() {
   // Draw the outer background with rounded corners
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(grid_pos_x - padding, grid_pos_y - padding + cornerRadius);
-  ctx.arcTo(grid_pos_x - padding, grid_pos_y - padding, grid_pos_x - padding + cornerRadius, grid_pos_y - padding, cornerRadius);
-  ctx.lineTo(grid_pos_x + totalWidth + padding - cornerRadius, grid_pos_y - padding);
-  ctx.arcTo(grid_pos_x + totalWidth + padding, grid_pos_y - padding, grid_pos_x + totalWidth + padding, grid_pos_y - padding + cornerRadius, cornerRadius);
-  ctx.lineTo(grid_pos_x + totalWidth + padding, grid_pos_y + totalHeight + padding - cornerRadius);
-  ctx.arcTo(grid_pos_x + totalWidth + padding, grid_pos_y + totalHeight + padding, grid_pos_x + totalWidth + padding - cornerRadius, grid_pos_y + totalHeight + padding, cornerRadius);
-  ctx.lineTo(grid_pos_x - padding + cornerRadius, grid_pos_y + totalHeight + padding);
-  ctx.arcTo(grid_pos_x - padding, grid_pos_y + totalHeight + padding, grid_pos_x - padding, grid_pos_y + totalHeight + padding - cornerRadius, cornerRadius);
+  ctx.moveTo(origin.x - padding, origin.y - padding + cornerRadius);
+  ctx.arcTo(origin.x - padding, origin.y - padding, origin.x - padding + cornerRadius, origin.y - padding, cornerRadius);
+  ctx.lineTo(origin.x + totalWidth + padding - cornerRadius, origin.y - padding);
+  ctx.arcTo(origin.x + totalWidth + padding, origin.y - padding, origin.x + totalWidth + padding, origin.y - padding + cornerRadius, cornerRadius);
+  ctx.lineTo(origin.x + totalWidth + padding, origin.y + totalHeight + padding - cornerRadius);
+  ctx.arcTo(origin.x + totalWidth + padding, origin.y + totalHeight + padding, origin.x + totalWidth + padding - cornerRadius, origin.y + totalHeight + padding, cornerRadius);
+  ctx.lineTo(origin.x - padding + cornerRadius, origin.y + totalHeight + padding);
+  ctx.arcTo(origin.x - padding, origin.y + totalHeight + padding, origin.x - padding, origin.y + totalHeight + padding - cornerRadius, cornerRadius);
   ctx.closePath();
 
   // Create gradient for background
   const gradient = ctx.createLinearGradient(
-    grid_pos_x - padding,
-    grid_pos_y - padding,
-    grid_pos_x + totalWidth + padding,
-    grid_pos_y + totalHeight + padding
+    origin.x - padding,
+    origin.y - padding,
+    origin.x + totalWidth + padding,
+    origin.y + totalHeight + padding
   );
   gradient.addColorStop(0, '#121218');
   gradient.addColorStop(0.5, '#1a1a2a');
@@ -550,15 +559,15 @@ export function drawCustomGrid() {
   if (gridOutline) {
     ctx.strokeStyle = gridBorderColor;
     ctx.lineWidth = 2;
-    ctx.strokeRect(grid_pos_x, grid_pos_y, totalWidth, totalHeight);
+    ctx.strokeRect(origin.x, origin.y, totalWidth, totalHeight);
   }
 
   // Draw vertical grid lines
   for (let x = 1; x < grid_width; x++) {
-    const xPos = grid_pos_x + x * block_width;
+    const xPos = origin.x + x * block_width;
     ctx.beginPath();
-    ctx.moveTo(xPos, grid_pos_y);
-    ctx.lineTo(xPos, grid_pos_y + totalHeight);
+    ctx.moveTo(xPos, origin.y);
+    ctx.lineTo(xPos, origin.y + totalHeight);
     ctx.strokeStyle = gridLineColor;
     ctx.lineWidth = 1;
     ctx.stroke();
@@ -566,10 +575,10 @@ export function drawCustomGrid() {
 
   // Draw horizontal grid lines
   for (let y = 1; y < grid_height; y++) {
-    const yPos = grid_pos_y + y * block_width;
+    const yPos = origin.y + y * block_width;
     ctx.beginPath();
-    ctx.moveTo(grid_pos_x, yPos);
-    ctx.lineTo(grid_pos_x + totalWidth, yPos);
+    ctx.moveTo(origin.x, yPos);
+    ctx.lineTo(origin.x + totalWidth, yPos);
     ctx.strokeStyle = gridLineColor;
     ctx.lineWidth = 1;
     ctx.stroke();
@@ -622,8 +631,8 @@ export function fillGrid() {
         }
 
         renderQueue.get(blockTypeIndex).push({
-          x: grid_pos_x + x * block_width,
-          y: grid_pos_y + y * block_width
+          x: origin.x + x * block_width,
+          y: origin.y + y * block_width
         });
       }
     }
@@ -692,14 +701,14 @@ function renderScoreText() {
 export function showGrid(color) {
   // Draw vertical lines
   for (let x = 0; x <= grid_width; x++) {
-    const x1 = grid_pos_x + x * block_width;
-    DrawLine(x1, grid_pos_y, x1, grid_pos_y + grid_height * block_width, color);
+    const x1 = origin.x + x * block_width;
+    DrawLine(x1, origin.y, x1, origin.y + grid_height * block_width, color);
   }
 
   // Draw horizontal lines
   for (let y = 0; y <= grid_height; y++) {
-    const y1 = grid_pos_y + y * block_width;
-    DrawLine(grid_pos_x, y1, grid_pos_x + grid_width * block_width, y1, color);
+    const y1 = origin.y + y * block_width;
+    DrawLine(origin.x, y1, origin.x + grid_width * block_width, y1, color);
   }
 }
 
@@ -734,22 +743,23 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
   }
   
   // Get canvas dimensions from context
-  const canvasWidth = ctx.canvas.width / (window.devicePixelRatio || 1);
-  const canvasHeight = ctx.canvas.height / (window.devicePixelRatio || 1);
+  canvasWidth = ctx.canvas.width / (window.devicePixelRatio || 1);
+  canvasHeight = ctx.canvas.height / (window.devicePixelRatio || 1);
   
   // Calculate the total grid dimensions based on block size
   const totalGridWidth = grid_width * block_width;
   const totalGridHeight = grid_height * block_width;
   
   // Center the grid precisely in the middle of the screen
-  grid_pos_x = Math.floor((canvasWidth - totalGridWidth) / 2);
-  grid_pos_y = Math.floor((canvasHeight - totalGridHeight) / 2);
+  origin.x = Math.floor((canvasWidth - totalGridWidth) / 2);
+  origin.y = Math.floor((canvasHeight - totalGridHeight) / 2);
   
   // Apply a small vertical offset to improve visual balance (move grid slightly up)
-  const verticalOffset = Math.floor(block_width * 0.5); // Scale the offset with block size
-  grid_pos_y -= verticalOffset;
+  verticalOffsetFactor = 0.5; // Scale the offset with block size
+  const verticalOffset = Math.floor(block_width * verticalOffsetFactor);
+  origin.y -= verticalOffset;
   
-  console.log(`Grid positioned at: ${grid_pos_x},${grid_pos_y} with block size ${block_width}px`);
+  console.log(`Grid positioned at: ${origin.x},${origin.y} with block size ${block_width}px`);
   console.log(`Grid dimensions: ${totalGridWidth}x${totalGridHeight}`);
   
   // Store audio and reset game state
@@ -769,6 +779,36 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
   
   // Draw our custom grid once to initialize it
   drawCustomGrid();
+
+  // Add resize event listener using the eventDispatcher
+  eventDispatcher.addEventListener(EVENTS.WINDOW_RESIZE, handleResize);
+}
+
+/**
+ * Handle window resize event to update grid position
+ * @param {Object} dimensions - New canvas dimensions from resize event
+ */
+function handleResize(dimensions) {
+  // Get new canvas dimensions
+  canvasWidth = ctx.canvas.width / (window.devicePixelRatio || 1);
+  canvasHeight = ctx.canvas.height / (window.devicePixelRatio || 1);
+
+  // Recalculate grid position
+  const totalGridWidth = grid_width * block_width;
+  const totalGridHeight = grid_height * block_width;
+  
+  // Center the grid precisely in the middle of the screen
+  origin.x = Math.floor((canvasWidth - totalGridWidth) / 2);
+  origin.y = Math.floor((canvasHeight - totalGridHeight) / 2);
+  
+  // Reapply the same vertical offset as in the initial setup
+  const verticalOffset = Math.floor(block_width * verticalOffsetFactor);
+  origin.y -= verticalOffset;
+
+  console.log(`Grid repositioned at: ${origin.x},${origin.y} after resize (canvas: ${canvasWidth}x${canvasHeight})`);
+
+  // Force redraw of UI with new grid position
+  drawCustomGrid();
 }
 
 /**
@@ -781,8 +821,67 @@ export function getGridState() {
     lines,
     level,
     score,
-    level_goal
+    level_goal,
+    origin,
+    grid_width,
+    grid_height,
+    block_width
   };
+}
+
+/**
+ * Convert grid coordinates to screen coordinates
+ * @param {number} gridX - X position in grid coordinates (0-based)
+ * @param {number} gridY - Y position in grid coordinates (0-based)
+ * @returns {Object} Screen coordinates {x, y}
+ */
+export function gridToScreenCoordinates(gridX, gridY) {
+  return {
+    x: origin.x + gridX * block_width,
+    y: origin.y + gridY * block_width
+  };
+}
+
+/**
+ * Convert screen coordinates to grid coordinates
+ * @param {number} screenX - X position in screen coordinates
+ * @param {number} screenY - Y position in screen coordinates
+ * @returns {Object} Grid coordinates {x, y}, rounded down to nearest cell
+ */
+export function screenToGridCoordinates(screenX, screenY) {
+  return {
+    x: Math.floor((screenX - origin.x) / block_width),
+    y: Math.floor((screenY - origin.y) / block_width)
+  };
+}
+
+/**
+ * Draw a block at the specified grid position
+ * @param {number} gridX - X position in grid coordinates (0-based)
+ * @param {number} gridY - Y position in grid coordinates (0-based)
+ * @param {number} blockType - Type of block to draw (0-6)
+ */
+export function drawBlockAtGridPosition(gridX, gridY, blockType) {
+  const screenPos = gridToScreenCoordinates(gridX, gridY);
+  
+  if (drawBlock && typeof drawBlock === 'function') {
+    drawBlock(screenPos.x, screenPos.y, blockType);
+  } else {
+    // Fallback to using the lego sprite
+    const spriteSize = BLOCK.SPRITE_SIZE;
+    const sx = blockType * spriteSize;
+    ctx.drawImage(
+      lego,
+      sx + 2,
+      2,
+      spriteSize - 4,
+      spriteSize - 4,
+      screenPos.x,
+      screenPos.y,
+      block_width,
+      block_width
+    );
+  }
 }
 
 /**
