@@ -3,7 +3,7 @@
  * Enhanced with better rendering performance and responsive design support
  */
 
-import { getImage } from '../assetManager.js';
+import { getImage } from './assetManager.js';
 import { CANVAS } from '../config/config.js';
 
 // Canvas elements and context 
@@ -54,26 +54,26 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('orientationchange', handleOrientationChange);
         handleOrientationChange(); // Check initial orientation
 
-        // Listen for window resize events
-        window.addEventListener('resize', handleWindowResize);
+         // Listen for window resize events
+         window.addEventListener('resize', handleWindowResize);
     } else {
         console.error('Canvas element not found');
     }
 });
 
-/**
- * Handle window resize events
- */
+/*
+* Handle window resize events
+*/
 function handleWindowResize() {
-    // Debounce the resize event to avoid excessive recalculations
-    if (handleWindowResize.timeoutId) {
-        clearTimeout(handleWindowResize.timeoutId);
-    }
+   // Debounce the resize event to avoid excessive recalculations
+   if (handleWindowResize.timeoutId) {
+       clearTimeout(handleWindowResize.timeoutId);
+   }
 
-    handleWindowResize.timeoutId = setTimeout(() => {
-        const dimensions = setCanvasSize();
-        eventDispatcher.dispatchEvent(EVENTS.WINDOW_RESIZE, dimensions);
-    }, 100); // 100ms debounce time
+   handleWindowResize.timeoutId = setTimeout(() => {
+       const dimensions = setCanvasSize();
+       eventDispatcher.dispatchEvent(EVENTS.WINDOW_RESIZE, dimensions);
+   }, 100); // 100ms debounce time
 }
 
 /**

@@ -9,10 +9,10 @@
  */
 
 // Import the game module (this will load all other dependencies indirectly)
-import { initGame, initAudio } from './game.js';
+import { initGame, initAudio } from './core/game.js';
 
 // Import utility functions
-import { setCanvasSize } from './functions.js';
+import { setCanvasSize } from './utils/functions.js';
 
 // Import game state constants
 import { GAME_STATES } from './config/config.js';

@@ -2,14 +2,14 @@ import {
   canvas, ctx, WIDTH, HEIGHT, 
   DrawBitmapText, DrawBitmapTextSmall, 
   clearScreen, showBackground, showCenteredBackground, showBackgroundCover
-} from '../functions.js';
+} from '../utils/functions.js';
 import { 
   FPS, GRID_WIDTH, GRID_HEIGHT, BLOCK_WIDTH, GRID_POS_X, GRID_POS_Y,
   INITIAL_SCORE, INITIAL_LINES, INITIAL_LEVEL, INITIAL_LEVEL_GOAL, 
   ANIMATION, GAME_STATES
 } from '../config/config.js';
-import { fillGrid, checkRows, clearRows, setupGrid, getGridState, setDrawBlockFunction } from '../grid.js';
-import { setupBlockHandler, showNextBlock, showHoldBlock, newBlock, moveBlock, drawBlock } from '../block.js';
+import { fillGrid, checkRows, clearRows, setupGrid, getGridState, setDrawBlockFunction } from '../components/grid.js';
+import { setupBlockHandler, showNextBlock, showHoldBlock, newBlock, moveBlock, drawBlock } from '../components/block.js';
 
 // Game variables
 let score = INITIAL_SCORE;

@@ -3,7 +3,7 @@
  * Handles efficient loading of images and audio with progress tracking
  */
 
-import { IMAGES, AUDIO } from '../config/config.js';
+import { IMAGES, AUDIO } from './../config/config.js';
 
 // Cache containing all loaded assets
 const assetCache = {

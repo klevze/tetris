@@ -3,9 +3,9 @@ import {
   canvas, ctx, WIDTH, HEIGHT, 
   DrawBitmapText, DrawBitmapTextSmall, 
   clearScreen, showBackground 
-} from '../functions.js';
+} from '../utils/functions.js';
 import { GAME_STATES, UI } from '../config/config.js';
-import { getImage } from '../assetManager.js';
+import { getImage } from '../utils/assetManager.js';
 
 // Animation and display variables
 let k = 0; // Animation counter for logo sine wave effect

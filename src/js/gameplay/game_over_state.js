@@ -3,9 +3,9 @@ import {
   canvas, ctx, WIDTH, HEIGHT, 
   DrawBitmapText, DrawBitmapTextSmall, 
   clearScreen, showBackground 
-} from '../functions.js';
+} from '../utils/functions.js';
 import { GAME_STATES, STORAGE_KEYS } from '../config/config.js';
-import { Draw3DStars } from '../starfield_3d.js';
+import { Draw3DStars } from '../components/starfield_3d.js';
 
 // Game variables
 let player_name = "PLAYER";

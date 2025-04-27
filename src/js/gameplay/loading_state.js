@@ -1,9 +1,9 @@
 // filepath: d:\Sites\games\Tetris\src\js\gameplay\loading_state.js
-import { canvas, ctx, WIDTH, HEIGHT, DrawBitmapText, DrawBitmapTextSmall, clearScreen } from '../functions.js';
-import { Draw3DStars } from '../starfield_3d.js';
+import { canvas, ctx, WIDTH, HEIGHT, DrawBitmapText, DrawBitmapTextSmall, clearScreen } from '../utils/functions.js';
+import { Draw3DStars } from '../components/starfield_3d.js';
 import { UI, GAME_STATES } from '../config/config.js';
 // Import gameState functions to sync loading state
-import { updateLoadingProgress as updateStateLoadingProgress, getState } from '../gameState.js';
+import { updateLoadingProgress as updateStateLoadingProgress, getState } from '../core/gameState.js';
 
 /**
  * LOADING SCREEN MODULE
