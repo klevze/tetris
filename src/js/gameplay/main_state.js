@@ -229,7 +229,7 @@ export function handleMainGameState(setGameState) {
   showBackgroundCover(backgroundImg);
   
   // Show grid centered at its original size
-  showCenteredBackground(grid_img);
+  //showCenteredBackground(grid_img);
  
   if (block_finish === true) {
     // Use the global newBlock function which handles currentBlock internally

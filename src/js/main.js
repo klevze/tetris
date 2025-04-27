@@ -17,6 +17,9 @@ import { setCanvasSize } from './utils/functions.js';
 // Import game state constants
 import { GAME_STATES } from './config/config.js';
 
+// Import the new event system
+import { eventBus, GAME_EVENTS } from './utils/events.js';
+
 /**
  * Initialize the game when the DOM is fully loaded
  * Sets up the canvas and starts the game initialization process
@@ -37,7 +40,11 @@ document.addEventListener('DOMContentLoaded', function() {
     setCanvasSize();
     
     // Add resize handler
-    window.addEventListener('resize', setCanvasSize);
+    window.addEventListener('resize', () => {
+        const dimensions = setCanvasSize();
+        // Emit resize event through the event bus
+        eventBus.emit(GAME_EVENTS.WINDOW_RESIZE, dimensions);
+    });
     
     // Set up user interaction handlers (needed for audio)
     setupUserInteractionHandlers();
@@ -58,6 +65,9 @@ function setupUserInteractionHandlers() {
         
         // Initialize audio after user interaction
         initAudio();
+        
+        // Emit event through the event bus
+        eventBus.emit(GAME_EVENTS.SOUND_TOGGLE, { enabled: true });
         
         // Remove all interaction listeners since we only need one interaction
         userInteractionEvents.forEach(event => {

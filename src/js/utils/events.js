@@ -1,6 +1,6 @@
 /**
- * Event Handling Module
- * Manages input events (keyboard, touch, mouse) for game control
+ * Event Management Module
+ * Centralized event system for the Tetris game
  */
 
 import { Block, currentBlock as blockCurrentBlock, rotateBlock, moveBlockDirection, HoldBlock } from '../components/block.js';
@@ -8,6 +8,119 @@ import { getState, changeState, togglePause, toggleMusic } from '../core/gameSta
 import { GAME_STATES } from '../config/config.js';
 import { getAudio } from './assetManager.js';
 import { isAnimationInProgress } from '../components/grid.js';
+
+// Game events enum - centralized definition of all game events
+export const GAME_EVENTS = {
+    // Game state events
+    STATE_CHANGED: 'state_changed',
+    LOADING_COMPLETE: 'loading_complete',
+    GAME_START: 'game_start',
+    GAME_PAUSE: 'game_pause',
+    GAME_RESUME: 'game_resume',
+    GAME_OVER: 'game_over',
+    
+    // Block events
+    BLOCK_MOVE: 'block_move',
+    BLOCK_ROTATE: 'block_rotate',
+    BLOCK_LOCK: 'block_lock',
+    BLOCK_HOLD: 'block_hold',
+    
+    // Score events
+    SCORE_CHANGE: 'score_change',
+    LINE_CLEAR: 'line_clear',
+    LEVEL_UP: 'level_up',
+    
+    // UI events
+    WINDOW_RESIZE: 'window_resize',
+    MUSIC_TOGGLE: 'music_toggle',
+    SOUND_TOGGLE: 'sound_toggle',
+    
+    // Input events
+    KEY_DOWN: 'key_down',
+    KEY_UP: 'key_up',
+    TOUCH_START: 'touch_start',
+    TOUCH_MOVE: 'touch_move',
+    TOUCH_END: 'touch_end',
+    CLICK: 'click'
+};
+
+// EventBus - centralized event system
+class EventBus {
+    constructor() {
+        this.listeners = new Map();
+    }
+    
+    /**
+     * Register an event listener
+     * @param {string} eventName - Name of the event to listen for
+     * @param {Function} callback - Function to call when the event occurs
+     * @returns {Function} Function to remove this specific listener
+     */
+    on(eventName, callback) {
+        if (!this.listeners.has(eventName)) {
+            this.listeners.set(eventName, new Set());
+        }
+        
+        this.listeners.get(eventName).add(callback);
+        
+        // Return a function that will remove this listener
+        return () => this.off(eventName, callback);
+    }
+    
+    /**
+     * Remove an event listener
+     * @param {string} eventName - Name of the event
+     * @param {Function} callback - Function to remove
+     */
+    off(eventName, callback) {
+        if (!this.listeners.has(eventName)) return;
+        
+        const eventListeners = this.listeners.get(eventName);
+        eventListeners.delete(callback);
+        
+        // Clean up if no listeners remain
+        if (eventListeners.size === 0) {
+            this.listeners.delete(eventName);
+        }
+    }
+    
+    /**
+     * Emit an event with data
+     * @param {string} eventName - Name of the event to emit
+     * @param {*} data - Data to pass to listeners
+     */
+    emit(eventName, data) {
+        if (!this.listeners.has(eventName)) return;
+        
+        this.listeners.get(eventName).forEach(callback => {
+            try {
+                callback(data);
+            } catch (error) {
+                console.error(`Error in event listener for ${eventName}:`, error);
+            }
+        });
+    }
+    
+    /**
+     * Remove all listeners for an event
+     * @param {string} eventName - Name of the event
+     */
+    clearEvent(eventName) {
+        if (this.listeners.has(eventName)) {
+            this.listeners.delete(eventName);
+        }
+    }
+    
+    /**
+     * Remove all event listeners
+     */
+    clearAll() {
+        this.listeners.clear();
+    }
+}
+
+// Create a singleton instance
+export const eventBus = new EventBus();
 
 // Block reference and grid parameters are set during initialization
 let currentBlock;
@@ -59,6 +172,8 @@ export const keyState = {
 export function updateGameState(newState) {
     game_state = newState;
     changeState(newState);
+    // Emit state change event
+    eventBus.emit(GAME_EVENTS.STATE_CHANGED, { state: newState });
 }
 
 /**
@@ -109,13 +224,18 @@ export function initEventHandlers(blockRef, audioRef, stateRef, gridParams) {
 export function removeEventHandlers() {
     const canvas = document.getElementById('mainCanvas');
     
+    if (canvas) {
+        canvas.removeEventListener('touchstart', handleTouchStart);
+        canvas.removeEventListener('touchmove', handleTouchMove);
+        canvas.removeEventListener('touchend', handleTouchEnd);
+        canvas.removeEventListener('click', handleClick);
+    }
+    
     document.removeEventListener('keydown', handleKeyDown);
     document.removeEventListener('keyup', handleKeyUp);
     
-    canvas.removeEventListener('touchstart', handleTouchStart);
-    canvas.removeEventListener('touchmove', handleTouchMove);
-    canvas.removeEventListener('touchend', handleTouchEnd);
-    canvas.removeEventListener('click', handleClick);
+    // Clear all event bus listeners
+    eventBus.clearAll();
 }
 
 /**
@@ -128,6 +248,13 @@ function handleTouchStart(event) {
     
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
+    
+    // Emit touch start event
+    eventBus.emit(GAME_EVENTS.TOUCH_START, { 
+        x: touchStartX, 
+        y: touchStartY,
+        originalEvent: event
+    });
     
     // Detect double tap
     const currentTime = new Date().getTime();
@@ -159,6 +286,15 @@ function handleTouchMove(event) {
     
     touchEndX = event.touches[0].clientX;
     touchEndY = event.touches[0].clientY;
+    
+    // Emit touch move event
+    eventBus.emit(GAME_EVENTS.TOUCH_MOVE, {
+        startX: touchStartX,
+        startY: touchStartY,
+        currentX: touchEndX,
+        currentY: touchEndY,
+        originalEvent: event
+    });
 }
 
 /**
@@ -171,6 +307,17 @@ function handleTouchEnd(event) {
     // Calculate swipe distance
     const diffX = touchEndX - touchStartX;
     const diffY = touchStartY - touchEndY; // Y is reversed because screen coords
+    
+    // Emit touch end event
+    eventBus.emit(GAME_EVENTS.TOUCH_END, {
+        startX: touchStartX,
+        startY: touchStartY,
+        endX: touchEndX,
+        endY: touchEndY,
+        diffX: diffX,
+        diffY: diffY,
+        originalEvent: event
+    });
     
     // If significant movement, handle as a swipe
     if (Math.abs(diffX) > TOUCH_THRESHOLD || Math.abs(diffY) > TOUCH_THRESHOLD) {
@@ -208,6 +355,13 @@ function handleTouchEnd(event) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleClick(event) {
+    // Emit click event
+    eventBus.emit(GAME_EVENTS.CLICK, {
+        x: event.clientX,
+        y: event.clientY,
+        originalEvent: event
+    });
+    
     // Get current game state
     const state = getState();
     
@@ -244,6 +398,13 @@ function handleClick(event) {
  * @param {KeyboardEvent} e - Keyboard event
  */
 function handleKeyDown(e) {
+    // Emit key down event
+    eventBus.emit(GAME_EVENTS.KEY_DOWN, {
+        key: e.key,
+        keyCode: e.keyCode,
+        originalEvent: e
+    });
+    
     // Handle space key in loading state
     if (game_state === GAME_STATES.LOADING && e.key === ' ') {
         e.preventDefault();
@@ -292,6 +453,16 @@ function handleKeyDown(e) {
             e.preventDefault();
             HoldBlock();
         }
+        if (e.key === 'p') {
+            e.preventDefault();
+            togglePause();
+            eventBus.emit(game_pause ? GAME_EVENTS.GAME_PAUSE : GAME_EVENTS.GAME_RESUME);
+        }
+        if (e.key === 'm') {
+            e.preventDefault();
+            toggleMusic();
+            eventBus.emit(GAME_EVENTS.MUSIC_TOGGLE);
+        }
     }
 }
 
@@ -300,6 +471,13 @@ function handleKeyDown(e) {
  * @param {KeyboardEvent} event - Keyboard event
  */
 function handleKeyUp(event) {
+    // Emit key up event
+    eventBus.emit(GAME_EVENTS.KEY_UP, {
+        key: event.key,
+        keyCode: event.keyCode,
+        originalEvent: event
+    });
+    
     // Reset key state
     switch (event.keyCode) {
         case 32: // Space
@@ -366,6 +544,8 @@ function handleSpaceAction() {
     }
 }
 
+// Action handlers - These emit the appropriate events when actions occur
+
 /**
  * Handle right arrow/swipe
  * Move block right if possible
@@ -375,6 +555,7 @@ function handleRightMove() {
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('right');
+        eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'right' });
     }
 }
 
@@ -387,6 +568,7 @@ function handleLeftMove() {
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('left');
+        eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'left' });
     }
 }
 
@@ -399,6 +581,7 @@ function handleDownMove() {
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('down');
+        eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'down' });
     }
 }
 
@@ -411,6 +594,7 @@ function handleUpMove() {
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         rotateBlock();
+        eventBus.emit(GAME_EVENTS.BLOCK_ROTATE);
     }
 }
 
@@ -423,6 +607,7 @@ function handleDoubleTap() {
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('drop');
+        eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'drop' });
     }
 }
 
@@ -449,6 +634,7 @@ function handleTap() {
             if (!state.isPaused && !isAnimationInProgress()) {
                 // Single tap rotates block during gameplay
                 rotateBlock();
+                eventBus.emit(GAME_EVENTS.BLOCK_ROTATE);
             }
             break;
     }
@@ -464,6 +650,8 @@ function hardDrop() {
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('drop');
         score += 20;
+        eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'drop' });
+        eventBus.emit(GAME_EVENTS.SCORE_CHANGE, { score });
     }
 }
 
@@ -475,6 +663,7 @@ function handleHoldBlock() {
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         HoldBlock();
+        eventBus.emit(GAME_EVENTS.BLOCK_HOLD);
     }
 }
 
