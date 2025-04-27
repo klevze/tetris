@@ -410,33 +410,34 @@ function calculateUIPositions() {
   
   // Get the current grid position and block size from grid module
   const gridState = getGridState();
-  const gridPosX = gridState.grid_pos_x || GRID_POS_X;
-  const gridPosY = gridState.grid_pos_y || GRID_POS_Y;
+  const gridOriginX = gridState.origin.x || 0;
+  const gridOriginY = gridState.origin.y || 0;
   
-  // Calculate total grid width and height
-  const totalGridWidth = GRID_WIDTH * BLOCK_WIDTH;
-  const totalGridHeight = GRID_HEIGHT * BLOCK_WIDTH;
+  // Calculate total grid width and height based on the grid state
+  const totalGridWidth = gridState.grid_width * gridState.block_width;
+  const totalGridHeight = gridState.grid_height * gridState.block_width;
   
   // Calculate UI element positions relative to grid position and block size
   return {
-    // Position for the "Next" block preview - to the right of the grid
-    nextBlockX: gridPosX + totalGridWidth + BLOCK_WIDTH * 1.5,
-    nextBlockY: gridPosY + BLOCK_WIDTH * 2,
+    // Position for the "Next" block preview - aligned with new blocks spawn position but 1.5 blocks to the left
+    // and placed 3 blocks height above the grid (moved one cell higher)
+    nextBlockX: gridOriginX + (3 * gridState.block_width) - (gridState.block_width * 1.5),
+    nextBlockY: gridOriginY - (gridState.block_width * 3), // Moved from 2 blocks to 3 blocks above the grid
     
-    // Position for the "Hold" block preview - to the left of the grid
-    holdBlockX: gridPosX - BLOCK_WIDTH * 5,
-    holdBlockY: gridPosY + BLOCK_WIDTH * 2,
+    // Position for the "Hold" block preview - to the right of the grid
+    holdBlockX: gridOriginX + totalGridWidth + gridState.block_width * 1.5, // Position to the right of grid
+    holdBlockY: gridOriginY + gridState.block_width * 2, // Align with the top part of the grid
     
     // Position for score display
-    scoreX: gridPosX + totalGridWidth + BLOCK_WIDTH * 4,
-    scoreY: gridPosY + totalGridHeight * 0.6,
+    scoreX: gridOriginX + totalGridWidth + gridState.block_width * 4,
+    scoreY: gridOriginY + totalGridHeight * 0.6,
     
     // Positions for lines, level and timer displays
-    linesX: gridPosX + totalGridWidth + BLOCK_WIDTH * 4,
-    linesY: gridPosY + totalGridHeight * 0.7, 
-    levelX: gridPosX + totalGridWidth + BLOCK_WIDTH * 4,
-    levelY: gridPosY + totalGridHeight * 0.8,
-    timerX: gridPosX + totalGridWidth + BLOCK_WIDTH * 4,
-    timerY: gridPosY + totalGridHeight * 0.9
+    linesX: gridOriginX + totalGridWidth + gridState.block_width * 4,
+    linesY: gridOriginY + totalGridHeight * 0.7, 
+    levelX: gridOriginX + totalGridWidth + gridState.block_width * 4,
+    levelY: gridOriginY + totalGridHeight * 0.8,
+    timerX: gridOriginX + totalGridWidth + gridState.block_width * 4,
+    timerY: gridOriginY + totalGridHeight * 0.9
   };
 }
