@@ -51,7 +51,31 @@ export const GRID_POS_Y = GRID.POS_Y;
 export const GAME = {
     FPS: 60,
     INITIAL_SPEED: 45, // Frames per block drop at level 1
-    SPEED_INCREMENT: 4  // How much to reduce frames per level
+    SPEED_INCREMENT: 4,  // How much to reduce frames per level
+    
+    // Level-based drop speed in milliseconds
+    LEVEL_SPEEDS: [
+        1000,   // Level 0: 1000ms
+        920,    // Level 1: 920ms
+        840,    // Level 2: 840ms
+        760,    // Level 3: 760ms
+        680,    // Level 4: 680ms
+        600,    // Level 5: 600ms
+        520,    // Level 6: 520ms
+        440,    // Level 7: 440ms
+        360,    // Level 8: 360ms
+        280,    // Level 9: 280ms
+        200,    // Level 10: 200ms
+        160,    // Level 11: 160ms
+        160,    // Level 12: 160ms
+        120,    // Level 13: 120ms
+        120,    // Level 14: 120ms
+        100,    // Level 15: 100ms
+        100,    // Level 16: 100ms
+        80,     // Level 17: 80ms
+        80,     // Level 18: 80ms
+        60      // Level 19+: 60ms
+    ]
 };
 
 // Individual game settings for backwards compatibility

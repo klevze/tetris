@@ -1,6 +1,6 @@
 import { shapes, TETROMINOES } from '../utils/data_structures.js';
 import { isAnimationInProgress, gridToScreenCoordinates, getGridState } from './grid.js';
-import { BLOCK } from '../config/config.js'; // Import block configuration
+import { BLOCK, GAME } from '../config/config.js'; // Import block and game configuration
 import { EVENTS, eventDispatcher } from '../utils/functions.js';
 
 // Export the Block class and create wrapper functions for backward compatibility
@@ -16,6 +16,9 @@ let game_state, score = 0;
 let frame = 0, change_block = false, change_block_frame = 0;
 let level = 1; // Default level
 let nextBlockOpacity = 1; // Initial opacity for next block display
+
+// Add timestamp tracking for block movement
+let lastMoveTime = 0; // Last time the block moved down automatically
 
 // Animation state for the block scrolling down from the "Next" position
 let isBlockAnimating = false;
@@ -547,6 +550,9 @@ export function moveBlock(currentLevel) {
             // Set block to final position
             currentBlock.x = blockAnimation.targetX;
             currentBlock.y = blockAnimation.targetY;
+            
+            // Initialize lastMoveTime when animation completes
+            lastMoveTime = Date.now();
         } else {
             // Apply easing to get smooth motion
             const t = blockAnimation.easing(blockAnimation.progress);
@@ -571,13 +577,18 @@ export function moveBlock(currentLevel) {
         return true;
     }
     
-    // Normal gameplay movement
-    frame++;
-    // Speed increases with level
-    const num_frames = Math.max(1, 45 - (currentLevel * 4));
+    // Get the drop speed for the current level
+    // Cap the level at 19+ for the speed table
+    const levelIndex = Math.min(currentLevel, 19);
+    const dropSpeed = GAME.LEVEL_SPEEDS[levelIndex];
     
-    if (frame > num_frames) {
-        frame = 0;
+    // Normal gameplay movement - use millisecond-based timing
+    const currentTime = Date.now();
+    const timeElapsed = currentTime - lastMoveTime;
+    
+    if (timeElapsed >= dropSpeed) {
+        // Reset the timer
+        lastMoveTime = currentTime;
         
         if (change_block) {
             // Try to move down one more time
