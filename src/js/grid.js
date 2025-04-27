@@ -19,6 +19,7 @@ let scoreTextTimer = 0;
 let scoreTextPosition = { x: 0, y: 0 };
 let drawBlock; // Function reference for drawing blocks
 let rowsToBeCleared = []; // Track which rows are marked for clearing
+let lego; // Blocks image reference
 
 /**
  * Check all rows for completions and mark them for clearing
@@ -96,27 +97,27 @@ export function checkRows() {
 
 /**
  * Clear rows marked for removal and move blocks down
- * Uses an optimized algorithm to handle multiple rows at once
+ * Uses a more direct approach for block shifting
  */
 export function clearRows() {
-    // Process from bottom to top for more efficient row shifting
+    // If no rows to clear, exit early
     if (rowsToBeCleared.length === 0) {
-        return; // No rows to clear
+        return;
     }
 
-    // Sort rows in descending order (bottom to top)
-    rowsToBeCleared.sort((a, b) => b - a);
+    // Sort rows in ascending order (top to bottom)
+    rowsToBeCleared.sort((a, b) => a - b);
     
-    // Process each marked row
-    for (let i = 0; i < rowsToBeCleared.length; i++) {
-        const rowToClear = rowsToBeCleared[i];
-        
-        // Shift all rows above down by one
+    // For each row that needs to be cleared, starting from the top
+    for (const rowToClear of rowsToBeCleared) {
+        // Move all rows above this one down by 1
         for (let y = rowToClear; y > 0; y--) {
             for (let x = 0; x < grid_width; x++) {
-                if (gridData[x]) {
-                    gridData[x][y] = gridData[x][y-1] || 0;
+                if (!gridData[x]) {
+                    gridData[x] = {};
                 }
+                // Copy from row above
+                gridData[x][y] = gridData[x][y - 1] || 0;
             }
         }
         
@@ -130,6 +131,16 @@ export function clearRows() {
     
     // Reset the clearing array
     rowsToBeCleared = [];
+    
+    // Play clear line sound effect
+    if (clear_line_audio) {
+        clear_line_audio.currentTime = 0;
+        try {
+            clear_line_audio.play().catch(e => console.log("Audio play prevented:", e));
+        } catch (e) {
+            console.log("Audio play error:", e);
+        }
+    }
 }
 
 /**
@@ -147,29 +158,66 @@ function markRow(y) {
 
 /**
  * Fill the grid - render all blocks in the grid
+ * Optimized to skip empty cells and use batch rendering
  */
 export function fillGrid() {
-    // Lazy initialization of columns to save memory
+    // Skip rendering if there are rows being cleared
+    if (rowsToBeCleared.length > 0) {
+        return;
+    }
+    
+    // Batch similar blocks together to minimize state changes
+    const renderQueue = new Map(); // Map of blockType -> positions array
+    
+    // Collect all blocks to render by type
     for (let x = 0; x < grid_width; x++) {
         if (!gridData[x]) continue;
         
         for (let y = 0; y < grid_height; y++) {
-            // Skip empty cells
-            if (!gridData[x][y]) continue;
-            
             const blockType = gridData[x][y];
-            if (blockType > 0) {
-                const renderX = grid_pos_x + x * block_width; // Use block_width for dynamic sizing
-                const renderY = grid_pos_y + y * block_width; // Use block_width for dynamic sizing
-                
-                // Draw only if we have a valid block type
-                const blockTypeIndex = blockType - 1;
-                if (blockTypeIndex >= 0 && blockTypeIndex <= 7) {
-                    drawBlock(renderX, renderY, blockTypeIndex);
+            if (!blockType) continue;
+            
+            const blockTypeIndex = blockType - 1;
+            if (blockTypeIndex >= 0 && blockTypeIndex <= 7) {
+                if (!renderQueue.has(blockTypeIndex)) {
+                    renderQueue.set(blockTypeIndex, []);
                 }
+                
+                renderQueue.get(blockTypeIndex).push({
+                    x: grid_pos_x + x * block_width,
+                    y: grid_pos_y + y * block_width
+                });
             }
         }
     }
+    
+    // Render blocks in batches by type
+    renderQueue.forEach((positions, blockType) => {
+        // Set up the sprite details once for this block type
+        const sx = blockType * 30;
+        const bufferX = 1;
+        const bufferY = 1;
+        const bufferWidth = 2;
+        const bufferHeight = 2;
+        
+        // Draw all blocks of this type in a batch
+        positions.forEach(pos => {
+            const drawX = Math.floor(pos.x);
+            const drawY = Math.floor(pos.y);
+            
+            ctx.drawImage(
+                lego,
+                sx + bufferX,
+                bufferY,
+                30 - bufferWidth,
+                30 - bufferHeight,
+                drawX,
+                drawY,
+                block_width,
+                block_width
+            );
+        });
+    });
     
     // Render score floating text if active
     if (showAddScore && scoreTextTimer > 0) {
@@ -224,12 +272,18 @@ export function initGrid() {
  * @param {Object} params - Grid parameters
  * @param {HTMLAudioElement} audio - Audio for line clearing
  * @param {HTMLImageElement} gridImage - The grid image
+ * @param {HTMLImageElement} blocksImage - The blocks image (lego)
  */
-export function setupGrid(context, params, audio, gridImage) {
+export function setupGrid(context, params, audio, gridImage, blocksImage) {
     ctx = context;
     grid_width = params.grid_width;
     grid_height = params.grid_height;
     block_width = params.block_width;
+    
+    // Store the blocks image 
+    if (blocksImage) {
+        lego = blocksImage;
+    }
     
     // Get canvas dimensions from context
     const canvasWidth = ctx.canvas.width / (window.devicePixelRatio || 1);

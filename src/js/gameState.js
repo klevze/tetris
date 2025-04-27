@@ -11,6 +11,10 @@ const gameState = {
     currentState: GAME_STATES.LOADING,
     isPaused: false,
     
+    // Loading state
+    loadingProgress: 0,
+    loadingComplete: false,
+    
     // Game statistics
     score: INITIAL_SCORE,
     lines: INITIAL_LINES,
@@ -179,4 +183,23 @@ function notifyListeners(event, data) {
 export function getState() {
     // Return a copy to prevent direct mutation
     return { ...gameState };
+}
+
+/**
+ * Update the loading progress
+ * @param {number} current - Number of items loaded
+ * @param {number} total - Total number of items to load
+ */
+export function updateLoadingProgress(current, total) {
+    gameState.loadingProgress = current / total;
+    
+    if (current >= total && !gameState.loadingComplete) {
+        gameState.loadingComplete = true;
+        notifyListeners('loadingComplete', { progress: 1 });
+    } else {
+        notifyListeners('loadingProgress', { 
+            progress: gameState.loadingProgress,
+            complete: gameState.loadingComplete
+        });
+    }
 }

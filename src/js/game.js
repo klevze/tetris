@@ -116,33 +116,38 @@ export async function init() {
  * @param {number} timestamp The current timestamp from requestAnimationFrame
  */
 function gameLoop(timestamp) {
+  // Request next frame first for smoother animation
+  requestAnimationFrame(gameLoop);
+  
   // Calculate time elapsed since last frame
   if (!lastFrameTime) {
     lastFrameTime = timestamp;
+    return;
   }
   
   const elapsed = timestamp - lastFrameTime;
   
-  // If enough time has passed for a new frame
-  if (elapsed > frameInterval) {
-    // Update last frame time (accounting for any extra time beyond frameInterval)
-    lastFrameTime = timestamp - (elapsed % frameInterval);
-    
-    // Call the draw function to render the current frame
-    draw();
-    
-    // Optional: track actual FPS
-    frameCounter++;
-    if (elapsed > 1000) {
-      // Log actual FPS once per second
-      // console.log(`Current FPS: ${Math.round(frameCounter * 1000 / elapsed)}`);
-      frameCounter = 0;
-      lastFrameTime = timestamp;
-    }
+  // Throttle to our target frame rate
+  if (elapsed < frameInterval) {
+    return; // Skip this frame to maintain target FPS
   }
   
-  // Request the next frame
-  requestAnimationFrame(gameLoop);
+  // Update last frame time, accounting for any accumulated delay
+  // This helps prevent "spiral of death" when frames take longer than expected
+  lastFrameTime = timestamp - (elapsed % frameInterval);
+  
+  // Call the draw function to render the current frame
+  draw();
+  
+  // Performance monitoring
+  frameCounter++;
+  if (elapsed > 1000) {
+    const actualFPS = Math.round(frameCounter * 1000 / elapsed);
+    if (actualFPS < FPS - 5) {
+      console.log(`Performance warning: ${actualFPS}fps (target: ${FPS}fps)`);
+    }
+    frameCounter = 0;
+  }
 }
 
 // Function to handle game state changes from other modules

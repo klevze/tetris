@@ -1,5 +1,8 @@
 import { shapes, TETROMINOES } from './data_structures.js';
 
+// Export the Block class and create wrapper functions for backward compatibility
+export { Block, currentBlock };
+
 // Variables that will be initialized by the game module
 let grid_width, grid_height, grid_pos_x, grid_pos_y, block_width;
 let gridData = {}; // Renamed from "mreza" to "gridData" for consistency
@@ -9,81 +12,220 @@ let game_state, score = 0;
 let frame = 0, change_block = false, change_block_frame = 0;
 let level = 1; // Default level
 
-/**
- * Block object - represents the currently active falling tetromino
- */
-export const Block = {
-    x: 0,
-    y: 0,
-    type: 0,
-    rotate: 0,
-    shape: {}
-};
+// Create a global instance of Block for backward compatibility
+let currentBlock = null;
 
-/**
- * Rotate the current block
- * Attempts to rotate and checks if new position is valid
- */
-export function rotate() {
-    // Store original rotation in case new position is invalid
-    const originalRotate = Block.rotate;
-    
-    // Try to rotate
-    Block.rotate = (Block.rotate + 1) % 4;
-    
-    // Get the new shape after rotation
-    const newShape = shapes[Block.rotate][Block.type];
-    
-    // Check if rotation is valid
-    if (!isValidPosition(Block.x, Block.y, newShape)) {
-        // Wall kick attempts - try to shift block if rotation blocked by wall
-        const kicks = [
-            {dx: 1, dy: 0},  // try shift right
-            {dx: -1, dy: 0}, // try shift left
-            {dx: 0, dy: -1}  // try shift up
-        ];
-        
-        // Try each kick position
-        let rotationSuccessful = false;
-        for (const kick of kicks) {
-            if (isValidPosition(Block.x + kick.dx, Block.y + kick.dy, newShape)) {
-                Block.x += kick.dx;
-                Block.y += kick.dy;
-                rotationSuccessful = true;
-                break;
-            }
-        }
-        
-        // If all kicks fail, restore original rotation
-        if (!rotationSuccessful) {
-            Block.rotate = originalRotate;
-        }
-    }
-    
-    // Update the shape
-    Block.shape = shapes[Block.rotate][Block.type];
+// Wrapper functions for block actions that use currentBlock internally
+export function rotateBlock() {
+  if (currentBlock) return currentBlock.rotateBlock();
+  return false;
+}
+
+export function moveBlockDirection(direction) {
+  if (currentBlock) return currentBlock.moveBlockDirection(direction);
+  return false;
+}
+
+// Backwards compatibility wrapper functions
+export function showBlock() {
+  if (currentBlock) currentBlock.showBlock();
+}
+
+export function drawFallingBlock(color_block) {
+  if (currentBlock) currentBlock.drawFallingBlock(color_block);
+}
+
+export function storeBlock() {
+  if (currentBlock) currentBlock.storeBlock();
 }
 
 /**
- * Render the current block at its position
+ * Block class - represents the currently active falling tetromino
  */
-export function showBlock() {
-    // Calculate position of block in grid coordinates
-    const x = Math.floor(grid_pos_x + Block.x * block_width);
-    const y = Math.floor(grid_pos_y + Block.y * block_width);
+class Block {
+    // Cache for rotated shapes to avoid recalculating
+    static #shapeCache = new Map();
     
-    let xx = x;
-    let yy = y;
+    constructor(x = 0, y = 0, type = 0, rotate = 0) {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        this.rotate = rotate;
+        this.shape = this.#getShape(type, rotate);
+    }
+
+    // Get shape with caching to improve performance
+    #getShape(type, rotate) {
+        const key = `${type}_${rotate}`;
+        if (!Block.#shapeCache.has(key)) {
+            Block.#shapeCache.set(key, shapes[rotate][type]);
+        }
+        return Block.#shapeCache.get(key);
+    }
+
+    rotateBlock() {
+        const originalRotate = this.rotate;
+        this.rotate = (this.rotate + 1) % 4;
+        const newShape = this.#getShape(this.type, this.rotate);
+        
+        // Check if rotation is valid at current position
+        if (!Block.isValidPosition(this.x, this.y, newShape)) {
+            // Try wall kicks in order of most likely to succeed
+            const kicks = [
+                {dx: 1, dy: 0},  // right
+                {dx: -1, dy: 0}, // left
+                {dx: 0, dy: -1}, // up
+                {dx: 2, dy: 0},  // 2 right (for I piece)
+                {dx: -2, dy: 0}, // 2 left (for I piece)
+            ];
+            
+            let rotationSuccessful = false;
+            for (const kick of kicks) {
+                if (Block.isValidPosition(this.x + kick.dx, this.y + kick.dy, newShape)) {
+                    this.x += kick.dx;
+                    this.y += kick.dy;
+                    rotationSuccessful = true;
+                    break;
+                }
+            }
+            
+            if (!rotationSuccessful) {
+                this.rotate = originalRotate;
+                this.shape = this.#getShape(this.type, this.rotate);
+                return false;
+            }
+        }
+        
+        this.shape = newShape;
+        return true;
+    }
+
+    showBlock() {
+        // Calculate position of block in grid coordinates
+        const x = Math.floor(grid_pos_x + this.x * block_width);
+        const y = Math.floor(grid_pos_y + this.y * block_width);
+        
+        let xx = x;
+        let yy = y;
+        
+        for (let i = 0; i < this.shape.length; i++) {
+            if (i % 4 == 0 && i > 0) {
+                yy += block_width; // Use exact block width
+                xx = x;
+            }
+            if (this.shape[i] == 1) {
+                drawBlock(xx, yy, this.type);
+            }
+            xx += block_width; // Use exact block width
+        }
+    }
+
+    drawFallingBlock(color_block) {
+        // Find landing position with optimized drop calculation
+        let landingY = this.y;
+        while (Block.isValidPosition(this.x, landingY + 1, this.shape)) {
+            landingY++;
+        }
+        
+        // Calculate position based on grid coordinates - ensure perfect alignment
+        const x_pos = Math.floor(grid_pos_x + this.x * block_width);
+        const y_pos = Math.floor(grid_pos_y + landingY * block_width);
+        
+        let xx = x_pos;
+        let yy = y_pos;
+        
+        // Draw ghost blocks
+        for (let i = 0; i < this.shape.length; i++) {
+            if (i % 4 == 0 && i > 0) {
+                yy += block_width; // Use exact block width
+                xx = x_pos;
+            }
+            
+            if (this.shape[i] == 1) {
+                const w = block_width - 2; // block_width - 2px buffer
+                
+                ctx.globalAlpha = 0.15;
+                ctx.beginPath();
+                ctx.rect(Math.floor(xx+1), Math.floor(yy+1), w, w);
+                ctx.fillStyle = '#999';
+                ctx.fill();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = '#555';
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+            xx += block_width; // Use exact block width
+        }
+    }
     
-    for (let i = 0; i < Block.shape.length; i++) {
-        if (i % 4 == 0 && i > 0) {
-            yy += block_width; // Use exact block width
-            xx = x;
+    storeBlock() {
+        const bx = this.x;
+        const by = this.y;
+        let x = bx;
+        let y = by;
+        
+        for (let i = 0; i < this.shape.length; i++) {
+            if (i % 4 == 0 && i > 0) {
+                y++;
+                x = bx;
+            }
+            if (this.shape[i] > 0) {
+                // Lazy initialization of gridData structure
+                if (!gridData[x]) {
+                    gridData[x] = {};
+                }
+                
+                // Store block type + 1 (to avoid 0 which means empty)
+                gridData[x][y] = this.type + 1;
+            }
+            x++;
         }
-        if (Block.shape[i] == 1) {
-            drawBlock(xx, yy, Block.type);
+    }
+    
+    moveBlockDirection(direction) {
+        if (direction === 'left' && Block.isValidPosition(this.x - 1, this.y, this.shape)) {
+            this.x--;
+            return true;
+        } else if (direction === 'right' && Block.isValidPosition(this.x + 1, this.y, this.shape)) {
+            this.x++;
+            return true;
+        } else if (direction === 'down' && Block.isValidPosition(this.x, this.y + 1, this.shape)) {
+            this.y++;
+            return true;
+        } else if (direction === 'drop') {
+            // Hard drop - move block down until it can't move anymore
+            while (Block.isValidPosition(this.x, this.y + 1, this.shape)) {
+                this.y++;
+            }
+            this.storeBlock();
+            return newBlock();
         }
-        xx += block_width; // Use exact block width
+        return false;
+    }
+    
+    // Optimize collision detection with early returns
+    static isValidPosition(x, y, shape) {
+        let blockX, blockY;
+        
+        for (let i = 0; i < shape.length; i++) {
+            // Only check cells that are actually filled
+            if (shape[i] > 0) {
+                // Calculate position without nested loop
+                blockY = y + Math.floor(i / 4);
+                blockX = x + (i % 4);
+                
+                // Check boundaries first (most common rejection)
+                if (blockX < 0 || blockX >= grid_width || blockY >= grid_height) {
+                    return false;
+                }
+                
+                // Only check collision if we're not above the grid
+                if (blockY >= 0 && gridData[blockX] && gridData[blockX][blockY] > 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
 
@@ -139,15 +281,15 @@ export function showHoldBlock(x, y) {
  */
 export function HoldBlock() {
     if (hold_block < 0) {
-        hold_block = Block.type;
+        hold_block = currentBlock.type;
         
-        Block.type = next_block;
+        currentBlock.type = next_block;
         next_block = Math.floor(Math.random() * Object.keys(TETROMINOES).length);
-        Block.shape = shapes[0][Block.type];
+        currentBlock.shape = shapes[0][currentBlock.type];
     } else {
-        const temp_hold_block = Block.type;
-        Block.type = hold_block;
-        Block.shape = shapes[0][Block.type];
+        const temp_hold_block = currentBlock.type;
+        currentBlock.type = hold_block;
+        currentBlock.shape = shapes[0][currentBlock.type];
         hold_block = temp_hold_block;
     }
 }
@@ -186,128 +328,51 @@ export function drawBlock(x, y, type) {
 }
 
 /**
- * Draw a ghost block showing where the piece will land
- */
-export function drawFallingBlock(x, y, type, color_block) {
-    // Find landing position with optimized drop calculation
-    let landingY = y;
-    while (isValidPosition(x, landingY + 1, Block.shape)) {
-        landingY++;
-    }
-    
-    // Calculate position based on grid coordinates - ensure perfect alignment
-    const x_pos = Math.floor(grid_pos_x + Block.x * block_width);
-    const y_pos = Math.floor(grid_pos_y + landingY * block_width);
-    
-    let xx = x_pos;
-    let yy = y_pos;
-    
-    // Draw ghost blocks
-    for (let i = 0; i < Block.shape.length; i++) {
-        if (i % 4 == 0 && i > 0) {
-            yy += block_width; // Use exact block width
-            xx = x_pos;
-        }
-        
-        if (Block.shape[i] == 1) {
-            const w = block_width - 2; // block_width - 2px buffer
-            
-            ctx.globalAlpha = 0.15;
-            ctx.beginPath();
-            ctx.rect(Math.floor(xx+1), Math.floor(yy+1), w, w);
-            ctx.fillStyle = '#999';
-            ctx.fill();
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = '#555';
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-        }
-        xx += block_width; // Use exact block width
-    }
-}
-
-/**
  * Create a new tetromino block
  * @returns {boolean} false if can't place new block (game over)
  */
 export function newBlock() {
-    Block.type = next_block;
+    const nextType = next_block;
     next_block = Math.floor(Math.random() * Object.keys(TETROMINOES).length);
     score += level * 4;
     
-    Block.rotate = 0;
-    
-    // Precisely center the block in the grid
-    // Math.floor ensures consistent positioning
-    Block.x = Math.floor(grid_width / 2) - 1;
-    Block.y = 0;
-    
-    Block.shape = shapes[0][Block.type];
+    // If the currentBlock doesn't exist, create it
+    if (!currentBlock) {
+        currentBlock = new Block(
+            Math.floor(grid_width / 2) - 1,
+            0,
+            nextType,
+            0
+        );
+    } else {
+        // Update existing block
+        currentBlock.type = nextType;
+        currentBlock.rotate = 0;
+        currentBlock.x = Math.floor(grid_width / 2) - 1;
+        currentBlock.y = 0;
+        currentBlock.shape = shapes[0][nextType];
+    }
     
     // Check if new block can be placed - if not, game over
-    if (!isValidPosition(Block.x, Block.y, Block.shape)) {
+    if (!Block.isValidPosition(currentBlock.x, currentBlock.y, currentBlock.shape)) {
         game_state = "game_over";
         return false;
     }
     return true;
 }
 
-/**
- * Check if the given position is valid for the given block shape
- * @param {number} x - X position to check
- * @param {number} y - Y position to check
- * @param {array} shape - Block shape to check
- * @returns {boolean} true if position is valid
- */
-function isValidPosition(x, y, shape) {
-    let blockX = x;
-    let blockY = y;
-    
-    for (let i = 0; i < shape.length; i++) {
-        if (i % 4 == 0 && i > 0) {
-            blockY++;
-            blockX = x;
-        }
-        
-        if (shape[i] > 0) {
-            // Check boundaries
-            if (blockX < 0 || blockX >= grid_width || blockY >= grid_height) {
-                return false;
-            }
-            
-            // Check collision with other blocks
-            // Only check occupied grid cells
-            if (blockY >= 0 && isGridCellOccupied(blockX, blockY)) {
-                return false;
-            }
-        }
-        blockX++;
-    }
-    return true;
-}
-
-/**
- * Safely check if a grid cell is occupied
- * @param {number} x - Grid X position
- * @param {number} y - Grid Y position
- * @returns {boolean} true if cell is occupied
- */
-function isGridCellOccupied(x, y) {
-    return gridData[x] && gridData[x][y] > 0;
-}
-
 /** 
  * Legacy function kept for compatibility
  */
 export function check2MoveBlock(bx, by, type) {
-    return isValidPosition(bx, by, Block.shape);
+    return Block.isValidPosition(bx, by, currentBlock.shape);
 }
 
 /** 
  * Legacy function kept for compatibility
  */
 export function check2MoveBlockRotate(new_shape, bx, by, type) {
-    return isValidPosition(bx, by, new_shape);
+    return Block.isValidPosition(bx, by, new_shape);
 }
 
 /**
@@ -325,11 +390,11 @@ export function moveBlock(currentLevel) {
         
         if (change_block) {
             // Try to move down one more time
-            if (isValidPosition(Block.x, Block.y + 1, Block.shape)) {
-                Block.y++;
+            if (Block.isValidPosition(currentBlock.x, currentBlock.y + 1, currentBlock.shape)) {
+                currentBlock.y++;
             } else {
                 // Block landed - store it and create a new one
-                storeBlock();
+                currentBlock.storeBlock();
                 const result = newBlock();
                 change_block = false;
                 return result; // false = game over
@@ -337,8 +402,8 @@ export function moveBlock(currentLevel) {
         }
         
         // Check if block can move down
-        if (isValidPosition(Block.x, Block.y + 1, Block.shape)) {
-            Block.y++;
+        if (Block.isValidPosition(currentBlock.x, currentBlock.y + 1, currentBlock.shape)) {
+            currentBlock.y++;
         } else {
             // Block can't move down - mark for landing on next frame
             change_block = true;
@@ -347,36 +412,9 @@ export function moveBlock(currentLevel) {
     }
     
     // Render the block
-    showBlock();
-    drawFallingBlock(Block.x, Block.y, Block.type, "#333");
+    currentBlock.showBlock();
+    currentBlock.drawFallingBlock("#333");
     return true; // Game continues
-}
-
-/**
- * Store the current block in the grid
- */
-export function storeBlock() {
-    const bx = Block.x;
-    const by = Block.y;
-    let x = bx;
-    let y = by;
-    
-    for (let i = 0; i < Block.shape.length; i++) {
-        if (i % 4 == 0 && i > 0) {
-            y++;
-            x = bx;
-        }
-        if (Block.shape[i] > 0) {
-            // Lazy initialization of gridData structure
-            if (!gridData[x]) {
-                gridData[x] = {};
-            }
-            
-            // Store block type + 1 (to avoid 0 which means empty)
-            gridData[x][y] = Block.type + 1;
-        }
-        x++;
-    }
 }
 
 /**
@@ -405,10 +443,12 @@ export function setupBlockHandler(context, gridState, blockImg, params) {
     
     // Initialize blocks with improved randomization
     next_block = getRandomTetrominoType();
-    Block.type = getRandomTetrominoType();
-    Block.shape = shapes[0][Block.type];
-    Block.x = Math.floor(grid_width / 2) - 1;
-    Block.y = 0;
+    currentBlock = new Block(
+        Math.floor(grid_width / 2) - 1,
+        0,
+        getRandomTetrominoType(),
+        0
+    );
     hold_block = -1;
     frame = 0;
     change_block = false;
@@ -438,28 +478,4 @@ function getRandomTetrominoType() {
     }
     
     return type;
-}
-
-/**
- * Move block in specified direction if possible
- */
-export function moveBlockDirection(direction) {
-    if (direction === 'left' && isValidPosition(Block.x - 1, Block.y, Block.shape)) {
-        Block.x--;
-        return true;
-    } else if (direction === 'right' && isValidPosition(Block.x + 1, Block.y, Block.shape)) {
-        Block.x++;
-        return true;
-    } else if (direction === 'down' && isValidPosition(Block.x, Block.y + 1, Block.shape)) {
-        Block.y++;
-        return true;
-    } else if (direction === 'drop') {
-        // Hard drop - move block down until it can't move anymore
-        while (isValidPosition(Block.x, Block.y + 1, Block.shape)) {
-            Block.y++;
-        }
-        storeBlock();
-        return newBlock();
-    }
-    return false;
 }

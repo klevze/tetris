@@ -3,15 +3,18 @@
  * Manages input events (keyboard, touch, mouse) for game control
  */
 
-import { rotate, check2MoveBlock, HoldBlock, storeBlock, newBlock, moveBlockDirection } from './block.js';
+import { Block, currentBlock as blockCurrentBlock, rotateBlock, moveBlockDirection, HoldBlock } from './block.js';
 import { getState, changeState, togglePause, toggleMusic } from './gameState.js';
 import { GAME_STATES } from './config/config.js';
 import { getAudio } from './assetManager.js';
 
 // Block reference and grid parameters are set during initialization
-let Block;
+let currentBlock;
 let grid_width, grid_height;
 let score = 0;
+
+// Game pause state
+let game_pause = false;
 
 // Touch event tracking
 let touchStartX = 0;
@@ -66,7 +69,7 @@ export function updateGameState(newState) {
  */
 export function initEventHandlers(blockRef, audioRef, stateRef, gridParams) {
     // Store references
-    Block = blockRef;
+    currentBlock = blockRef;
     
     // Check if gridParams is provided and has the required properties
     if (gridParams && typeof gridParams === 'object' && 
@@ -237,49 +240,57 @@ function handleClick(event) {
 
 /**
  * Handle keyboard down events
- * @param {KeyboardEvent} event - Keyboard event
+ * @param {KeyboardEvent} e - Keyboard event
  */
-function handleKeyDown(event) {
-    // Handle preventing default actions for game keys
-    if ([32, 37, 38, 39, 40, 80, 77, 72].indexOf(event.keyCode) > -1) {
-        event.preventDefault();
+function handleKeyDown(e) {
+    // Handle space key in loading state
+    if (game_state === GAME_STATES.LOADING && e.key === ' ') {
+        e.preventDefault();
+        eventSpace.pressed = true;
+        keyState.space = true;
+        handleSpaceAction();
+        return;
     }
     
-    // Store key state
-    switch (event.keyCode) {
-        case 32: // Space
+    // Handle space key in intro or high score states
+    if ((game_state === GAME_STATES.GAME_INTRO || 
+         game_state === GAME_STATES.HIGH_SCORE) && 
+        e.key === ' ') {
+        e.preventDefault();
+        eventSpace.pressed = true;
+        keyState.space = true;
+        handleSpaceAction();
+        return;
+    }
+    
+    // Handle gameplay keys
+    if (game_state === GAME_STATES.PLAY_GAME && !game_pause) {
+        if (e.key === 'ArrowLeft' || e.key === 'a') {
+            e.preventDefault();
+            moveBlockDirection('left');
+        }
+        if (e.key === 'ArrowRight' || e.key === 'd') {
+            e.preventDefault();
+            moveBlockDirection('right');
+        }
+        if (e.key === 'ArrowDown' || e.key === 's') {
+            e.preventDefault();
+            moveBlockDirection('down');
+        }
+        if (e.key === ' ') {
+            e.preventDefault();
+            eventSpace.pressed = true;
             keyState.space = true;
-            eventSpace.pressed = true; // Update eventSpace for backward compatibility
-            handleSpaceAction();
-            break;
-        case 37: // Left arrow
-            keyState.left = true;
-            handleLeftMove();
-            break;
-        case 38: // Up arrow
-            keyState.up = true;
-            handleUpMove();
-            break;
-        case 39: // Right arrow
-            keyState.right = true;
-            handleRightMove();
-            break;
-        case 40: // Down arrow
-            keyState.down = true;
-            handleDownMove();
-            break;
-        case 80: // P key
-            keyState.p = true;
-            togglePause();
-            break;
-        case 77: // M key
-            keyState.m = true;
-            toggleMusic();
-            break;
-        case 72: // H key
-            keyState.h = true;
-            handleHoldBlock();
-            break;
+            moveBlockDirection('drop');
+        }
+        if (e.key === 'ArrowUp' || e.key === 'w') {
+            e.preventDefault();
+            rotateBlock();
+        }
+        if (e.key === 'h' || e.key === 'c') {
+            e.preventDefault();
+            HoldBlock();
+        }
     }
 }
 
@@ -362,9 +373,7 @@ function handleRightMove() {
     const state = getState();
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
-        if (check2MoveBlock(Block.x+1, Block.y, Block.type) && Block.x+1 < grid_width) {
-            Block.x++;
-        }
+        moveBlockDirection('right');
     }
 }
 
@@ -376,9 +385,7 @@ function handleLeftMove() {
     const state = getState();
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
-        if (check2MoveBlock(Block.x-1, Block.y, Block.type)) {
-            Block.x--;
-        }
+        moveBlockDirection('left');
     }
 }
 
@@ -390,9 +397,7 @@ function handleDownMove() {
     const state = getState();
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
-        if (check2MoveBlock(Block.x, Block.y+1, Block.type)) {
-            Block.y++;
-        }
+        moveBlockDirection('down');
     }
 }
 
@@ -404,7 +409,7 @@ function handleUpMove() {
     const state = getState();
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
-        rotate();
+        rotateBlock();
     }
 }
 
@@ -416,7 +421,7 @@ function handleDoubleTap() {
     const state = getState();
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
-        hardDrop();
+        moveBlockDirection('drop');
     }
 }
 
@@ -442,7 +447,7 @@ function handleTap() {
         case GAME_STATES.PLAY_GAME:
             if (!state.isPaused) {
                 // Single tap rotates block during gameplay
-                rotate();
+                rotateBlock();
             }
             break;
     }
@@ -456,23 +461,8 @@ function hardDrop() {
     const state = getState();
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
-        let check = true;
-        
-        // Fast drop until collision
-        for (let y = Block.y; y < grid_height; y++) {
-            if (check2MoveBlock(Block.x, y+1, Block.type) && check) {
-                Block.y++;
-            } else {
-                check = false;
-            }
-        }
-        
-        // Add points for hard drop
+        moveBlockDirection('drop');
         score += 20;
-        
-        // Store block and generate new one
-        storeBlock();
-        newBlock();
     }
 }
 

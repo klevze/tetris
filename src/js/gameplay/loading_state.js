@@ -2,6 +2,8 @@
 import { canvas, ctx, WIDTH, HEIGHT, DrawBitmapText, DrawBitmapTextSmall, clearScreen } from '../functions.js';
 import { Draw3DStars } from '../starfield_3d.js';
 import { UI, GAME_STATES } from '../config/config.js';
+// Import gameState functions to sync loading state
+import { updateLoadingProgress as updateStateLoadingProgress, getState } from '../gameState.js';
 
 /**
  * LOADING SCREEN MODULE
@@ -51,9 +53,13 @@ export function initLoadingScreen(logoImage, fontsBigImage, fontsSmallImage) {
 export function updateLoadingProgress(current, total) {
     loadingProgress = current / total;
     
+    // Update the game state system as well
+    updateStateLoadingProgress(current, total);
+    
     if (current >= total && !isLoaded) {
         isLoaded = true;
         showPressSpace = true;
+        console.log("Loading complete, press space to continue");
     }
 }
 
@@ -254,11 +260,21 @@ export function handleLoadingState(eventSpace, setGameState) {
     // Show the loading screen with progress bar and stars
     drawLoadingScreen();
     
-    // If loading is complete and space is pressed, proceed to intro screen
-    if (isLoadingComplete() && eventSpace.pressed) {
+    // Check if loading is complete and space is pressed
+    // Handle both eventSpace object formats (supporting our refactored code)
+    const isSpacePressed = 
+        (eventSpace && eventSpace.pressed) || // New format from our refactored code
+        (typeof eventSpace === 'boolean' && eventSpace); // Original format 
+    
+    if (isLoadingComplete() && isSpacePressed) {
+        console.log("Space pressed on loading screen, transitioning to intro");
         hidePressSpace();           // Hide "Press SPACE" prompt
         setGameState(GAME_STATES.GAME_INTRO); // Switch to intro screen
-        eventSpace.pressed = false; // Reset space key state
+        
+        // Reset space key state in both possible formats
+        if (eventSpace && typeof eventSpace === 'object') {
+            eventSpace.pressed = false;
+        }
         return true; // State transition handled
     }
     

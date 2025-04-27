@@ -89,57 +89,6 @@ export function startGameTimer() {
 }
 
 /**
- * Display the game score, lines, level and time
- */
-function showScore() {
-  // Display the game score, lines, level and time
-  let timer;
-  
-  const hours = parseInt(TotalSeconds / 3600) % 24;
-  const minutes = parseInt(TotalSeconds / 60) % 60;
-  const seconds = TotalSeconds % 60;
-  
-  spc++;
-  let seper = ' : ';
-  if (spc > 30) {
-    seper = '   ';
-  }
-  if (spc > 60) {
-    spc = 0;
-  }
-  
-  timer = (minutes < 10 ? "0" + minutes : minutes) + seper + (seconds < 10 ? "0" + seconds : seconds);
-  
-  const uiPositions = calculateUIPositions();
-  
-  ctx.font = 'normal 15px sans-serif';
-  ctx.textBaseline = 'top';
-  ctx.textAlign = 'right';
-
-  ctx.fillStyle = '#000';
-  ctx.fillText(score, uiPositions.scoreX + 1, uiPositions.scoreY + 1);
-  ctx.fillText(lines, uiPositions.linesX + 1, uiPositions.linesY + 1);
-  ctx.fillText(level, uiPositions.levelX + 1, uiPositions.levelY + 1);
-  ctx.fillText(timer, uiPositions.timerX + 1, uiPositions.timerY + 1);
-  
-  ctx.fillStyle = '#ccc';
-  ctx.fillText(score, uiPositions.scoreX, uiPositions.scoreY);
-  ctx.fillText(lines, uiPositions.linesX, uiPositions.linesY);
-  ctx.fillText(level, uiPositions.levelX, uiPositions.levelY);
-  ctx.fillText(timer, uiPositions.timerX, uiPositions.timerY);
-  
-  // Show score addition animation when clearing lines
-  if (showAddScore) {
-    DrawBitmapTextSmall("+" + addScore, 360, 235, 0, 0);
-    sac++;
-    if (sac > ANIMATION.SCORE_DISPLAY_FRAMES) {
-      sac = 0;
-      showAddScore = false;
-    }
-  }
-}
-
-/**
  * Start a new game, initializing all necessary components
  */
 export function startMainGame() {
@@ -168,7 +117,7 @@ export function startMainGame() {
   };
   
   // Initialize the game grid with these parameters
-  setupGrid(ctx, gridParams, clear_line_audio, grid_img);
+  setupGrid(ctx, gridParams, clear_line_audio, grid_img, lego);
   
   // Get the initialized grid state and pass it to the block handler
   const gridState = getGridState(); 
@@ -272,36 +221,18 @@ export function handleMainGameState(setGameState) {
     return true;
   }
   
-  // Normal gameplay
+  // Clear screen once at the start of the frame
   clearScreen('#000');
   
-  // Show appropriate background based on level - stretched to cover the screen
-  if (level === 10) {
-    showBackgroundCover(level10_img);
-  } else if (level === 9) {
-    showBackgroundCover(level9_img);
-  } else if (level === 8) {
-    showBackgroundCover(level8_img);
-  } else if (level === 7) {
-    showBackgroundCover(level7_img);
-  } else if (level === 6) {
-    showBackgroundCover(level6_img);
-  } else if (level === 5) {
-    showBackgroundCover(level5_img);
-  } else if (level === 4) {
-    showBackgroundCover(level4_img);
-  } else if (level === 3) {
-    showBackgroundCover(level3_img);
-  } else if (level === 2) {
-    showBackgroundCover(level2_img);
-  } else {
-    showBackgroundCover(background);
-  }
+  // Get currentLevel once instead of multiple comparisons
+  const backgroundImg = getBackgroundForLevel(level);
+  showBackgroundCover(backgroundImg);
   
   // Show grid centered at its original size
   showCenteredBackground(grid_img);
  
   if (block_finish === true) {
+    // Use the global newBlock function which handles currentBlock internally
     newBlock();
     block_finish = false;
   }
@@ -322,24 +253,141 @@ export function handleMainGameState(setGameState) {
     level = rowResult.level;
     showAddScore = rowResult.showAddScore;
     addScore = rowResult.addScore;
+    
+    // If we have rows to clear, do it immediately rather than waiting
+    // This ensures blocks fall down properly
+    clearRows();
   }
   
   // Render the game elements
   fillGrid();
   
-  const uiPositions = calculateUIPositions();
+  // Cache UI positions for performance
+  const uiPositions = getUIPositions();
   
+  // Show next/hold blocks and score
   showNextBlock(uiPositions.nextBlockX, uiPositions.nextBlockY);
   showHoldBlock(uiPositions.holdBlockX, uiPositions.holdBlockY);
   showScore();
   
-  // Process row clearing
-  crs++;
-  if (crs % 10 === 0) {
-    clearRows();
+  return true;
+}
+
+/**
+ * Get the appropriate background image based on level
+ * @param {number} level - Current game level
+ * @returns {HTMLImageElement} Background image for the level
+ */
+function getBackgroundForLevel(level) {
+  // Use a cache to avoid recalculating on every frame
+  if (!getBackgroundForLevel.cache) {
+    getBackgroundForLevel.cache = new Map();
   }
   
-  return true;
+  if (!getBackgroundForLevel.cache.has(level)) {
+    let img;
+    switch(level) {
+      case 10: img = level10_img; break;
+      case 9: img = level9_img; break;
+      case 8: img = level8_img; break;
+      case 7: img = level7_img; break;
+      case 6: img = level6_img; break;
+      case 5: img = level5_img; break;
+      case 4: img = level4_img; break;
+      case 3: img = level3_img; break;
+      case 2: img = level2_img; break;
+      default: img = background;
+    }
+    getBackgroundForLevel.cache.set(level, img);
+  }
+  
+  return getBackgroundForLevel.cache.get(level);
+}
+
+/**
+ * Calculate and cache positions for UI elements
+ * @returns {Object} Object containing positions for various UI elements
+ */
+let cachedUIPositions = null;
+let lastGridImgData = null;
+
+function getUIPositions() {
+  // Only recalculate if the grid image has changed
+  const currentGridData = {
+    width: grid_img.width,
+    height: grid_img.height,
+    canvasWidth: ctx.canvas.width,
+    canvasHeight: ctx.canvas.height
+  };
+  
+  const needsRecalculation = !lastGridImgData || 
+    lastGridImgData.width !== currentGridData.width || 
+    lastGridImgData.height !== currentGridData.height ||
+    lastGridImgData.canvasWidth !== currentGridData.canvasWidth ||
+    lastGridImgData.canvasHeight !== currentGridData.canvasHeight;
+    
+  if (needsRecalculation || !cachedUIPositions) {
+    cachedUIPositions = calculateUIPositions();
+    lastGridImgData = currentGridData;
+  }
+  
+  return cachedUIPositions;
+}
+
+/**
+ * Display the game score, lines, level and time with optimized text rendering
+ */
+function showScore() {
+  // Format timer value only once per frame
+  const timer = formatGameTime();
+  
+  const uiPositions = getUIPositions();
+  
+  // Pre-calculate text shadow position once
+  const shadowOffset = 1;
+  
+  // Use a consistent font configuration
+  ctx.font = 'normal 15px sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'right';
+
+  // Draw shadows first, then text - reduces context switching
+  ctx.fillStyle = '#000';
+  ctx.fillText(score, uiPositions.scoreX + shadowOffset, uiPositions.scoreY + shadowOffset);
+  ctx.fillText(lines, uiPositions.linesX + shadowOffset, uiPositions.linesY + shadowOffset);
+  ctx.fillText(level, uiPositions.levelX + shadowOffset, uiPositions.levelY + shadowOffset);
+  ctx.fillText(timer, uiPositions.timerX + shadowOffset, uiPositions.timerY + shadowOffset);
+  
+  ctx.fillStyle = '#ccc';
+  ctx.fillText(score, uiPositions.scoreX, uiPositions.scoreY);
+  ctx.fillText(lines, uiPositions.linesX, uiPositions.linesY);
+  ctx.fillText(level, uiPositions.levelX, uiPositions.levelY);
+  ctx.fillText(timer, uiPositions.timerX, uiPositions.timerY);
+  
+  // Show score addition animation when clearing lines
+  if (showAddScore) {
+    DrawBitmapTextSmall("+" + addScore, 360, 235, 0, 0);
+    sac++;
+    if (sac > ANIMATION.SCORE_DISPLAY_FRAMES) {
+      sac = 0;
+      showAddScore = false;
+    }
+  }
+}
+
+/**
+ * Format the game timer with flashing separator
+ * @returns {string} Formatted time string
+ */
+function formatGameTime() {
+  const minutes = parseInt(TotalSeconds / 60) % 60;
+  const seconds = TotalSeconds % 60;
+  
+  // Only update separator animation every 15 frames
+  spc = (spc + 1) % 60;
+  const separator = spc < 30 ? ' : ' : '   ';
+  
+  return (minutes < 10 ? "0" + minutes : minutes) + separator + (seconds < 10 ? "0" + seconds : seconds);
 }
 
 /**
