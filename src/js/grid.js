@@ -1,4 +1,5 @@
 import { DrawLine } from './functions.js';
+import { BLOCK } from './config/config.js'; // Import block configuration
 
 /**
  * GRID MODULE
@@ -26,6 +27,8 @@ const ANIMATION_FRAMES = {
 let grid_width, grid_height, grid_pos_x, grid_pos_y, block_width;
 let gridData = {}; // Grid storage - switched to object-based grid for memory efficiency
 let ctx, clear_line_audio;
+
+// Game variables
 let lines = 0, level = 1, level_goal = 10, score = 0;
 let showAddScore = false;
 let addScoreValue = 0;
@@ -250,13 +253,14 @@ function renderClearAnimation() {
               drawBlock(drawX, drawY, blockTypeIndex);
             } else {
               // Fallback to using the lego sprite
-              const sx = blockTypeIndex * 30;
+              const spriteSize = BLOCK.SPRITE_SIZE;
+              const sx = blockTypeIndex * spriteSize;
               ctx.drawImage(
                 lego,
-                sx + 1,
-                1,
-                28,
-                28,
+                sx + 2,
+                2,
+                spriteSize - 4,
+                spriteSize - 4,
                 drawX,
                 drawY,
                 block_width,
@@ -285,15 +289,16 @@ function renderClearAnimation() {
               drawBlock(drawX, currentY, blockTypeIndex);
             } else {
               // Fallback to using the lego sprite
-              const sx = blockTypeIndex * 30;
+              const spriteSize = BLOCK.SPRITE_SIZE;
+              const sx = blockTypeIndex * spriteSize;
               ctx.drawImage(
                 lego,
-                sx + 1,
-                1,
-                28,
-                28,
+                sx + 2,
+                2,
+                spriteSize - 4,
+                spriteSize - 4,
                 drawX,
-                currentY,
+                currentY + 10 - 30, // Apply the same vertical offset for consistency
                 block_width,
                 block_width
               );
@@ -626,24 +631,25 @@ export function fillGrid() {
 
   // Render blocks in batches by type - with enhanced visibility
   renderQueue.forEach((positions, blockType) => {
-    // Set up the sprite details once for this block type
-    const sx = blockType * 30;
-    const bufferX = 1;
-    const bufferY = 1;
-    const bufferWidth = 2;
-    const bufferHeight = 2;
+    // Use the sprite size from configuration
+    const spriteSize = BLOCK.SPRITE_SIZE;
+    const sx = blockType * spriteSize;
+    const bufferX = 2;
+    const bufferY = 2;
+    const bufferWidth = 4;
+    const bufferHeight = 4;
 
     // Draw all blocks of this type in a batch
     positions.forEach(pos => {
       const drawX = Math.floor(pos.x);
-      const drawY = Math.floor(pos.y);
+      const drawY = Math.floor(pos.y); // Apply consistent -5px vertical offset for all blocks
 
       ctx.drawImage(
         lego,
         sx + bufferX,
         bufferY,
-        30 - bufferWidth,
-        30 - bufferHeight,
+        spriteSize - bufferWidth,
+        spriteSize - bufferHeight,
         drawX,
         drawY,
         block_width,
@@ -731,36 +737,20 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
   const canvasWidth = ctx.canvas.width / (window.devicePixelRatio || 1);
   const canvasHeight = ctx.canvas.height / (window.devicePixelRatio || 1);
   
-  // We'll use the grid image dimensions for positioning, but not render it
-  if (gridImage && gridImage.complete && gridImage.naturalWidth !== 0) {
-    const gridImgWidth = gridImage.naturalWidth;
-    const gridImgHeight = gridImage.naturalHeight;
-    
-    // Calculate centered position for grid image
-    const gridImgX = Math.floor((canvasWidth - gridImgWidth) / 2);
-    const gridImgY = Math.floor((canvasHeight - gridImgHeight) / 2);
-    
-    // Define the position of the actual play area within the grid image space
-    // These are the offsets from the top-left corner of where the grid image would be
-    const playAreaOffsetX = 169 + 80; // X offset from grid image left edge to play area
-    const playAreaOffsetY = 48 - 15;  // Y offset from grid image top edge to play area
-    
-    // Set grid position - this is where the blocks will be drawn
-    grid_pos_x = gridImgX + playAreaOffsetX;
-    grid_pos_y = gridImgY + playAreaOffsetY;
-    
-    console.log(`Grid positioned at: ${grid_pos_x},${grid_pos_y} (based on grid image dimensions)`);
-  } else {
-    // Fallback positioning if grid image reference isn't available
-    const totalGridWidth = grid_width * block_width;
-    const totalGridHeight = grid_height * block_width;
-    
-    // Position the grid in the center of the screen with some adjustments
-    grid_pos_x = Math.floor((canvasWidth - totalGridWidth) / 2) + 80; // Add 80px right offset
-    grid_pos_y = Math.floor((canvasHeight - totalGridHeight) / 2) - 45; // Move up by 45px
-    
-    console.log(`Grid positioned at: ${grid_pos_x},${grid_pos_y} (fallback calculation)`);
-  }
+  // Calculate the total grid dimensions based on block size
+  const totalGridWidth = grid_width * block_width;
+  const totalGridHeight = grid_height * block_width;
+  
+  // Center the grid precisely in the middle of the screen
+  grid_pos_x = Math.floor((canvasWidth - totalGridWidth) / 2);
+  grid_pos_y = Math.floor((canvasHeight - totalGridHeight) / 2);
+  
+  // Apply a small vertical offset to improve visual balance (move grid slightly up)
+  const verticalOffset = Math.floor(block_width * 0.5); // Scale the offset with block size
+  grid_pos_y -= verticalOffset;
+  
+  console.log(`Grid positioned at: ${grid_pos_x},${grid_pos_y} with block size ${block_width}px`);
+  console.log(`Grid dimensions: ${totalGridWidth}x${totalGridHeight}`);
   
   // Store audio and reset game state
   clear_line_audio = audio;

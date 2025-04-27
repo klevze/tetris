@@ -1,5 +1,6 @@
 import { shapes, TETROMINOES } from './data_structures.js';
 import { isAnimationInProgress } from './grid.js';
+import { BLOCK } from './config/config.js'; // Import block configuration
 
 // Export the Block class and create wrapper functions for backward compatibility
 export { Block, currentBlock };
@@ -102,9 +103,10 @@ class Block {
     }
 
     showBlock() {
-        // Calculate position of block in grid coordinates
+        // Calculate position of block in grid coordinates with consistent offset
+        const verticalOffset = -15; // Match the -5px offset used for placed blocks
         const x = Math.floor(grid_pos_x + this.x * block_width);
-        const y = Math.floor(grid_pos_y + this.y * block_width);
+        const y = Math.floor(grid_pos_y + this.y * block_width) + verticalOffset;
         
         let xx = x;
         let yy = y;
@@ -136,9 +138,10 @@ class Block {
             landingY++;
         }
         
-        // Calculate position based on grid coordinates - ensure perfect alignment
+        // Use the same consistent vertical offset as the other blocks
+        const verticalOffset = -15; // Match the -5px offset used for other blocks
         const x_pos = Math.floor(grid_pos_x + this.x * block_width);
-        const y_pos = Math.floor(grid_pos_y + landingY * block_width);
+        const y_pos = Math.floor(grid_pos_y + landingY * block_width) + verticalOffset;
         
         let xx = x_pos;
         let yy = y_pos;
@@ -151,23 +154,26 @@ class Block {
             }
             
             if (this.shape[i] == 1) {
-                const w = block_width - 2; // block_width - 2px buffer
+                // Scale ghost block size with block width
+                const w = block_width - Math.floor(2 * (block_width / 30)); 
                 
                 ctx.globalAlpha = 0.15;
                 ctx.beginPath();
-                ctx.rect(Math.floor(xx+1), Math.floor(yy+1), w, w);
+                ctx.rect(
+                    Math.floor(xx + Math.floor(block_width * 0.03)), // Scale padding with block size
+                    Math.floor(yy + Math.floor(block_width * 0.03)), 
+                    w, 
+                    w
+                );
                 ctx.fillStyle = '#999';
                 ctx.fill();
-                ctx.lineWidth = 1;
+                ctx.lineWidth = Math.max(1, Math.floor(block_width / 30));
                 ctx.strokeStyle = '#555';
                 ctx.stroke();
                 ctx.globalAlpha = 1;
             }
             xx += block_width; // Use exact block width
         }
-        
-        // NOTE: We don't need this part anymore since we're already drawing the actual blocks in showBlock()
-        // which is called right before drawFallingBlock() in the moveBlock function
     }
     
     storeBlock() {
@@ -175,6 +181,9 @@ class Block {
         const by = this.y;
         let x = bx;
         let y = by;
+        
+        // No need for vertical offset here since it's only applied during rendering
+        // The grid data should store the logical position, not the display position
         
         for (let i = 0; i < this.shape.length; i++) {
             if (i % 4 == 0 && i > 0) {
@@ -245,8 +254,11 @@ class Block {
  * Show next tetromino in the preview area
  */
 export function showNextBlock(x, y) {
-    // Move the next block 50px to the right by adding 50 to the x position
-    let xx = Math.floor(x + 50);
+    // Scale the offset based on block size - was originally 50px for 30px blocks
+    const offsetScale = block_width / 30;
+    const offset = Math.floor(50 * offsetScale);
+    
+    let xx = Math.floor(x + offset);
     let yy = Math.floor(y);
     
     const next_shape = shapes[0][next_block];
@@ -254,7 +266,7 @@ export function showNextBlock(x, y) {
     for (let i = 0; i < next_shape.length; i++) {
         if (i % 4 == 0 && i > 0) {
             yy += block_width; // Use exact block width
-            xx = Math.floor(x + 50); // Also update this line with +50
+            xx = Math.floor(x + offset); // Use calculated offset
         }
         if (next_shape[i] == 1) {
             drawBlock(xx, yy, next_block);
@@ -310,32 +322,32 @@ export function HoldBlock() {
  * Draw a single tetromino block at the given position
  */
 export function drawBlock(x, y, type) {
-    // For 30x30px blocks, using exact pixel dimensions
-    // Each block is exactly 30px wide in the sprite sheet
-    const sx = type * 30;
+    // Use the sprite size from the configuration
+    const spriteSize = BLOCK.SPRITE_SIZE;
+    const sx = type * spriteSize;
     
     // Use a small buffer to avoid color bleeding between blocks,
     // but ensure blocks still align perfectly with the grid
-    const bufferX = 1;
-    const bufferY = 1;
-    const bufferWidth = 2;
-    const bufferHeight = 2;
+    const bufferX = 2; // Slightly increased for larger blocks
+    const bufferY = 2;
+    const bufferWidth = 4; // Slightly increased for larger blocks
+    const bufferHeight = 4;
     
     // Calculate exact positioning to align with grid
     const drawX = Math.floor(x); // Ensure whole pixel alignment
     const drawY = Math.floor(y); // Ensure whole pixel alignment
     
-    // Draw the block with exact 30x30px dimensions
+    // Draw the block with dimensions from config
     ctx.drawImage(
         lego, 
         sx + bufferX, 
         bufferY, 
-        30 - bufferWidth, 
-        30 - bufferHeight, 
+        spriteSize - bufferWidth, 
+        spriteSize - bufferHeight, 
         drawX, 
         drawY, 
-        block_width, // Use block_width instead of hardcoded 30
-        block_width  // Use block_width instead of hardcoded 30
+        block_width, // Use block_width for the rendered size
+        block_width  // Use block_width for the rendered size
     );
 }
 
@@ -348,10 +360,20 @@ export function newBlock() {
     next_block = Math.floor(Math.random() * Object.keys(TETROMINOES).length);
     score += level * 4;
     
+    // Calculate spawn position based on the shape
+    // We want to center the block horizontally, accounting for the actual width of the tetromino
+    const shape = shapes[0][nextType];
+    let startX = 3; // Default position for most tetrominos
+    
+    // For I-piece (index 0), we need to shift it left
+    if (nextType === 0) {
+        startX = 3;
+    }
+    
     // If the currentBlock doesn't exist, create it
     if (!currentBlock) {
         currentBlock = new Block(
-            Math.floor(grid_width / 2) - 1,
+            startX,
             0,
             nextType,
             0
@@ -360,7 +382,7 @@ export function newBlock() {
         // Update existing block
         currentBlock.type = nextType;
         currentBlock.rotate = 0;
-        currentBlock.x = Math.floor(grid_width / 2) - 1;
+        currentBlock.x = startX;
         currentBlock.y = 0;
         currentBlock.shape = shapes[0][nextType];
     }
@@ -465,12 +487,15 @@ export function setupBlockHandler(context, gridState, blockImg, params) {
     
     // Initialize blocks with improved randomization
     next_block = getRandomTetrominoType();
+    
+    // Create the initial block at a consistent position (column 3)
     currentBlock = new Block(
-        Math.floor(grid_width / 2) - 1,
+        3,  // Start at column 3, which is a better default position
         0,
         getRandomTetrominoType(),
         0
     );
+    
     hold_block = -1;
     frame = 0;
     change_block = false;

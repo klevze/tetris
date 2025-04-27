@@ -20,11 +20,18 @@ export const CANVAS = {
     HEIGHT: window.innerHeight || 600  // Default to window height or 600px fallback
 };
 
+// Block settings - new variables to control block dimensions
+export const BLOCK = {
+    MAX_WIDTH: 30,   // Maximum width for blocks in pixels
+    MAX_HEIGHT: 30,  // Maximum height for blocks in pixels
+    SPRITE_SIZE: 90  // Size of blocks in sprite sheet (was 30px)
+};
+
 // Grid settings
 export const GRID = {
     WIDTH: 10,
     HEIGHT: 18,
-    BLOCK_WIDTH: 30,
+    BLOCK_WIDTH: BLOCK.MAX_WIDTH, // Use the block size variable
     // We'll calculate these dynamically in the setupGrid function
     POS_X: 277,
     POS_Y: 28,  // Increased from 10 to move blocks down by 15px
@@ -77,7 +84,7 @@ export const STORAGE_KEYS = {
 
 // Image assets with their paths
 export const IMAGES = {
-    BLOCKS: '/images/blocks001.png',
+    BLOCKS: '/images/blocks90px_001.png', // Using the new 90px block image
     GRID: '/images/grid5.png',
     BACKGROUND_LEVEL1: '/images/tetris_main_level_1.webp',
     BACKGROUND_LEVEL2: '/images/tetris_main_back_level2.jpg',

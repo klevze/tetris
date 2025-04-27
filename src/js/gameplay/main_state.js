@@ -408,32 +408,35 @@ function calculateUIPositions() {
   const canvasWidth = ctx.canvas.width / (window.devicePixelRatio || 1);
   const canvasHeight = ctx.canvas.height / (window.devicePixelRatio || 1);
   
-  // Center position for grid image
-  const gridImgX = Math.floor((canvasWidth - grid_img.naturalWidth) / 2);
-  const gridImgY = Math.floor((canvasHeight - grid_img.naturalHeight) / 2);
+  // Get the current grid position and block size from grid module
+  const gridState = getGridState();
+  const gridPosX = gridState.grid_pos_x || GRID_POS_X;
+  const gridPosY = gridState.grid_pos_y || GRID_POS_Y;
   
-  // Move score display 85px to the right
-  const scoreOffsetToRight = -60;
+  // Calculate total grid width and height
+  const totalGridWidth = GRID_WIDTH * BLOCK_WIDTH;
+  const totalGridHeight = GRID_HEIGHT * BLOCK_WIDTH;
   
+  // Calculate UI element positions relative to grid position and block size
   return {
-    // Position for the "Next" block preview - on the right side of the grid with +20px offset
-    nextBlockX: gridImgX + 495 + 20,
-    nextBlockY: gridImgY + 100,
+    // Position for the "Next" block preview - to the right of the grid
+    nextBlockX: gridPosX + totalGridWidth + BLOCK_WIDTH * 1.5,
+    nextBlockY: gridPosY + BLOCK_WIDTH * 2,
     
-    // Position for the "Hold" block preview - on the left side of the grid
-    holdBlockX: gridImgX + 40,
-    holdBlockY: gridImgY + 100,
+    // Position for the "Hold" block preview - to the left of the grid
+    holdBlockX: gridPosX - BLOCK_WIDTH * 5,
+    holdBlockY: gridPosY + BLOCK_WIDTH * 2,
     
-    // Position for score display - moved 85px to the right
-    scoreX: gridImgX + 290 + scoreOffsetToRight,
-    scoreY: gridImgY + 345,
+    // Position for score display
+    scoreX: gridPosX + totalGridWidth + BLOCK_WIDTH * 4,
+    scoreY: gridPosY + totalGridHeight * 0.6,
     
-    // Positions for lines, level and timer displays - also moved to the right
-    linesX: gridImgX + 290 + scoreOffsetToRight,
-    linesY: gridImgY + 405,
-    levelX: gridImgX + 290 + scoreOffsetToRight,
-    levelY: gridImgY + 465,
-    timerX: gridImgX + 290 + scoreOffsetToRight,
-    timerY: gridImgY + 525
+    // Positions for lines, level and timer displays
+    linesX: gridPosX + totalGridWidth + BLOCK_WIDTH * 4,
+    linesY: gridPosY + totalGridHeight * 0.7, 
+    levelX: gridPosX + totalGridWidth + BLOCK_WIDTH * 4,
+    levelY: gridPosY + totalGridHeight * 0.8,
+    timerX: gridPosX + totalGridWidth + BLOCK_WIDTH * 4,
+    timerY: gridPosY + totalGridHeight * 0.9
   };
 }
