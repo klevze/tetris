@@ -237,7 +237,10 @@ export function handleMainGameState(setGameState) {
     block_finish = false;
   }
   
-  // Process block movement
+  // Render the game grid (this draws only the grid, not the blocks)
+  fillGrid();
+  
+  // Process block movement - draws the falling block on top of the grid
   const moveResult = moveBlock(level);
   if (!moveResult) {
     // Game over condition
@@ -258,9 +261,6 @@ export function handleMainGameState(setGameState) {
     // This ensures blocks fall down properly
     clearRows();
   }
-  
-  // Render the game elements
-  fillGrid();
   
   // Cache UI positions for performance
   const uiPositions = getUIPositions();

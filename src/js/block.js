@@ -109,16 +109,24 @@ class Block {
         let xx = x;
         let yy = y;
         
+        // Add a slight glow effect to make the active piece more visible
+        ctx.save();
+        
         for (let i = 0; i < this.shape.length; i++) {
             if (i % 4 == 0 && i > 0) {
                 yy += block_width; // Use exact block width
                 xx = x;
             }
             if (this.shape[i] == 1) {
+                // Draw with slight glow
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
+                ctx.shadowBlur = 5;
                 drawBlock(xx, yy, this.type);
             }
             xx += block_width; // Use exact block width
         }
+        
+        ctx.restore();
     }
 
     drawFallingBlock(color_block) {
@@ -135,7 +143,7 @@ class Block {
         let xx = x_pos;
         let yy = y_pos;
         
-        // Draw ghost blocks
+        // Draw ghost blocks at landing position
         for (let i = 0; i < this.shape.length; i++) {
             if (i % 4 == 0 && i > 0) {
                 yy += block_width; // Use exact block width
@@ -157,6 +165,9 @@ class Block {
             }
             xx += block_width; // Use exact block width
         }
+        
+        // NOTE: We don't need this part anymore since we're already drawing the actual blocks in showBlock()
+        // which is called right before drawFallingBlock() in the moveBlock function
     }
     
     storeBlock() {

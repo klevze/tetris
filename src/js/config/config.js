@@ -77,9 +77,9 @@ export const STORAGE_KEYS = {
 
 // Image assets with their paths
 export const IMAGES = {
-    BLOCKS: '/images/blocks3.png',
+    BLOCKS: '/images/blocks001.png',
     GRID: '/images/grid5.png',
-    BACKGROUND_LEVEL1: '/images/tetris_main_back_level1.jpg',
+    BACKGROUND_LEVEL1: '/images/tetris_main_level_1.webp',
     BACKGROUND_LEVEL2: '/images/tetris_main_back_level2.jpg',
     BACKGROUND_LEVEL3: '/images/tetris_main_back_level3.jpg',
     BACKGROUND_LEVEL4: '/images/tetris_main_back_level4.jpg',
