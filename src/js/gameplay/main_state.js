@@ -14,7 +14,7 @@ import { setupBlockHandler, showNextBlock, showHoldBlock, newBlock, moveBlock, d
 // Game variables
 let score = INITIAL_SCORE;
 let lines = INITIAL_LINES;
-let level = INITIAL_LEVEL;
+let level = 0;  // Changed from INITIAL_LEVEL to 0
 let level_goal = INITIAL_LEVEL_GOAL;
 let game_pause = false;
 let TotalSeconds = 0;

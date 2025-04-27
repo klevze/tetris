@@ -38,7 +38,7 @@ let ctx, clear_line_audio;
 let canvasWidth, canvasHeight, verticalOffsetFactor;
 
 // Game variables
-let lines = 0, level = 1, level_goal = 10, score = 0;
+let lines = 0, level = 0, level_goal = 10, score = 0;
 let showAddScore = false;
 let addScoreValue = 0;
 let scoreTextTimer = 0;
@@ -842,7 +842,7 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
   
   // Reset game state
   lines = 0;
-  level = 1;
+  level = 0;
   level_goal = 10;
   score = 0;
   showAddScore = false;

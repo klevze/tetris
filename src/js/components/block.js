@@ -14,7 +14,7 @@ let ctx, lego;
 let next_block, hold_block = -1;
 let game_state, score = 0;
 let frame = 0, change_block = false, change_block_frame = 0;
-let level = 1; // Default level
+let level = 0; // Default level
 let nextBlockOpacity = 1; // Initial opacity for next block display
 
 // Add timestamp tracking for block movement
