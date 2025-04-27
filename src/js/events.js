@@ -7,6 +7,7 @@ import { Block, currentBlock as blockCurrentBlock, rotateBlock, moveBlockDirecti
 import { getState, changeState, togglePause, toggleMusic } from './gameState.js';
 import { GAME_STATES } from './config/config.js';
 import { getAudio } from './assetManager.js';
+import { isAnimationInProgress } from './grid.js';
 
 // Block reference and grid parameters are set during initialization
 let currentBlock;
@@ -264,7 +265,7 @@ function handleKeyDown(e) {
     }
     
     // Handle gameplay keys
-    if (game_state === GAME_STATES.PLAY_GAME && !game_pause) {
+    if (game_state === GAME_STATES.PLAY_GAME && !game_pause && !isAnimationInProgress()) {
         if (e.key === 'ArrowLeft' || e.key === 'a') {
             e.preventDefault();
             moveBlockDirection('left');
@@ -372,7 +373,7 @@ function handleSpaceAction() {
 function handleRightMove() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('right');
     }
 }
@@ -384,7 +385,7 @@ function handleRightMove() {
 function handleLeftMove() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('left');
     }
 }
@@ -396,7 +397,7 @@ function handleLeftMove() {
 function handleDownMove() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('down');
     }
 }
@@ -408,7 +409,7 @@ function handleDownMove() {
 function handleUpMove() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         rotateBlock();
     }
 }
@@ -420,7 +421,7 @@ function handleUpMove() {
 function handleDoubleTap() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('drop');
     }
 }
@@ -445,7 +446,7 @@ function handleTap() {
             break;
             
         case GAME_STATES.PLAY_GAME:
-            if (!state.isPaused) {
+            if (!state.isPaused && !isAnimationInProgress()) {
                 // Single tap rotates block during gameplay
                 rotateBlock();
             }
@@ -460,7 +461,7 @@ function handleTap() {
 function hardDrop() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('drop');
         score += 20;
     }
@@ -472,7 +473,7 @@ function hardDrop() {
 function handleHoldBlock() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused) {
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         HoldBlock();
     }
 }

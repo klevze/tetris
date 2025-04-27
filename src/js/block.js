@@ -1,4 +1,5 @@
 import { shapes, TETROMINOES } from './data_structures.js';
+import { isAnimationInProgress } from './grid.js';
 
 // Export the Block class and create wrapper functions for backward compatibility
 export { Block, currentBlock };
@@ -381,6 +382,16 @@ export function check2MoveBlockRotate(new_shape, bx, by, type) {
  * @returns {boolean} false if game is over
  */
 export function moveBlock(currentLevel) {
+    // Don't move blocks if an animation is in progress
+    if (isAnimationInProgress()) {
+        // Still render the block where it is, but don't update position
+        if (currentBlock) {
+            currentBlock.showBlock();
+            currentBlock.drawFallingBlock("#333");
+        }
+        return true;
+    }
+    
     frame++;
     // Speed increases with level
     const num_frames = Math.max(1, 45 - (currentLevel * 4));

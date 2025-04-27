@@ -11,16 +11,15 @@ import { DrawLine } from './functions.js';
 // Animation constants for line clearing
 const LINE_CLEAR_ANIMATION = {
   FADE_TO_WHITE: 'FADE_TO_WHITE',
-  SPARKLE: 'SPARKLE',
-  CLEAR_LEFT_TO_RIGHT: 'CLEAR_LEFT_TO_RIGHT',
-  COMPLETE: 'COMPLETE'
+  FADE_OUT_WITH_SPARKLES: 'FADE_OUT_WITH_SPARKLES',
+  DROP_BLOCKS: 'DROP_BLOCKS'
 };
 
 // Animation timing (in frames)
 const ANIMATION_FRAMES = {
-  FADE_TO_WHITE: 30,
-  SPARKLE: 40,
-  CLEAR_LEFT_TO_RIGHT: 30
+  FADE_TO_WHITE: 50,        // Time to fade from color to white (increased)
+  FADE_OUT_WITH_SPARKLES: 40, // Time to fade out white blocks with sparkles
+  DROP_BLOCKS: 20           // Time for blocks to drop down
 };
 
 // Variables that will be initialized by the game module
@@ -40,6 +39,10 @@ let clearAnimationFrame = 0;
 let particles = []; // Array to store particles for clearing effect
 let lego; // Blocks image reference
 let drawBlock; // Function reference for drawing blocks
+let isRowClearingInProgress = false; // Flag to track when row clearing animation is in progress
+
+// Store original block colors for animation
+let originalBlockColors = {};
 
 /**
  * Particle class for line clearing effects
@@ -99,133 +102,228 @@ function renderClearAnimation() {
     return true; // No rows to clear, animation is "complete"
   }
   
+  // Set flag that animation is in progress
+  isRowClearingInProgress = true;
+  
   // Update animation frame counter
   clearAnimationFrame++;
   
+  // IMPORTANT: This version uses a much simpler, bolder approach to ensure visibility
   if (clearAnimationState === LINE_CLEAR_ANIMATION.FADE_TO_WHITE) {
-    // PHASE 1: Fade to white
+    // Calculate a simpler 0-1 progress value
     const fadeProgress = clearAnimationFrame / ANIMATION_FRAMES.FADE_TO_WHITE;
     
+    // Draw the entire cleared rows as solid WHITE rectangles - no gradual fade
     rowsToBeCleared.forEach(row => {
-      for (let x = 0; x < grid_width; x++) {
-        const drawX = grid_pos_x + x * block_width;
-        const drawY = grid_pos_y + row * block_width;
-        
-        // Get the block type for the original block
-        const blockType = gridData[x] && gridData[x][row] ? gridData[x][row] - 1 : 0;
-        
-        if (blockType >= 0 && blockType <= 7) {
-          // Draw a solid white rectangle with increasing opacity
-          ctx.fillStyle = `rgba(255, 255, 255, ${fadeProgress})`;
-          ctx.fillRect(drawX, drawY, block_width, block_width);
-        }
-      }
+      const rowY = grid_pos_y + row * block_width;
+      
+      // SOLID WHITE with blue glow around it
+      ctx.shadowColor = "rgba(100, 150, 255, 0.9)";
+      ctx.shadowBlur = 15;
+      
+      // Create flashing effect by alternating opacity
+      const flashOpacity = Math.sin(fadeProgress * Math.PI * 15) * 0.5 + 0.5;
+      
+      // Draw a very visible white rectangle covering the entire row
+      ctx.fillStyle = `rgba(255, 255, 255, ${flashOpacity})`;
+      ctx.fillRect(grid_pos_x - 4, rowY - 4, grid_width * block_width + 8, block_width + 8);
+      
+      // Draw bright white border
+      ctx.strokeStyle = "rgb(255, 255, 255)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(grid_pos_x - 4, rowY - 4, grid_width * block_width + 8, block_width + 8);
+      
+      // Reset shadow for other drawing
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
     });
     
-    // Transition to sparkle phase after white fade is complete
+    // Transition to sparkle phase after fade is complete
     if (clearAnimationFrame >= ANIMATION_FRAMES.FADE_TO_WHITE) {
-      clearAnimationState = LINE_CLEAR_ANIMATION.SPARKLE;
+      clearAnimationState = LINE_CLEAR_ANIMATION.FADE_OUT_WITH_SPARKLES;
       clearAnimationFrame = 0;
       
-      // Generate particles for each cleared line
-      rowsToBeCleared.forEach(row => createParticles(row));
+      // Mark grid cells as cleared
+      rowsToBeCleared.forEach(row => {
+        for (let x = 0; x < grid_width; x++) {
+          if (gridData[x]) {
+            gridData[x][row] = 8; // Special value to mark cleared cells
+          }
+        }
+      });
+      
+      // Generate particles
+      rowsToBeCleared.forEach(row => {
+        // Create lots of particles for a more dramatic effect
+        for (let i = 0; i < 5; i++) {
+          createParticles(row);
+        }
+      });
     }
     
     return false;
-  } 
-  else if (clearAnimationState === LINE_CLEAR_ANIMATION.SPARKLE) {
-    // PHASE 2: Show sparkles on white blocks
+  }
+  
+  // Rest of the animation phases remain unchanged
+  else if (clearAnimationState === LINE_CLEAR_ANIMATION.FADE_OUT_WITH_SPARKLES) {
+    const fadeOutProgress = clearAnimationFrame / ANIMATION_FRAMES.FADE_OUT_WITH_SPARKLES;
     
-    // Draw solid white blocks for all blocks in the rows
     rowsToBeCleared.forEach(row => {
       for (let x = 0; x < grid_width; x++) {
         const drawX = grid_pos_x + x * block_width;
         const drawY = grid_pos_y + row * block_width;
         
-        // Pure white background for all blocks in the row
-        ctx.fillStyle = "rgb(255, 255, 255)";
+        // White blocks gradually fade out (from solid white to transparent)
+        ctx.fillStyle = `rgba(255, 255, 255, ${1 - fadeOutProgress})`;
         ctx.fillRect(drawX, drawY, block_width, block_width);
       }
     });
     
     // Update and draw all particles (sparkles)
-    particles.forEach(particle => {
+    particles.forEach((particle, index) => {
       particle.update();
       particle.draw();
+      if (particle.alpha <= 0) {
+        particles.splice(index, 1);
+      }
     });
     
-    // Remove faded particles
-    particles = particles.filter(particle => particle.alpha > 0);
-    
-    // Add new particles occasionally during this phase to maintain sparkle effect
-    if (clearAnimationFrame % 4 === 0) {
+    // Add more particles throughout the fade out phase for sustained sparkle effect
+    if (clearAnimationFrame % 5 === 0) {
       rowsToBeCleared.forEach(row => {
-        // Add fewer particles than initial burst
-        for (let x = 0; x < grid_width; x += 3) {
-          const posX = grid_pos_x + x * block_width + block_width / 2;
+        // Add fewer particles as the animation progresses
+        const particleCount = Math.floor(8 * (1 - fadeOutProgress));
+        for (let i = 0; i < particleCount; i++) {
+          const randomX = Math.floor(Math.random() * grid_width);
+          const posX = grid_pos_x + randomX * block_width + block_width / 2;
           const posY = grid_pos_y + row * block_width + block_width / 2;
           particles.push(new Particle(posX, posY));
         }
       });
     }
     
-    // Transition to left-to-right clearing phase after sparkle time is complete
-    if (clearAnimationFrame >= ANIMATION_FRAMES.SPARKLE) {
-      clearAnimationState = LINE_CLEAR_ANIMATION.CLEAR_LEFT_TO_RIGHT;
+    // Transition to drop blocks phase after fade out is complete
+    if (clearAnimationFrame >= ANIMATION_FRAMES.FADE_OUT_WITH_SPARKLES) {
+      clearAnimationState = LINE_CLEAR_ANIMATION.DROP_BLOCKS;
       clearAnimationFrame = 0;
     }
     
     return false;
   }
-  else if (clearAnimationState === LINE_CLEAR_ANIMATION.CLEAR_LEFT_TO_RIGHT) {
-    // PHASE 3: Clear from left to right
-    const clearTime = ANIMATION_FRAMES.CLEAR_LEFT_TO_RIGHT;
-    const progress = clearAnimationFrame / clearTime;
-    const blocksToClear = Math.floor(progress * grid_width);
+  
+  else if (clearAnimationState === LINE_CLEAR_ANIMATION.DROP_BLOCKS) {
+    const dropProgress = clearAnimationFrame / ANIMATION_FRAMES.DROP_BLOCKS;
     
-    rowsToBeCleared.forEach(row => {
-      for (let x = 0; x < grid_width; x++) {
-        // Skip drawing blocks that have been cleared (left side)
-        if (x < blocksToClear) continue;
-        
-        const drawX = grid_pos_x + x * block_width;
-        const drawY = grid_pos_y + row * block_width;
-        
-        // Draw white blocks for the remaining part (right side)
-        ctx.fillStyle = "rgb(255, 255, 255)";
-        ctx.fillRect(drawX, drawY, block_width, block_width);
-      }
+    // First draw blocks that aren't moving
+    for (let x = 0; x < grid_width; x++) {
+      if (!gridData[x]) continue;
       
-      // Create additional particles at the clearing edge
-      if (clearAnimationFrame % 2 === 0 && blocksToClear >= 0 && blocksToClear < grid_width) {
-        const posX = grid_pos_x + blocksToClear * block_width;
-        const posY = grid_pos_y + row * block_width + block_width / 2;
+      for (let y = 0; y < grid_height; y++) {
+        // Skip cleared rows
+        if (rowsToBeCleared.includes(y)) continue;
         
-        // Add extra particles at the clearing edge
-        for (let i = 0; i < 5; i++) {
-          const particle = new Particle(posX, posY);
-          // Make particles move leftward to create the sweeping effect
-          particle.speedX = -Math.random() * 2 - 1; // Strong leftward movement
-          particle.speedY = Math.random() * 2 - 1;   // Small vertical movement
-          particle.color = `rgba(255, 255, ${Math.random() * 100 + 155}, ${Math.random() * 0.8 + 0.2})`;
-          particles.push(particle);
+        const blockType = gridData[x][y];
+        if (blockType && blockType > 0 && blockType <= 7) {
+          const blockTypeIndex = blockType - 1;
+          
+          // Count how many cleared rows are below this block
+          let dropDistance = 0;
+          for (const clearedRow of rowsToBeCleared) {
+            if (clearedRow > y) {
+              dropDistance++;
+            }
+          }
+          
+          if (dropDistance === 0) {
+            // This block doesn't need to drop, draw it normally
+            const drawX = grid_pos_x + x * block_width;
+            const drawY = grid_pos_y + y * block_width;
+            
+            if (drawBlock && typeof drawBlock === 'function') {
+              drawBlock(drawX, drawY, blockTypeIndex);
+            } else {
+              // Fallback to using the lego sprite
+              const sx = blockTypeIndex * 30;
+              ctx.drawImage(
+                lego,
+                sx + 1,
+                1,
+                28,
+                28,
+                drawX,
+                drawY,
+                block_width,
+                block_width
+              );
+            }
+          } else {
+            // This block needs to drop, animate it
+            const drawX = grid_pos_x + x * block_width;
+            const fromDrawY = grid_pos_y + y * block_width;
+            const toDrawY = grid_pos_y + (y + dropDistance) * block_width;
+            
+            // Apply easing function for smoother drop
+            let easedProgress;
+            if (dropProgress < 0.5) {
+              // Ease in - start slow, accelerate
+              easedProgress = 2 * dropProgress * dropProgress;
+            } else {
+              // Ease out - decelerate to a stop
+              easedProgress = 1 - Math.pow(-2 * dropProgress + 2, 2) / 2;
+            }
+            
+            const currentY = fromDrawY + (toDrawY - fromDrawY) * easedProgress;
+            
+            if (drawBlock && typeof drawBlock === 'function') {
+              drawBlock(drawX, currentY, blockTypeIndex);
+            } else {
+              // Fallback to using the lego sprite
+              const sx = blockTypeIndex * 30;
+              ctx.drawImage(
+                lego,
+                sx + 1,
+                1,
+                28,
+                28,
+                drawX,
+                currentY,
+                block_width,
+                block_width
+              );
+            }
+            
+            // Add dust/trail particles as blocks drop
+            if (Math.random() < 0.1 && dropProgress > 0.2) {
+              const particleX = drawX + Math.random() * block_width;
+              const particleY = currentY + block_width * 0.8;
+              
+              const dustParticle = new Particle(particleX, particleY);
+              dustParticle.size = Math.random() * 2 + 1;
+              dustParticle.speedY = 0.5 + Math.random() * 1;
+              dustParticle.speedX = (Math.random() - 0.5) * 0.5;
+              dustParticle.color = `rgba(255, 255, 255, ${Math.random() * 0.7 + 0.3})`;
+              particles.push(dustParticle);
+            }
+          }
         }
       }
-    });
+    }
     
-    // Update and draw all particles
-    particles.forEach(particle => {
+    // Update and render existing particles
+    particles.forEach((particle, index) => {
       particle.update();
       particle.draw();
+      if (particle.alpha <= 0) {
+        particles.splice(index, 1);
+      }
     });
     
-    // Remove faded particles
-    particles = particles.filter(particle => particle.alpha > 0);
-    
     // Animation complete, time to clear the rows
-    if (clearAnimationFrame >= clearTime) {
+    if (clearAnimationFrame >= ANIMATION_FRAMES.DROP_BLOCKS) {
       clearAnimationState = LINE_CLEAR_ANIMATION.FADE_TO_WHITE; // Reset for next time
       clearAnimationFrame = 0;
+      isRowClearingInProgress = false;
+      originalBlockColors = {}; // Clear the stored colors
       return true; // Signal to perform actual row clearing
     }
     
@@ -361,15 +459,26 @@ export function clearRows() {
 }
 
 /**
- * Mark a row for clearing by setting all cells to special value 8
+ * Mark a row for clearing by storing the original color but NOT changing the grid data yet
  * @param {number} y - Row to mark
  */
 function markRow(y) {
+    // Store original block colors for animation
+    if (!originalBlockColors[y]) {
+        originalBlockColors[y] = {};
+    }
+    
     for (let x = 0; x < grid_width; x++) {
         if (!gridData[x]) {
             gridData[x] = {};
         }
-        gridData[x][y] = 8; // Marking value
+        
+        // Store the original color before marking
+        if (gridData[x][y]) {
+            originalBlockColors[y][x] = gridData[x][y];
+        }
+        
+        // We no longer immediately mark cells with value 8, we'll animate them first
     }
 }
 
@@ -384,7 +493,7 @@ export function fillGrid() {
         const animationComplete = renderClearAnimation();
         
         if (animationComplete) {
-            // Animation is complete, perform the actual row clearing
+            // Animation is complete, NOW perform the actual row clearing
             clearRows();
             
             // Reset animation state for next time
@@ -607,4 +716,11 @@ export function setDrawBlockFunction(drawBlockFn) {
             }
         };
     }
+}
+
+/**
+ * Check if grid is currently displaying an animation
+ */
+export function isAnimationInProgress() {
+  return isRowClearingInProgress || rowsToBeCleared.length > 0;
 }
