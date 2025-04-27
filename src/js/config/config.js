@@ -30,7 +30,7 @@ export const BLOCK = {
 // Grid settings
 export const GRID = {
     WIDTH: 10,
-    HEIGHT: 18,
+    HEIGHT: 20,
     BLOCK_WIDTH: BLOCK.MAX_WIDTH, // Use the block size variable
     // We'll calculate these dynamically in the setupGrid function
     POS_X: 277,

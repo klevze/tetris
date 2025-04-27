@@ -435,7 +435,7 @@ export function newBlock() {
     blockAnimation.startX = startX;      // Same X as final position
     blockAnimation.startY = -2;          // Start 2 rows above the grid
     blockAnimation.targetX = startX;
-    blockAnimation.targetY = 0;
+    blockAnimation.targetY = 1;          // Move to position 1 (1px down from original position)
     blockAnimation.progress = 0;
     
     // Apply an 8px left offset by converting pixels to grid coordinates
