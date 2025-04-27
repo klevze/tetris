@@ -44,6 +44,14 @@ let addScoreValue = 0;
 let scoreTextTimer = 0;
 let scoreTextPosition = { x: 0, y: 0 };
 
+// Standard Tetris scoring system base points
+const SCORE_SYSTEM = {
+  SINGLE: 40,    // 1 line cleared
+  DOUBLE: 100,   // 2 lines cleared
+  TRIPLE: 300,   // 3 lines cleared
+  TETRIS: 1200   // 4 lines cleared (Tetris!)
+};
+
 // Animation state variables
 let rowsToBeCleared = []; // Track which rows are marked for clearing
 let clearAnimationState = LINE_CLEAR_ANIMATION.FADE_TO_WHITE;
@@ -388,13 +396,13 @@ export function checkRows() {
       // Calculate score based on current level and combo
       // More points for multiple rows at once
       if (completedRows === 1) {
-        addScore = 100 * level; // Single
+        addScore = SCORE_SYSTEM.SINGLE * (level + 1); // Single
       } else if (completedRows === 2) {
-        addScore = 300 * level; // Double
+        addScore = SCORE_SYSTEM.DOUBLE * (level + 1); // Double
       } else if (completedRows === 3) {
-        addScore = 500 * level; // Triple
+        addScore = SCORE_SYSTEM.TRIPLE * (level + 1); // Triple
       } else if (completedRows === 4) {
-        addScore = 800 * level; // Tetris!
+        addScore = SCORE_SYSTEM.TETRIS * (level + 1); // Tetris!
       }
 
       // Mark row for clearing animation
@@ -407,10 +415,9 @@ export function checkRows() {
       score += addScore;
       addScoreValue = addScore;
 
-      // Check for level up
-      if (lines >= level_goal) {
+      // Check for level up - exactly every 10 lines
+      if (lines % 10 === 0) {
         level++;
-        level_goal += level * 10;
         if (level > 10) {
           level = 10; // Max level
         }
