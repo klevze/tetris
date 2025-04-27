@@ -583,7 +583,82 @@ export function drawCustomGrid() {
     ctx.lineWidth = 1;
     ctx.stroke();
   }
-
+  
+  // DRAW NEXT BLOCK BORDER ABOVE THE MAIN GRID
+  // -----------------------------------------
+  // Calculate position for the next block preview area
+  const nextBlockSize = 4; // Size of the next block area (4x4 grid)
+  // Position starting from the 2nd block to the 9th block horizontally (8 blocks width)
+  const nextBlockWidth = block_width * 8; // Width spans 8 blocks (reduced by 1)
+  const nextBlockX = origin.x + block_width; // Start at the second column (x + 1 block width)
+  // Position above the grid, raised by height of the next block area plus padding, but moved down 10px
+  const nextBlockY = origin.y - (block_width * nextBlockSize) - padding * 2 + 10; // Added +10px to move down
+  
+  // Calculate the dimensions of the next block border box
+  const nextBlockTotalWidth = nextBlockWidth;
+  const nextBlockTotalHeight = block_width * nextBlockSize;
+  
+  // Draw next block border with rounded corners
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(nextBlockX - padding, nextBlockY - padding + cornerRadius);
+  ctx.arcTo(nextBlockX - padding, nextBlockY - padding, nextBlockX - padding + cornerRadius, nextBlockY - padding, cornerRadius);
+  ctx.lineTo(nextBlockX + nextBlockTotalWidth + padding - cornerRadius, nextBlockY - padding);
+  ctx.arcTo(nextBlockX + nextBlockTotalWidth + padding, nextBlockY - padding, nextBlockX + nextBlockTotalWidth + padding, nextBlockY - padding + cornerRadius, cornerRadius);
+  ctx.lineTo(nextBlockX + nextBlockTotalWidth + padding, nextBlockY + nextBlockTotalHeight + padding - cornerRadius);
+  ctx.arcTo(nextBlockX + nextBlockTotalWidth + padding, nextBlockY + nextBlockTotalHeight + padding, nextBlockX + nextBlockTotalWidth + padding - cornerRadius, nextBlockY + nextBlockTotalHeight + padding, cornerRadius);
+  ctx.lineTo(nextBlockX - padding + cornerRadius, nextBlockY + nextBlockTotalHeight + padding);
+  ctx.arcTo(nextBlockX - padding, nextBlockY + nextBlockTotalHeight + padding, nextBlockX - padding, nextBlockY + nextBlockTotalHeight + padding - cornerRadius, cornerRadius);
+  ctx.closePath();
+  
+  // Create gradient for next block background (same style as main grid)
+  const nextGradient = ctx.createLinearGradient(
+    nextBlockX - padding, 
+    nextBlockY - padding,
+    nextBlockX + nextBlockTotalWidth + padding,
+    nextBlockY + nextBlockTotalHeight + padding
+  );
+  nextGradient.addColorStop(0, '#121218');
+  nextGradient.addColorStop(0.5, '#1a1a2a');
+  nextGradient.addColorStop(1, '#121218');
+  
+  // Apply gradient fill
+  ctx.fillStyle = nextGradient;
+  ctx.fill();
+  
+  // Draw glowing outer border
+  ctx.shadowColor = 'rgba(70, 70, 140, 0.7)';
+  ctx.shadowBlur = 10;
+  ctx.strokeStyle = gridOuterBorderColor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  
+  // Draw inner border, but without the bottom line
+  ctx.strokeStyle = gridBorderColor;
+  ctx.lineWidth = 2;
+  
+  // Draw only the top line of the inner border
+  ctx.beginPath();
+  ctx.moveTo(nextBlockX, nextBlockY);
+  ctx.lineTo(nextBlockX + nextBlockTotalWidth, nextBlockY);
+  ctx.stroke();
+  
+  // Draw only the left side of the inner border
+  ctx.beginPath();
+  ctx.moveTo(nextBlockX, nextBlockY);
+  ctx.lineTo(nextBlockX, nextBlockY + nextBlockTotalHeight);
+  ctx.stroke();
+  
+  // Draw only the right side of the inner border
+  ctx.beginPath();
+  ctx.moveTo(nextBlockX + nextBlockTotalWidth, nextBlockY);
+  ctx.lineTo(nextBlockX + nextBlockTotalWidth, nextBlockY + nextBlockTotalHeight);
+  ctx.stroke();
+  
+  // Note: We're not drawing the bottom line as requested
+  
   ctx.restore();
 }
 

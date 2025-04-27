@@ -266,7 +266,7 @@ export function handleMainGameState(setGameState) {
   const uiPositions = getUIPositions();
   
   // Show next/hold blocks and score
-  showNextBlock(uiPositions.nextBlockX, uiPositions.nextBlockY);
+  showNextBlock(uiPositions.nextBlockX+15, uiPositions.nextBlockY);
   showHoldBlock(uiPositions.holdBlockX, uiPositions.holdBlockY);
   showScore();
   
@@ -416,14 +416,15 @@ function calculateUIPositions() {
   // Calculate total grid width and height based on the grid state
   const totalGridWidth = gridState.grid_width * gridState.block_width;
   const totalGridHeight = gridState.grid_height * gridState.block_width;
-  
+
+
   // Calculate UI element positions relative to grid position and block size
   return {
-    // Position for the "Next" block preview - aligned with new blocks spawn position but 1.5 blocks to the left
-    // and placed 3 blocks height above the grid (moved one cell higher)
-    nextBlockX: gridOriginX + (3 * gridState.block_width) - (gridState.block_width * 1.5),
-    nextBlockY: gridOriginY - (gridState.block_width * 3), // Moved from 2 blocks to 3 blocks above the grid
-    
+    // Position for the "Next" block preview - centered in the next block area above the grid
+    // Adjusted for narrower border (8 blocks) and moved down by 10px
+    nextBlockX: gridOriginX + (gridState.block_width * 2.5), // Centered horizontally in the 8-block wide container
+    // Position above the grid in the next block area, moved down 10px
+    nextBlockY: gridOriginY - (gridState.block_width * 6) + 100, // Added +10px to move down
     // Position for the "Hold" block preview - to the right of the grid
     holdBlockX: gridOriginX + totalGridWidth + gridState.block_width * 1.5, // Position to the right of grid
     holdBlockY: gridOriginY + gridState.block_width * 2, // Align with the top part of the grid

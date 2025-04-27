@@ -15,17 +15,34 @@ let next_block, hold_block = -1;
 let game_state, score = 0;
 let frame = 0, change_block = false, change_block_frame = 0;
 let level = 1; // Default level
+let nextBlockOpacity = 1; // Initial opacity for next block display
+
+// Animation state for the block scrolling down from the "Next" position
+let isBlockAnimating = false;
+let blockAnimation = {
+  startX: 0,
+  startY: 0,
+  targetX: 0,
+  targetY: 0,
+  progress: 0,
+  duration: 30, // Animation duration in frames
+  easing: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 // Ease in-out quad
+};
 
 // Create a global instance of Block for backward compatibility
 let currentBlock = null;
 
 // Wrapper functions for block actions that use currentBlock internally
 export function rotateBlock() {
+  // Prevent rotation during block animation
+  if (isBlockAnimating) return false;
   if (currentBlock) return currentBlock.rotateBlock();
   return false;
 }
 
 export function moveBlockDirection(direction) {
+  // Prevent movement during block animation
+  if (isBlockAnimating) return false;
   if (currentBlock) return currentBlock.moveBlockDirection(direction);
   return false;
 }
@@ -36,6 +53,8 @@ export function showBlock() {
 }
 
 export function drawFallingBlock(color_block) {
+  // Don't show ghost block during animation
+  if (isBlockAnimating) return;
   if (currentBlock) currentBlock.drawFallingBlock(color_block);
 }
 
@@ -253,24 +272,47 @@ class Block {
  * Show next tetromino in the preview area
  */
 export function showNextBlock(x, y) {
-    // Scale the offset based on block size - was originally 50px for 30px blocks
-    const offsetScale = block_width / 30;
-    const offset = Math.floor(50 * offsetScale);
-    
-    let xx = Math.floor(x + offset);
-    let yy = Math.floor(y);
+    // Note: The border drawing has been moved to the drawCustomGrid function in grid.js
+    // This function now only handles drawing the actual tetromino blocks
     
     const next_shape = shapes[0][next_block];
     
+    // During animation, show the next block with fading opacity
+    if (isBlockAnimating) {
+        let xx = Math.floor(x);
+        let yy = Math.floor(y);
+        
+        ctx.save();
+        ctx.globalAlpha = nextBlockOpacity;
+        
+        for (let i = 0; i < next_shape.length; i++) {
+            if (i % 4 == 0 && i > 0) {
+                yy += block_width;
+                xx = Math.floor(x);
+            }
+            if (next_shape[i] == 1) {
+                drawBlock(xx, yy, next_block);
+            }
+            xx += block_width;
+        }
+        
+        ctx.restore();
+        return;
+    }
+    
+    // Use the same positioning approach as during animation for consistency
+    let xx = Math.floor(x);
+    let yy = Math.floor(y);
+    
     for (let i = 0; i < next_shape.length; i++) {
         if (i % 4 == 0 && i > 0) {
-            yy += block_width; // Use exact block width
-            xx = Math.floor(x + offset); // Use calculated offset
+            yy += block_width;
+            xx = Math.floor(x);
         }
         if (next_shape[i] == 1) {
             drawBlock(xx, yy, next_block);
         }
-        xx += block_width; // Use exact block width
+        xx += block_width;
     }
 }
 
@@ -360,7 +402,6 @@ export function newBlock() {
     score += level * 4;
     
     // Calculate spawn position based on the shape
-    // We want to center the block horizontally, accounting for the actual width of the tetromino
     const shape = shapes[0][nextType];
     let startX = 3; // Default position for most tetrominos
     
@@ -378,20 +419,79 @@ export function newBlock() {
             0
         );
     } else {
-        // Update existing block
+        // Update existing block with the new type
         currentBlock.type = nextType;
         currentBlock.rotate = 0;
-        currentBlock.x = startX;
-        currentBlock.y = 0;
         currentBlock.shape = shapes[0][nextType];
     }
     
-    // Check if new block can be placed - if not, game over
-    if (!Block.isValidPosition(currentBlock.x, currentBlock.y, currentBlock.shape)) {
+    // Check if the final position is valid (game over check)
+    if (!Block.isValidPosition(startX, 0, currentBlock.shape)) {
         game_state = "game_over";
         return false;
     }
+    
+    // Set up animation from above the grid to start position
+    blockAnimation.startX = startX;      // Same X as final position
+    blockAnimation.startY = -2;          // Start 2 rows above the grid
+    blockAnimation.targetX = startX;
+    blockAnimation.targetY = 0;
+    blockAnimation.progress = 0;
+    
+    // Apply an 8px left offset by converting pixels to grid coordinates
+    const offsetInGridUnits = 8 / block_width;
+    
+    // Position the block with the adjusted X coordinate
+    currentBlock.x = startX - offsetInGridUnits;
+    currentBlock.y = blockAnimation.startY;
+    
+    // Start the animation
+    isBlockAnimating = true;
+    
     return true;
+}
+
+/**
+ * Get the position where the Next block is displayed
+ * @returns {Object} The x,y coordinates of the Next block
+ */
+function getNextBlockPosition() {
+    // Get the positions from where the Next block is actually drawn in showNextBlock
+    let nextPosX, nextPosY;
+    
+    // Find where the main UI elements are calculated (this will be in the same place where showNextBlock is called)
+    const mainState = getGridState();
+    
+    // Get the exact position where the next block is drawn - no offset needed anymore
+    // since we changed showNextBlock to not use an offset
+    nextPosX = mainState.nextBlockX; 
+    nextPosY = mainState.nextBlockY;
+    
+    // If the coordinates aren't available from the grid state, use a fallback calculation
+    if (!nextPosX || !nextPosY) {
+        const gridOriginX = mainState.origin.x || 0;
+        const gridOriginY = mainState.origin.y || 0;
+        
+        // These calculations are approximations based on the typical layout
+        nextPosX = gridOriginX + grid_width * block_width + block_width;
+        nextPosY = gridOriginY + block_width * 2;
+    }
+    
+    return { x: nextPosX, y: nextPosY };
+}
+
+/**
+ * Convert screen coordinates to grid coordinates
+ * @param {number} screenX - X position in screen coordinates
+ * @param {number} screenY - Y position in screen coordinates
+ * @returns {Object} The x,y coordinates in grid coordinates
+ */
+function screenToGridCoordinates(screenX, screenY) {
+    // This is the inverse of gridToScreenCoordinates
+    const x = Math.floor((screenX - origin.x) / block_width);
+    const y = Math.floor((screenY - origin.y) / block_width);
+    
+    return { x, y };
 }
 
 /** 
@@ -414,7 +514,7 @@ export function check2MoveBlockRotate(new_shape, bx, by, type) {
  * @returns {boolean} false if game is over
  */
 export function moveBlock(currentLevel) {
-    // Don't move blocks if an animation is in progress
+    // Don't move blocks if a row clearing animation is in progress
     if (isAnimationInProgress()) {
         // Still render the block where it is, but don't update position
         if (currentBlock) {
@@ -424,6 +524,54 @@ export function moveBlock(currentLevel) {
         return true;
     }
     
+    // Handle the block drop animation from "Next" to starting position
+    if (isBlockAnimating) {
+        // Update animation progress
+        blockAnimation.progress += 1 / blockAnimation.duration;
+        
+        // Update next block opacity for fade-in effect
+        // Start fade-in at halfway through the animation
+        if (blockAnimation.progress < 0.5) {
+            nextBlockOpacity = 0; // Next block invisible during first half of animation
+        } else {
+            // Gradually fade in from 0 to 1 during second half of animation
+            nextBlockOpacity = (blockAnimation.progress - 0.5) * 2;
+        }
+        
+        if (blockAnimation.progress >= 1) {
+            // Animation complete
+            blockAnimation.progress = 1;
+            isBlockAnimating = false;
+            nextBlockOpacity = 1; // Ensure full opacity at the end
+            
+            // Set block to final position
+            currentBlock.x = blockAnimation.targetX;
+            currentBlock.y = blockAnimation.targetY;
+        } else {
+            // Apply easing to get smooth motion
+            const t = blockAnimation.easing(blockAnimation.progress);
+            
+            // For X position, since we're moving straight down, just use the exact startX value
+            // This prevents the 1-pixel jump due to rounding errors
+            currentBlock.x = blockAnimation.startX;
+            // Only interpolate the Y position for vertical movement
+            currentBlock.y = Math.round(
+                blockAnimation.startY + (blockAnimation.targetY - blockAnimation.startY) * t
+            );
+        }
+        
+        // Draw the block at its animated position
+        currentBlock.showBlock();
+        
+        // Only show ghost blocks after animation is halfway complete
+        if (blockAnimation.progress > 0.5) {
+            currentBlock.drawFallingBlock("#333");
+        }
+        
+        return true;
+    }
+    
+    // Normal gameplay movement
     frame++;
     // Speed increases with level
     const num_frames = Math.max(1, 45 - (currentLevel * 4));
@@ -438,6 +586,8 @@ export function moveBlock(currentLevel) {
             } else {
                 // Block landed - store it and create a new one
                 currentBlock.storeBlock();
+                // Reset opacity before new block animation starts
+                nextBlockOpacity = 0;
                 const result = newBlock();
                 change_block = false;
                 return result; // false = game over
