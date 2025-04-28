@@ -9,11 +9,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^6.3.3",
     "glob": "^11.0.1",
-    "sass": "^1.86.3"
+    "sass": "^1.86.3",
+    "vite": "^6.3.3"
   },
   "dependencies": {
-    "firebase": "^11.6.0"
+    "firebase": "^11.6.1"
   }
 }

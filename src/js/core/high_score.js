@@ -2,6 +2,7 @@ import { DrawBitmapText, DrawBitmapTextSmall } from '../utils/functions.js';
 import { changeState } from './gameState.js';
 import { getImage } from '../utils/assetManager.js';
 import { GAME_STATES, IMAGES } from '../config/config.js';
+import { saveHighScore, loadHighScores } from '../config/firebase.js';
 
 // Variables that will be initialized
 let ctx, WIDTH;
@@ -20,7 +21,7 @@ export function initHighScore(context, width) {
     ctx = context;
     WIDTH = width;
     
-    // Load high scores from localStorage
+    // Load high scores from Firebase
     LoadHighScoreData();
 }
 
@@ -52,17 +53,34 @@ export function ShowHighScore() {
 }
 
 /**
- * Load high score data from localStorage
+ * Load high score data from Firebase
  * @returns {Array} High score data array
  */
 export function LoadHighScoreData() {
-    // Load high scores from localStorage
-    const storedScores = localStorage.getItem('tetrisHighScores');
-    if (storedScores) {
-        high_scores = JSON.parse(storedScores);
-    } else {
-        high_scores = [];
-    }
+    // Load high scores from Firebase with fallback to localStorage
+    loadHighScores().then(scores => {
+        if (scores && scores.length > 0) {
+            high_scores = scores;
+        } else {
+            // Fallback to localStorage if Firebase fails or returns empty
+            const storedScores = localStorage.getItem('tetrisHighScores');
+            if (storedScores) {
+                high_scores = JSON.parse(storedScores);
+            } else {
+                high_scores = [];
+            }
+        }
+    }).catch(error => {
+        console.error("Error loading high scores from Firebase:", error);
+        // Fallback to localStorage if Firebase fails
+        const storedScores = localStorage.getItem('tetrisHighScores');
+        if (storedScores) {
+            high_scores = JSON.parse(storedScores);
+        } else {
+            high_scores = [];
+        }
+    });
+    
     return high_scores;
 }
 
@@ -77,28 +95,43 @@ export function saveHighScoreData(player_name, player_score) {
         localStorage["player_name"] = player_name;
     }
     
-    // Save to localStorage
-    const scoreData = {
-        player_name: player_name,
-        score: player_score,
-        cleared_lines: lines,
-        level: level,
-        time: formatTime(TotalSeconds),
-        date: new Date().toISOString()
-    };
+    // Format time for display
+    const formattedTime = formatTime(TotalSeconds);
     
-    const scores = LoadHighScoreData();
-    scores.push(scoreData);
+    // Save to Firebase
+    saveHighScore(player_name, player_score, level, lines, formattedTime)
+        .then(updatedScores => {
+            if (updatedScores && updatedScores.length > 0) {
+                high_scores = updatedScores;
+            }
+        })
+        .catch(error => {
+            console.error("Error saving to Firebase, falling back to localStorage:", error);
+            
+            // Fallback to localStorage if Firebase fails
+            const scoreData = {
+                player_name: player_name,
+                score: player_score,
+                cleared_lines: lines,
+                level: level,
+                time: formattedTime,
+                date: new Date().toISOString()
+            };
+            
+            const scores = JSON.parse(localStorage.getItem('tetrisHighScores') || '[]');
+            scores.push(scoreData);
+            
+            // Sort by score (highest first)
+            scores.sort((a, b) => b.score - a.score);
+            
+            // Keep only top 10
+            const top10 = scores.slice(0, 10);
+            
+            localStorage.setItem('tetrisHighScores', JSON.stringify(top10));
+            high_scores = top10;
+        });
     
-    // Sort by score (highest first)
-    scores.sort((a, b) => b.score - a.score);
-    
-    // Keep only top 10
-    const top10 = scores.slice(0, 10);
-    
-    localStorage.setItem('tetrisHighScores', JSON.stringify(top10));
-    high_scores = top10;
-    return top10;
+    return high_scores;
 }
 
 /**
@@ -252,6 +285,14 @@ export function ShowIntroScreen() {
         ctx.textAlign = 'center';
         ctx.fillText("TETRIS", WIDTH/2, 40); // Also moved higher (from 50 to 40)
     }
+
+    // Add a cloud high scores badge
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillRect(WIDTH - 180, 10, 170, 30);
+    ctx.fillStyle = '#4285F4'; // Google blue color
+    ctx.fillText("CLOUD HIGH SCORES", WIDTH - 20, 30);
 
     // Move "TOP PLAYERS" text further down to avoid overlap with the logo
     // Changed from y=130 to y=170

@@ -6,6 +6,7 @@ import {
 } from '../utils/functions.js';
 import { GAME_STATES, STORAGE_KEYS } from '../config/config.js';
 import { Draw3DStars } from '../components/starfield_3d.js';
+import { saveHighScore } from '../config/firebase.js';
 
 // Game variables
 let player_name = "PLAYER";
@@ -16,6 +17,10 @@ let gameTime = 0;
 let gameStateCallback = null;
 let gameOverEventListenersAdded = false;
 let mainKeyHandler = null;
+let savingToCloud = false;
+let saveSuccess = false;
+let saveMessage = "";
+let saveMessageTimer = 0;
 
 // Asset references
 let back_intro_img;
@@ -93,6 +98,21 @@ export function handleGameOverState(setGameState) {
     ctx.fillText(player_name, 403, 283);
     ctx.fillStyle = '#fff';
     ctx.fillText(player_name, 400, 280);
+    
+    // Show cloud save status message if applicable
+    if (saveMessage) {
+      ctx.font = "20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillStyle = saveSuccess ? '#4CAF50' : '#F44336'; // Green for success, red for error
+      ctx.fillText(saveMessage, WIDTH / 2, 350);
+      
+      if (saveMessageTimer > 0) {
+        saveMessageTimer--;
+      } else {
+        // Clear message after timer expires
+        saveMessage = "";
+      }
+    }
   } else {
     // For score of 0, show different message
     DrawBitmapTextSmall('PRESS ANY KEY TO CONTINUE', 0, 180, 1, 0, 0);
@@ -171,7 +191,7 @@ function handleZeroScoreKeyDown(evt) {
 }
 
 /**
- * Save high score data to localStorage
+ * Save high score data to Firebase and localStorage as backup
  * 
  * @param {string} name - Player name
  * @param {number} scoreVal - Final score
@@ -179,13 +199,58 @@ function handleZeroScoreKeyDown(evt) {
  */
 function saveHighScoreData(name, scoreVal) {
   try {
-    // Get existing high scores from localStorage or initialize empty array
-    const highScores = JSON.parse(localStorage.getItem(STORAGE_KEYS.HIGH_SCORES) || '[]');
-    
     // Format game time 
     const minutes = Math.floor(gameTime / 60);
     const seconds = gameTime % 60;
     const formattedTime = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    
+    // Indicate we're saving to cloud
+    savingToCloud = true;
+    saveMessage = "Saving high score to cloud...";
+    saveMessageTimer = 90; // About 1.5 seconds at 60fps
+    
+    // Save to Firebase
+    saveHighScore(name || "UNKNOWN", scoreVal, level, lines, formattedTime)
+      .then(updatedScores => {
+        console.log(`High score saved to Firebase: ${name} - ${scoreVal}, Level: ${level}, Lines: ${lines}`);
+        savingToCloud = false;
+        saveSuccess = true;
+        saveMessage = "High score saved to cloud!";
+        saveMessageTimer = 120; // About 2 seconds at 60fps
+      })
+      .catch(error => {
+        console.error("Error saving to Firebase, using localStorage fallback:", error);
+        savingToCloud = false;
+        saveSuccess = false;
+        saveMessage = "Could not save to cloud - using local storage";
+        saveMessageTimer = 120; // About 2 seconds at 60fps
+        saveToLocalStorage(name, scoreVal, formattedTime);
+      });
+    
+    // Also save to localStorage as backup
+    saveToLocalStorage(name, scoreVal, formattedTime);
+    
+    return [];
+  } catch (e) {
+    console.error("Error saving high score:", e);
+    saveMessage = "Error saving high score";
+    saveMessageTimer = 120;
+    saveSuccess = false;
+    return [];
+  }
+}
+
+/**
+ * Save high score to localStorage as backup
+ * 
+ * @param {string} name - Player name
+ * @param {number} scoreVal - Player score
+ * @param {string} formattedTime - Formatted game time
+ */
+function saveToLocalStorage(name, scoreVal, formattedTime) {
+  try {
+    // Get existing high scores from localStorage or initialize empty array
+    const highScores = JSON.parse(localStorage.getItem(STORAGE_KEYS.HIGH_SCORES) || '[]');
     
     // Add new score entry with additional game stats
     highScores.push({
@@ -206,11 +271,9 @@ function saveHighScoreData(name, scoreVal) {
     // Save back to localStorage
     localStorage.setItem(STORAGE_KEYS.HIGH_SCORES, JSON.stringify(top10));
     
-    console.log(`High score saved: ${name} - ${scoreVal}, Level: ${level}, Lines: ${lines}`);
-    return top10;
+    console.log(`High score saved to localStorage: ${name} - ${scoreVal}, Level: ${level}, Lines: ${lines}`);
   } catch (e) {
-    console.error("Error saving high score:", e);
-    return [];
+    console.error("Error saving high score to localStorage:", e);
   }
 }
 
@@ -220,6 +283,12 @@ function saveHighScoreData(name, scoreVal) {
 export function resetGameOverState() {
   // Reset player name for next game
   player_name = "PLAYER";
+  
+  // Reset save status
+  savingToCloud = false;
+  saveSuccess = false;
+  saveMessage = "";
+  saveMessageTimer = 0;
   
   // Remove event listeners if active
   if (gameOverEventListenersAdded) {
