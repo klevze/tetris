@@ -4,6 +4,7 @@ import {
   clearScreen, showBackground, showSlika 
 } from '../utils/functions.js';
 import { init3DStarfield, Draw3DStars } from '../components/effects/starfield3d.js';
+import { setupFireworks, createFirework, updateFireworks } from '../components/effects/fireworks.js';
 import { initGrid, fillGrid, checkRows, clearRows, showGrid, setupGrid, getGridState, setDrawBlockFunction } from '../components/gameplay/grid.js';
 import { 
   setupBlockHandler, showBlock, showNextBlock, showHoldBlock, 
@@ -94,6 +95,9 @@ export async function init() {
   
   // Initialize starfields (can happen before assets are loaded)
   init3DStarfield(ctx, WIDTH, HEIGHT);
+  
+  // Initialize fireworks system
+  setupFireworks(ctx, WIDTH, HEIGHT);
   
   // Initialize high score module with game state change callback
   initHighScore(ctx, WIDTH);

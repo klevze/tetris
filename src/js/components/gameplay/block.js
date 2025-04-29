@@ -175,22 +175,19 @@ class Block {
             }
             
             if (this.shape[i] == 1) {
-                // Scale ghost block size with block width
-                const w = block_width - Math.floor(2 * (block_width / 30)); 
+                // Use consistent semi-transparent styling for ghost blocks
+                ctx.globalAlpha = 0.2;
                 
-                ctx.globalAlpha = 0.15;
-                ctx.beginPath();
-                ctx.rect(
-                    Math.floor(xx + Math.floor(block_width * 0.03)), // Scale padding with block size
-                    Math.floor(yy + Math.floor(block_width * 0.03)), 
-                    w, 
-                    w
+                // Draw a filled rectangle without stroke to avoid the black outline
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(
+                    Math.floor(xx + Math.floor(block_width * 0.03)),
+                    Math.floor(yy + Math.floor(block_width * 0.03)),
+                    block_width * 0.94,
+                    block_width * 0.94
                 );
-                ctx.fillStyle = '#999';
-                ctx.fill();
-                ctx.lineWidth = Math.max(1, Math.floor(block_width / 30));
-                ctx.strokeStyle = '#555';
-                ctx.stroke();
+                
+                // Reset opacity
                 ctx.globalAlpha = 1;
             }
             xx += block_width; // Use exact block width

@@ -15,6 +15,7 @@ import {
 } from '../config/config.js';
 import { fillGrid, checkRows, clearRows, setupGrid, getGridState, setDrawBlockFunction } from '../components/gameplay/grid.js';
 import { setupBlockHandler, showNextBlock, showHoldBlock, newBlock, moveBlock, drawBlock } from '../components/gameplay/block.js';
+import { createFirework, updateFireworks } from '../components/effects/fireworks.js';
 
 // Game variables
 let score = INITIAL_SCORE;
@@ -142,7 +143,39 @@ export function startMainGame() {
   block_finish = true;
   TotalSeconds = 0;
   
+  // Create celebratory fireworks for game start
+  createGameStartFireworks(canvasWidth, canvasHeight);
+  
   return GAME_STATES.PLAY_GAME;
+}
+
+/**
+ * Create celebratory fireworks when the game starts
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ */
+function createGameStartFireworks(width, height) {
+  // Create an initial burst of fireworks
+  createFirework(width * 0.25, height * 0.3, 0); // Left side, gold
+  createFirework(width * 0.75, height * 0.3, 1); // Right side, blue
+  
+  // Create additional fireworks with slight delays for a dynamic effect
+  setTimeout(() => {
+    createFirework(width * 0.5, height * 0.25, 2); // Center top, purple
+    createFirework(width * 0.2, height * 0.5, 3); // Left middle, rainbow
+  }, 300);
+  
+  setTimeout(() => {
+    createFirework(width * 0.8, height * 0.5, 0); // Right middle, gold
+    createFirework(width * 0.5, height * 0.4, 1); // Center, blue
+  }, 600);
+  
+  // Final round of fireworks
+  setTimeout(() => {
+    createFirework(width * 0.3, height * 0.2, 3); // Upper left, rainbow
+    createFirework(width * 0.7, height * 0.2, 3); // Upper right, rainbow
+    createFirework(width * 0.5, height * 0.15, 2); // Top center, purple
+  }, 900);
 }
 
 /**
@@ -271,6 +304,9 @@ export function handleMainGameState(setGameState) {
   showHoldBlock(uiPositions.holdBlockX, uiPositions.holdBlockY);
   showScore();
   
+  // Update and render fireworks if any are active
+  updateFireworks();
+  
   return true;
 }
 
@@ -344,36 +380,70 @@ function showScore() {
   
   const uiPositions = getUIPositions();
   
-  // Pre-calculate text shadow position once
-  const shadowOffset = 1;
+  // Create a semi-transparent background panel for the stats
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.roundRect(uiPositions.panelX, uiPositions.panelY, uiPositions.panelWidth, uiPositions.panelHeight, 10);
+  ctx.fill();
   
-  // Use a consistent font configuration
-  ctx.font = 'normal 15px sans-serif';
-  ctx.textBaseline = 'top';
-  ctx.textAlign = 'right';
+  // Add a subtle border to the panel
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.lineWidth = 2;
+  ctx.roundRect(uiPositions.panelX, uiPositions.panelY, uiPositions.panelWidth, uiPositions.panelHeight, 10);
+  ctx.stroke();
 
-  // Draw shadows first, then text - reduces context switching
-  ctx.fillStyle = '#000';
-  ctx.fillText(score, uiPositions.scoreX + shadowOffset, uiPositions.scoreY + shadowOffset);
-  ctx.fillText(lines, uiPositions.linesX + shadowOffset, uiPositions.linesY + shadowOffset);
-  ctx.fillText(level, uiPositions.levelX + shadowOffset, uiPositions.levelY + shadowOffset);
-  ctx.fillText(timer, uiPositions.timerX + shadowOffset, uiPositions.timerY + shadowOffset);
+  // Draw labels with small bitmap font in gold color
+  DrawBitmapTextSmall("SCORE", uiPositions.labelX, uiPositions.scoreY, 1, 0);
+  DrawBitmapTextSmall("LINES", uiPositions.labelX, uiPositions.linesY, 1, 0);
+  DrawBitmapTextSmall("LEVEL", uiPositions.labelX, uiPositions.levelY, 1, 0);
+  DrawBitmapTextSmall("TIME", uiPositions.labelX, uiPositions.timerY, 1, 0);
   
-  ctx.fillStyle = '#ccc';
-  ctx.fillText(score, uiPositions.scoreX, uiPositions.scoreY);
-  ctx.fillText(lines, uiPositions.linesX, uiPositions.linesY);
-  ctx.fillText(level, uiPositions.levelX, uiPositions.levelY);
-  ctx.fillText(timer, uiPositions.timerX, uiPositions.timerY);
+  // Save context to apply right alignment for values
+  ctx.save();
+  ctx.textAlign = 'right';
+  
+  // Draw values with bitmap font in white with right alignment
+  // Adjust text position to ensure it stays within the panel
+  DrawBitmapTextSmall(score.toString(), uiPositions.valueX, uiPositions.scoreY, 0, 0);
+  DrawBitmapTextSmall(lines.toString(), uiPositions.valueX, uiPositions.linesY, 0, 0);
+  
+  // Level is highlighted in different colors based on value
+  const levelColor = getLevelColor(level);
+  DrawBitmapTextSmall(level.toString(), uiPositions.valueX, uiPositions.levelY, levelColor, 0);
+  
+  // Timer uses white color consistently (not flashing)
+  DrawBitmapTextSmall(timer, uiPositions.valueX, uiPositions.timerY, 0, 0);
+  
+  // Restore context
+  ctx.restore();
   
   // Show score addition animation when clearing lines
   if (showAddScore) {
-    DrawBitmapTextSmall("+" + addScore, 360, 235, 0, 0);
+    // Show with larger font and gold color with pulsing effect
+    const pulseScale = 1 + Math.sin(sac * 0.2) * 0.2;
+    ctx.save();
+    ctx.translate(uiPositions.addScoreX, uiPositions.addScoreY);
+    ctx.scale(pulseScale, pulseScale);
+    DrawBitmapText("+" + addScore, 0, 0, 1, 0);
+    ctx.restore();
+    
     sac++;
     if (sac > ANIMATION.SCORE_DISPLAY_FRAMES) {
       sac = 0;
       showAddScore = false;
     }
   }
+}
+
+/**
+ * Get color index based on level
+ * @param {number} level - Current game level
+ * @returns {number} Color index for bitmap text
+ */
+function getLevelColor(level) {
+  if (level <= 2) return 0;  // White for low levels
+  if (level <= 5) return 3;  // Green for mid levels
+  if (level <= 8) return 2;  // Red for high levels
+  return 1;                  // Gold for top levels
 }
 
 /**
@@ -418,28 +488,47 @@ function calculateUIPositions() {
   const totalGridWidth = gridState.grid_width * gridState.block_width;
   const totalGridHeight = gridState.grid_height * gridState.block_width;
 
+  // Size and position of the stats panel
+  const panelWidth = Math.max(gridState.block_width * 7, 180);
+  const panelHeight = Math.max(gridState.block_width * 5, 150);
+  const panelX = gridOriginX + totalGridWidth + gridState.block_width * 1.5;
+  const panelY = gridOriginY + totalGridHeight * 0.55 - panelHeight / 2;
+
+  // Calculate positions for text within the panel
+  const labelX = panelX + 20; // Left align labels
+  const valueX = panelX + panelWidth - 20; // Right align values
+  const elementSpacing = panelHeight / 5; // Evenly space the elements
 
   // Calculate UI element positions relative to grid position and block size
   return {
     // Position for the "Next" block preview - centered in the next block area above the grid
-    // Adjusted for narrower border (8 blocks) and moved down by 10px
     nextBlockX: gridOriginX + (gridState.block_width * 2.5), // Centered horizontally in the 8-block wide container
-    // Position above the grid in the next block area, moved down 10px
     nextBlockY: gridOriginY - (gridState.block_width * 6) + 100, // Added +10px to move down
+    
     // Position for the "Hold" block preview - to the right of the grid
     holdBlockX: gridOriginX + totalGridWidth + gridState.block_width * 1.5, // Position to the right of grid
     holdBlockY: gridOriginY + gridState.block_width * 2, // Align with the top part of the grid
     
-    // Position for score display
-    scoreX: gridOriginX + totalGridWidth + gridState.block_width * 4,
-    scoreY: gridOriginY + totalGridHeight * 0.6,
+    // Panel dimensions for stats background
+    panelX,
+    panelY,
+    panelWidth,
+    panelHeight,
     
-    // Positions for lines, level and timer displays
-    linesX: gridOriginX + totalGridWidth + gridState.block_width * 4,
-    linesY: gridOriginY + totalGridHeight * 0.7, 
-    levelX: gridOriginX + totalGridWidth + gridState.block_width * 4,
-    levelY: gridOriginY + totalGridHeight * 0.8,
-    timerX: gridOriginX + totalGridWidth + gridState.block_width * 4,
-    timerY: gridOriginY + totalGridHeight * 0.9
+    // Label column positions (left aligned)
+    labelX,
+    
+    // Value column positions (right aligned)
+    valueX,
+    
+    // Vertical positions for each statistic row
+    scoreY: panelY + elementSpacing * 1,
+    linesY: panelY + elementSpacing * 2,
+    levelY: panelY + elementSpacing * 3,
+    timerY: panelY + elementSpacing * 4,
+    
+    // Position for score addition animation
+    addScoreX: gridOriginX + totalGridWidth / 2,
+    addScoreY: gridOriginY + totalGridHeight / 2
   };
 }

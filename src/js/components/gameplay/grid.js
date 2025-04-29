@@ -1,6 +1,7 @@
 import { DrawLine } from '../../utils/functions.js';
 import { BLOCK } from '../../config/config.js'; // Import block configuration
 import { EVENTS, eventDispatcher } from '../../utils/functions.js';
+import { setupFireworks, updateFireworks, createTetrisFireworks, createLevelUpFireworks } from '../effects/fireworks.js';
 
 /**
  * GRID MODULE
@@ -60,6 +61,9 @@ let particles = []; // Array to store particles for clearing effect
 let lego; // Blocks image reference
 let drawBlock; // Function reference for drawing blocks
 let isRowClearingInProgress = false; // Flag to track when row clearing animation is in progress
+let shouldTriggerFireworks = false; // Flag to track when fireworks should be triggered
+let fireworksDisplayActive = false; // Flag to track if fireworks are currently active
+let shouldTriggerLevelUpFireworks = false; // Flag to trigger level-up fireworks
 
 // Store original block colors for animation
 let originalBlockColors = {};
@@ -186,6 +190,12 @@ function renderClearAnimation() {
           createParticles(row);
         }
       });
+      
+      // Trigger fireworks if this is a Tetris (4 lines)
+      if (shouldTriggerFireworks && rowsToBeCleared.length === 4) {
+        createTetrisFireworks(rowsToBeCleared, origin, block_width, grid_width);
+        shouldTriggerFireworks = false;
+      }
     }
 
     return false;
@@ -397,12 +407,16 @@ export function checkRows() {
       // More points for multiple rows at once
       if (completedRows === 1) {
         addScore = SCORE_SYSTEM.SINGLE * (level + 1); // Single
+        shouldTriggerFireworks = true; // TEST: Enable fireworks for single line clear
       } else if (completedRows === 2) {
         addScore = SCORE_SYSTEM.DOUBLE * (level + 1); // Double
+        shouldTriggerFireworks = true; // TEST: Enable fireworks for double line clear
       } else if (completedRows === 3) {
         addScore = SCORE_SYSTEM.TRIPLE * (level + 1); // Triple
+        shouldTriggerFireworks = true; // TEST: Enable fireworks for triple line clear
       } else if (completedRows === 4) {
         addScore = SCORE_SYSTEM.TETRIS * (level + 1); // Tetris!
+        shouldTriggerFireworks = true; // Trigger fireworks for Tetris
       }
 
       // Mark row for clearing animation
@@ -421,6 +435,7 @@ export function checkRows() {
         if (level > 10) {
           level = 10; // Max level
         }
+        shouldTriggerLevelUpFireworks = true; // Trigger level-up fireworks
       }
 
       // Play sound effect
@@ -766,6 +781,21 @@ export function fillGrid() {
       particles.splice(index, 1);
     }
   });
+
+  // Trigger fireworks if a Tetris was achieved
+  if (shouldTriggerFireworks) {
+    createTetrisFireworks(rowsToBeCleared, origin, block_width, grid_width);
+    shouldTriggerFireworks = false;
+  }
+
+  // Trigger level-up fireworks if applicable
+  if (shouldTriggerLevelUpFireworks) {
+    createLevelUpFireworks(level, origin, block_width, grid_width); // Pass the current level to the fireworks
+    shouldTriggerLevelUpFireworks = false;
+  }
+
+  // Update and render active fireworks
+  updateFireworks();
 }
 
 /**
@@ -864,6 +894,9 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
 
   // Add resize event listener using the eventDispatcher
   eventDispatcher.addEventListener(EVENTS.WINDOW_RESIZE, handleResize);
+
+  // Initialize fireworks effects with proper canvas dimensions
+  setupFireworks(ctx, canvasWidth, canvasHeight);
 }
 
 /**
