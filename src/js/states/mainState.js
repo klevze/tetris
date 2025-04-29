@@ -14,7 +14,7 @@ import {
   ANIMATION, GAME_STATES
 } from '../config/config.js';
 import { fillGrid, checkRows, clearRows, setupGrid, getGridState, setDrawBlockFunction } from '../components/gameplay/grid.js';
-import { setupBlockHandler, showNextBlock, showHoldBlock, newBlock, moveBlock, drawBlock } from '../components/gameplay/block.js';
+import { setupBlockHandler, showNextBlock, showHoldBlock, newBlock, moveBlock, drawBlock, showBlocksStatistics } from '../components/gameplay/block.js';
 import { createFirework, updateFireworks } from '../components/effects/fireworks.js';
 
 // Game variables
@@ -304,6 +304,9 @@ export function handleMainGameState(setGameState) {
   showHoldBlock(uiPositions.holdBlockX, uiPositions.holdBlockY);
   showScore();
   
+  // Show blocks statistics panel on the left side
+  showBlocksStatistics(uiPositions.blocksStatsX, uiPositions.blocksStatsY);
+  
   // Update and render fireworks if any are active
   updateFireworks();
   
@@ -488,10 +491,10 @@ function calculateUIPositions() {
   const totalGridWidth = gridState.grid_width * gridState.block_width;
   const totalGridHeight = gridState.grid_height * gridState.block_width;
 
-  // Size and position of the stats panel
+  // Size and position of the stats panel - moved further to the right
   const panelWidth = Math.max(gridState.block_width * 7, 180);
   const panelHeight = Math.max(gridState.block_width * 5, 150);
-  const panelX = gridOriginX + totalGridWidth + gridState.block_width * 1.5;
+  const panelX = gridOriginX + totalGridWidth + gridState.block_width * 2.5; // Increased from 1.5 to 2.5
   const panelY = gridOriginY + totalGridHeight * 0.55 - panelHeight / 2;
 
   // Calculate positions for text within the panel
@@ -506,7 +509,7 @@ function calculateUIPositions() {
     nextBlockY: gridOriginY - (gridState.block_width * 6) + 100, // Added +10px to move down
     
     // Position for the "Hold" block preview - to the right of the grid
-    holdBlockX: gridOriginX + totalGridWidth + gridState.block_width * 1.5, // Position to the right of grid
+    holdBlockX: gridOriginX + totalGridWidth + gridState.block_width * 2.5, // Increased from 1.5 to 2.5
     holdBlockY: gridOriginY + gridState.block_width * 2, // Align with the top part of the grid
     
     // Panel dimensions for stats background
@@ -529,6 +532,10 @@ function calculateUIPositions() {
     
     // Position for score addition animation
     addScoreX: gridOriginX + totalGridWidth / 2,
-    addScoreY: gridOriginY + totalGridHeight / 2
+    addScoreY: gridOriginY + totalGridHeight / 2,
+    
+    // Position for blocks statistics panel (on the left side of the grid) - moved further to the left
+    blocksStatsX: gridOriginX - (gridState.block_width * 9.5), // Increased from 8 to 9.5 (moved further left)
+    blocksStatsY: gridOriginY
   };
 }

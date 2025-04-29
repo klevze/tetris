@@ -17,6 +17,17 @@ let frame = 0, change_block = false, change_block_frame = 0;
 let level = 0; // Default level
 let nextBlockOpacity = 1; // Initial opacity for next block display
 
+// Track how many of each tetromino type has been received
+export let blockCounts = {
+    0: 0, // I-piece
+    1: 0, // J-piece
+    2: 0, // L-piece
+    3: 0, // O-piece
+    4: 0, // S-piece
+    5: 0, // Z-piece
+    6: 0  // T-piece
+};
+
 // Add timestamp tracking for block movement
 let lastMoveTime = 0; // Last time the block moved down automatically
 
@@ -179,7 +190,7 @@ class Block {
                 ctx.globalAlpha = 0.3;
                 
                 // Draw a filled rectangle without stroke to avoid the black outline
-                ctx.fillStyle = '#333355';
+                ctx.fillStyle = '#333355  ';
                 ctx.fillRect(
                     Math.floor(xx + Math.floor(block_width * 0.03)),
                     Math.floor(yy + Math.floor(block_width * 0.03)),
@@ -400,6 +411,9 @@ export function newBlock() {
     const nextType = next_block;
     next_block = Math.floor(Math.random() * Object.keys(TETROMINOES).length);
     score += level * 4;
+    
+    // Increment the count for the received block type
+    blockCounts[nextType]++;
     
     // Calculate spawn position based on the shape
     const shape = shapes[0][nextType];
@@ -705,4 +719,180 @@ function getRandomTetrominoType() {
     }
     
     return type;
+}
+
+/**
+ * Show block statistics panel displaying all tetromino types and their counts
+ * @param {number} x - X coordinate for the panel
+ * @param {number} y - Y coordinate for the panel
+ */
+export function showBlocksStatistics(x, y) {
+    const panelWidth = block_width * 5; // Reduced panel width
+    const panelHeight = block_width * 18; // Adjusted height for smaller blocks
+    
+    // Draw semi-transparent panel background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.roundRect(x, y, panelWidth, panelHeight, 10);
+    ctx.fill();
+    
+    // Add subtle border to the panel
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.roundRect(x, y, panelWidth, panelHeight, 10);
+    ctx.stroke();
+    
+    // Draw "BLOCKS" title
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillStyle = '#ffcc00'; // Gold color for title
+    ctx.fillText("BLOCKS", x + panelWidth / 2, y + 25);
+    ctx.restore();
+    
+    // Define spacing between tetromino displays
+    const blockSpacing = Math.floor(panelHeight / 8.5);
+    let currentY = y + blockSpacing;
+    
+    // Calculate total blocks to determine percentages
+    let totalBlocks = 0;
+    for (let type = 0; type < 7; type++) {
+        totalBlocks += blockCounts[type] || 0;
+    }
+    
+    // Create array of block types with their counts for sorting
+    const blockTypesWithCounts = [];
+    for (let type = 0; type < 7; type++) {
+        blockTypesWithCounts.push({
+            type: type,
+            count: blockCounts[type] || 0,
+            percentage: totalBlocks > 0 ? (blockCounts[type] || 0) / totalBlocks : 0
+        });
+    }
+    
+    // Sort blocks by count in descending order
+    blockTypesWithCounts.sort((a, b) => b.count - a.count);
+    
+    // Maximum width for percentage bars
+    const maxBarWidth = panelWidth * 0.8;
+    
+    // Make blocks smaller
+    const smallBlockWidth = Math.floor(block_width * 0.5); // Reduced block size
+    
+    // Draw each tetromino type with its count
+    for (let i = 0; i < blockTypesWithCounts.length; i++) {
+        const blockInfo = blockTypesWithCounts[i];
+        const type = blockInfo.type;
+        const count = blockInfo.count;
+        const percentage = blockInfo.percentage;
+        
+        // Draw the tetromino - aligned to the left side of the panel
+        const blockX = x + 20; // Left-aligned at a fixed margin
+        const blockY = currentY;
+        
+        // Get the shape for this tetromino type
+        const tetrominoShape = shapes[0][type];
+        
+        // Draw the tetromino
+        let xx = blockX;
+        let yy = blockY;
+        
+        // Calculate width and height of this shape
+        let width = 0, height = 0;
+        for (let i = 0; i < tetrominoShape.length; i++) {
+            const col = i % 4;
+            const row = Math.floor(i / 4);
+            if (tetrominoShape[i] === 1) {
+                width = Math.max(width, col + 1);
+                height = Math.max(height, row + 1);
+            }
+        }
+        
+        // Draw the tetromino blocks
+        const spriteSize = BLOCK.SPRITE_SIZE;
+        
+        for (let i = 0; i < tetrominoShape.length; i++) {
+            if (i % 4 == 0 && i > 0) {
+                yy += smallBlockWidth;
+                xx = blockX;
+            }
+            if (tetrominoShape[i] == 1) {
+                const sx = type * spriteSize;
+                
+                ctx.drawImage(
+                    lego, 
+                    sx + 2, 
+                    2, 
+                    spriteSize - 4, 
+                    spriteSize - 4, 
+                    xx, 
+                    yy, 
+                    smallBlockWidth, 
+                    smallBlockWidth
+                );
+            }
+            xx += smallBlockWidth;
+        }
+        
+        // Calculate total height of the tetromino for proper vertical spacing
+        const tetrominoHeight = height * smallBlockWidth;
+        
+        // Draw the count for this tetromino type
+        ctx.save();
+        
+        // Draw count with outlined text for better visibility - RIGHT ALIGNED
+        const countX = x + panelWidth - 20; // Right-aligned with fixed margin
+        const countY = blockY + tetrominoHeight/2 + 5; // Aligned with middle of tetromino
+        
+        // Draw text outline
+        ctx.textAlign = 'right'; // Right-aligned text
+        ctx.font = 'bold 20px Arial';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(`${count}`, countX, countY);
+        
+        // Draw text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(`${count}`, countX, countY);
+        
+        // Draw percentage bar below the tetromino
+        const barY = blockY + tetrominoHeight + smallBlockWidth/2;
+        const barHeight = smallBlockWidth/3;
+        
+        // Draw bar background
+        ctx.fillStyle = 'rgba(80, 80, 80, 0.5)';
+        ctx.fillRect(x + panelWidth/2 - maxBarWidth/2, barY, maxBarWidth, barHeight);
+        
+        // Draw percentage fill
+        const barWidth = percentage * maxBarWidth;
+        
+        // Choose color based on tetromino type
+        const barColors = [
+            '#B24DD2', // I - Purple
+            '#E14F4F', // J - Red
+            '#E78B0F', // L - Orange
+            '#B24DD2', // O - Purple
+            '#4BA63A', // S - Green
+            '#4F8AE7', // Z - Blue
+            '#45ABAB'  // T - Teal
+        ];
+        
+        ctx.fillStyle = barColors[type];
+        ctx.fillRect(x + panelWidth/2 - maxBarWidth/2, barY, barWidth, barHeight);
+        
+        // Draw percentage text above the bar
+        ctx.fillStyle = '#FFF';
+        ctx.font = '11px Arial'; // Smaller font
+        ctx.textAlign = 'center';
+        
+        // Only show percentage if there are blocks
+        if (totalBlocks > 0) {
+            const percentageText = `${Math.round(percentage * 100)}%`;
+            ctx.fillText(percentageText, x + panelWidth/2, barY - 4);
+        }
+        
+        ctx.restore();
+        
+        // Move to next tetromino position
+        currentY += blockSpacing;
+    }
 }
