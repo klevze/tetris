@@ -22,7 +22,7 @@ html, body {
 }
 
 body {
-  background: #000 url('/images/background.webp') no-repeat center center fixed;
+  background: #000 no-repeat center center fixed;
   background-size: cover;
   display: flex;
   align-items: center;
@@ -59,7 +59,7 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  cursor: none;
+  //cursor: none;
   touch-action: none; // Disable default touch behaviors
   -webkit-tap-highlight-color: transparent; // Remove tap highlight on iOS
 }

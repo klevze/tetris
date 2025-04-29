@@ -34,8 +34,6 @@ let level2_img, level3_img, level4_img, level5_img;
 let level6_img, level7_img, level8_img, level9_img, level10_img;
 let grid_img;
 let lego;
-let fonts_big_img;
-let fonts_small_img;
 let clear_line_audio;
 
 /**
@@ -62,8 +60,6 @@ export function initMainState(images, audio, updateGameStateCallback) {
   level10_img = images.level10;
   grid_img = images.grid;
   lego = images.blocks;
-  fonts_big_img = images.fonts_big;
-  fonts_small_img = images.fonts_small;
   
   // Store audio references
   clear_line_audio = audio.clear_line;

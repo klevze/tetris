@@ -24,8 +24,6 @@ let saveMessageTimer = 0;
 
 // Asset references
 let back_intro_img;
-let fonts_big_img;
-let fonts_small_img;
 
 /**
  * Initialize the game over state module
@@ -36,8 +34,6 @@ let fonts_small_img;
 export function initGameOverState(images, updateGameStateCallback) {
   // Store image references
   back_intro_img = images.back_intro;
-  fonts_big_img = images.fonts_big;
-  fonts_small_img = images.fonts_small;
   
   // Store callback for state changes
   gameStateCallback = updateGameStateCallback;

@@ -121,8 +121,6 @@ export const IMAGES = {
     BACKGROUND_LEVEL9: '/images/tetris_main_back_level9.jpg',
     BACKGROUND_LEVEL10: '/images/tetris_main_back_level10.jpg',
     INTRO_BACKGROUND: '/images/main_background.webp',
-    FONTS_BIG: '/images/fonts_big.png',
-    FONTS_SMALL: '/images/fonts_small.png',
     LOGO: '/images/logo.webp',
     CONTROLS: '/images/controls.png'
 };

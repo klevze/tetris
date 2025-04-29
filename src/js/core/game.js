@@ -55,8 +55,6 @@ let level2_img, level3_img, level4_img, level5_img;
 let level6_img, level7_img, level8_img, level9_img, level10_img;
 let grid_img;
 let logo_img;
-let fonts_big_img;
-let fonts_small_img;
 let ambient_audio;
 let clear_line_audio;
 
@@ -180,8 +178,6 @@ function loadGraphicsAsync() {
     controls_img = new Image();
     back_intro_img = new Image();
     lego = new Image();
-    fonts_big_img = new Image();
-    fonts_small_img = new Image();
     
     // Create an array of all images for tracking load status
     const imageObjects = [
@@ -200,8 +196,6 @@ function loadGraphicsAsync() {
       { img: controls_img, src: IMAGES.CONTROLS },
       { img: back_intro_img, src: IMAGES.INTRO_BACKGROUND },
       { img: lego, src: IMAGES.BLOCKS },
-      { img: fonts_big_img, src: IMAGES.FONTS_BIG },
-      { img: fonts_small_img, src: IMAGES.FONTS_SMALL }
     ];
 
     totalImages = imageObjects.length;
@@ -210,7 +204,7 @@ function loadGraphicsAsync() {
     // Initialize the loading screen with the required images
     // We pass images immediately even though they might not be fully loaded yet
     // The loading screen will handle this gracefully
-    initLoadingScreen(logo_img, fonts_big_img, fonts_small_img);
+    initLoadingScreen(logo_img);
     
     // Setup onload handler for each image
     const onImageLoad = (img, id) => {
@@ -247,8 +241,6 @@ function loadGraphicsAsync() {
           level10: level10_img,
           grid: grid_img,
           blocks: lego,
-          fonts_big: fonts_big_img,
-          fonts_small: fonts_small_img
         };
         
         const audioAssets = {
