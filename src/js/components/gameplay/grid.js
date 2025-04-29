@@ -748,7 +748,7 @@ export function fillGrid() {
     // Draw all blocks of this type in a batch
     positions.forEach(pos => {
       const drawX = Math.floor(pos.x);
-      const drawY = Math.floor(pos.y); // Apply consistent -5px vertical offset for all blocks
+      const drawY = Math.floor(pos.y);
 
       ctx.drawImage(
         lego,
@@ -782,15 +782,22 @@ export function fillGrid() {
     }
   });
 
-  // Trigger fireworks if a Tetris was achieved
-  if (shouldTriggerFireworks) {
-    createTetrisFireworks(rowsToBeCleared, origin, block_width, grid_width);
-    shouldTriggerFireworks = false;
-  }
+  // Only trigger fireworks when level > 0
+  if (level > 0) {
+    // Trigger fireworks if a Tetris was achieved
+    if (shouldTriggerFireworks) {
+      createTetrisFireworks(rowsToBeCleared, origin, block_width, grid_width);
+      shouldTriggerFireworks = false;
+    }
 
-  // Trigger level-up fireworks if applicable
-  if (shouldTriggerLevelUpFireworks) {
-    createLevelUpFireworks(level, origin, block_width, grid_width); // Pass the current level to the fireworks
+    // Trigger level-up fireworks if applicable
+    if (shouldTriggerLevelUpFireworks) {
+      createLevelUpFireworks(level, origin, block_width, grid_width);
+      shouldTriggerLevelUpFireworks = false;
+    }
+  } else {
+    // If we're at level 0, just reset the flags without creating fireworks
+    shouldTriggerFireworks = false;
     shouldTriggerLevelUpFireworks = false;
   }
 
@@ -895,8 +902,13 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
   // Add resize event listener using the eventDispatcher
   eventDispatcher.addEventListener(EVENTS.WINDOW_RESIZE, handleResize);
 
-  // Initialize fireworks effects with proper canvas dimensions
+  // Initialize fireworks system with canvas dimensions, but don't create any actual fireworks
   setupFireworks(ctx, canvasWidth, canvasHeight);
+  
+  // Reset fireworks flags to prevent any automatic fireworks display at level 0
+  shouldTriggerFireworks = false;
+  fireworksDisplayActive = false;
+  shouldTriggerLevelUpFireworks = false;
 }
 
 /**

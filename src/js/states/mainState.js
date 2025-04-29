@@ -73,7 +73,7 @@ export function initMainState(images, audio, updateGameStateCallback) {
   // Reset game variables
   score = INITIAL_SCORE;
   lines = INITIAL_LINES;
-  level = INITIAL_LEVEL;
+  level = 0;  // Explicitly setting to 0, not using INITIAL_LEVEL
   level_goal = INITIAL_LEVEL_GOAL;
   block_finish = true;
   TotalSeconds = 0;
@@ -97,7 +97,7 @@ export function startMainGame() {
   // Start a new game
   score = INITIAL_SCORE;
   lines = INITIAL_LINES;
-  level = INITIAL_LEVEL;
+  level = 0;  // Explicitly set to 0 instead of using INITIAL_LEVEL
   level_goal = INITIAL_LEVEL_GOAL;
   
   // Calculate canvas dimensions for proper centering
@@ -143,8 +143,10 @@ export function startMainGame() {
   block_finish = true;
   TotalSeconds = 0;
   
-  // Create celebratory fireworks for game start
-  createGameStartFireworks(canvasWidth, canvasHeight);
+  // Only create celebratory fireworks if starting level is greater than 0
+  if (level > 0) {
+    createGameStartFireworks(canvasWidth, canvasHeight);
+  }
   
   return GAME_STATES.PLAY_GAME;
 }

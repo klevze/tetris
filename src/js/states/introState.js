@@ -17,6 +17,15 @@ let k = 0; // Animation counter for logo sine wave effect
 let sc = 0; // Counter used in score display animations
 let introEventListenersAdded = false; // Track if event listeners are active
 
+// Tetris block fireworks animation variables
+let tetrisFireworks = [];
+const MAX_FIREWORKS = 6;
+const FIREWORK_PARTICLES_MIN = 20;
+const FIREWORK_PARTICLES_MAX = 40;
+const FIREWORK_SPAWN_CHANCE = 0.02; // 2% chance per frame to spawn new firework
+const GRAVITY = 0.06;
+const FRICTION = 0.98;
+
 // Game statistics (displayed in the intro screen)
 let lines = 0;
 let level = 1;
@@ -57,42 +66,266 @@ export function initIntroState(images, updateGameStateCallback) {
   
   // Then try to load from Firebase
   loadCloudHighScores();
+  
+  // Initialize fireworks
+  tetrisFireworks = [];
 }
 
 /**
- * Load high scores from Firebase cloud
+ * Tetris block for firework particle
  */
-function loadCloudHighScores() {
-  // Don't start a new load if we're already loading
-  if (isLoadingScores) return;
+class TetrisBlockParticle {
+  constructor(x, y, color, isSecondary = false) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.size = isSecondary ? 3 + Math.random() * 5 : 6 + Math.random() * 10; // Smaller for secondary explosions
+    this.alpha = 1;
+    this.decay = Math.random() * 0.03 + (isSecondary ? 0.02 : 0.01); // Faster decay for secondary particles
+    this.isSecondary = isSecondary;
+    
+    // Create random velocity for explosion effect
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * (isSecondary ? 3 : 5) + (isSecondary ? 0.5 : 1);
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    
+    // Random rotation
+    this.rotation = Math.random() * 360;
+    this.rotationSpeed = (Math.random() - 0.5) * (isSecondary ? 12 : 8);
+    
+    // Visual effects
+    this.highlight = 'rgba(255, 255, 255, 0.7)';
+    this.shadow = 'rgba(0, 0, 0, 0.4)';
+    
+    // Secondary explosion trigger
+    this.canExplode = !isSecondary; // Only primary particles can explode
+    this.explosionThreshold = 0.4 + Math.random() * 0.3; // Alpha threshold for secondary explosion
+    this.hasExploded = false;
+  }
   
-  isLoadingScores = true;
-  loadStartTime = Date.now();
-  cloudLoadError = false;
+  update() {
+    // Apply gravity and friction
+    this.vx *= FRICTION;
+    this.vy = this.vy * FRICTION + GRAVITY;
+    
+    // Update position
+    this.x += this.vx;
+    this.y += this.vy;
+    
+    // Update rotation
+    this.rotation += this.rotationSpeed;
+    
+    // Reduce alpha as the particle ages
+    this.alpha -= this.decay;
+    
+    return this.alpha > 0;
+  }
   
-  // Load high scores from Firebase
-  loadHighScores()
-    .then(scores => {
-      if (scores && scores.length > 0) {
-        high_scores = scores;
-        cloudScoresLoaded = true;
-      } else {
-        // If no scores returned, keep using localStorage scores
-        cloudScoresLoaded = false;
-      }
-      isLoadingScores = false;
-    })
-    .catch(error => {
-      console.error("Error loading high scores from Firebase:", error);
-      cloudLoadError = true;
-      isLoadingScores = false;
+  // Check if this particle should create a secondary explosion
+  shouldExplode() {
+    if (this.canExplode && !this.hasExploded && this.alpha <= this.explosionThreshold) {
+      this.hasExploded = true;
+      return true;
+    }
+    return false;
+  }
+  
+  // Create secondary particles when this one explodes
+  createSecondaryParticles() {
+    const particles = [];
+    
+    // Create 4-7 smaller particles
+    const count = 4 + Math.floor(Math.random() * 4);
+    
+    for (let i = 0; i < count; i++) {
+      // Keep same color for cohesive look, but could use different colors
+      particles.push(new TetrisBlockParticle(this.x, this.y, this.color, true));
+    }
+    
+    return particles;
+  }
+  
+  draw() {
+    ctx.save();
+    
+    // Set transparency
+    ctx.globalAlpha = this.alpha;
+    
+    // Translate and rotate
+    ctx.translate(this.x, this.y);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    
+    const halfSize = this.size / 2;
+    
+    // Draw the main block
+    ctx.fillStyle = this.color;
+    ctx.fillRect(-halfSize, -halfSize, this.size, this.size);
+    
+    // Draw highlight edge (top-left)
+    ctx.fillStyle = this.highlight;
+    ctx.beginPath();
+    ctx.moveTo(-halfSize, -halfSize);
+    ctx.lineTo(halfSize, -halfSize);
+    ctx.lineTo(halfSize - this.size * 0.3, -halfSize + this.size * 0.3);
+    ctx.lineTo(-halfSize + this.size * 0.3, -halfSize + this.size * 0.3);
+    ctx.lineTo(-halfSize + this.size * 0.3, halfSize - this.size * 0.3);
+    ctx.lineTo(-halfSize, halfSize);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw shadow edge (bottom-right)
+    ctx.fillStyle = this.shadow;
+    ctx.beginPath();
+    ctx.moveTo(halfSize, -halfSize);
+    ctx.lineTo(halfSize, halfSize);
+    ctx.lineTo(-halfSize, halfSize);
+    ctx.lineTo(-halfSize + this.size * 0.3, halfSize - this.size * 0.3);
+    ctx.lineTo(halfSize - this.size * 0.3, halfSize - this.size * 0.3);
+    ctx.lineTo(halfSize - this.size * 0.3, -halfSize + this.size * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw border
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-halfSize, -halfSize, this.size, this.size);
+    
+    ctx.restore();
+  }
+}
+
+/**
+ * Tetris block firework explosion
+ */
+class TetrisFireworkExplosion {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.particles = [];
+    
+    // Tetris colors
+    const tetrisColors = [
+      '#00f0f0', // Cyan - I piece
+      '#0000f0', // Blue - J piece
+      '#f0a000', // Orange - L piece
+      '#f0f000', // Yellow - O piece
+      '#00f000', // Green - S piece
+      '#a000f0', // Purple - T piece
+      '#f00000'  // Red - Z piece
+    ];
+    
+    // Choose a random color theme for this firework (single color or multi-color)
+    const singleColor = Math.random() < 0.7;
+    const mainColor = tetrisColors[Math.floor(Math.random() * tetrisColors.length)];
+    
+    // Create particles
+    const particleCount = FIREWORK_PARTICLES_MIN + 
+      Math.floor(Math.random() * (FIREWORK_PARTICLES_MAX - FIREWORK_PARTICLES_MIN));
+    
+    for (let i = 0; i < particleCount; i++) {
+      // If single color theme, use the main color, otherwise random Tetris colors
+      const color = singleColor ? 
+        mainColor : 
+        tetrisColors[Math.floor(Math.random() * tetrisColors.length)];
       
-      // Retry a few times if needed
-      if (scoreLoadRetries < MAX_RETRIES) {
-        scoreLoadRetries++;
-        setTimeout(loadCloudHighScores, 3000); // Retry after 3 seconds
+      this.particles.push(new TetrisBlockParticle(this.x, this.y, color));
+    }
+  }
+  
+  update() {
+    // Secondary explosion particles to be added
+    const secondaryParticles = [];
+    
+    // Update all particles and remove dead ones
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const particle = this.particles[i];
+      const isActive = particle.update();
+      
+      // Check for secondary explosion
+      if (particle.shouldExplode()) {
+        // Add particles from secondary explosion
+        secondaryParticles.push(...particle.createSecondaryParticles());
       }
-    });
+      
+      if (!isActive) {
+        this.particles.splice(i, 1);
+      }
+    }
+    
+    // Add all secondary particles after the loop to avoid modifying array during iteration
+    if (secondaryParticles.length > 0) {
+      this.particles.push(...secondaryParticles);
+    }
+    
+    return this.particles.length > 0;
+  }
+  
+  draw() {
+    // Draw all particles
+    for (const particle of this.particles) {
+      particle.draw();
+    }
+  }
+}
+
+/**
+ * Create a new Tetris block firework explosion
+ */
+function createTetrisFirework() {
+  if (tetrisFireworks.length < MAX_FIREWORKS) {
+    // Create firework specifically under the high score area
+    
+    // Calculate the position of the high score area
+    const topPlayersY = Math.max(160, HEIGHT * 0.18 + 70); 
+    const scoreAreaTop = topPlayersY + 80; // Start of high scores
+    
+    // Estimate how many rows of scores we have (maximum 11 entries with 55px spacing)
+    const estimatedScoreRows = Math.min(high_scores.length, 11);
+    const scoreAreaBottom = scoreAreaTop + (estimatedScoreRows * 55);
+    
+    // Position the fireworks below the scores list
+    const x = WIDTH * 0.2 + Math.random() * (WIDTH * 0.6); // More centered horizontally
+    const y = scoreAreaBottom + 20 + Math.random() * 100; // Just below the score list
+    
+    // Create a new firework explosion
+    tetrisFireworks.push(new TetrisFireworkExplosion(x, y));
+    
+    // Occasionally create a special coordinated firework pattern
+    if (Math.random() < 0.1 && tetrisFireworks.length < MAX_FIREWORKS - 2) {
+      setTimeout(() => {
+        // Create a pattern with two additional fireworks
+        if (tetrisFireworks.length < MAX_FIREWORKS) {
+          tetrisFireworks.push(new TetrisFireworkExplosion(x - 100, y + 20));
+        }
+        setTimeout(() => {
+          if (tetrisFireworks.length < MAX_FIREWORKS) {
+            tetrisFireworks.push(new TetrisFireworkExplosion(x + 100, y + 20));
+          }
+        }, 150);
+      }, 150);
+    }
+  }
+}
+
+/**
+ * Update and render all Tetris block fireworks
+ */
+function updateTetrisFireworks() {
+  // Chance to create new firework
+  if (Math.random() < FIREWORK_SPAWN_CHANCE) {
+    createTetrisFirework();
+  }
+  
+  // Update and render fireworks
+  for (let i = tetrisFireworks.length - 1; i >= 0; i--) {
+    const isActive = tetrisFireworks[i].update();
+    if (isActive) {
+      tetrisFireworks[i].draw();
+    } else {
+      tetrisFireworks.splice(i, 1);
+    }
+  }
 }
 
 /**
@@ -155,22 +388,12 @@ export function handleIntroState(setGameState) {
       // Center the logo horizontally (centered X position)
       const centerX = (WIDTH - displayWidth) / 2;
       
-      // Draw the logo with sine wave animation
-      for (let l = 0; l < displayHeight && l < originalHeight; l++) {
-        const lineHeightRatio = l / displayHeight;
-        const sourceY = Math.floor(lineHeightRatio * originalHeight);
-        
-        const n = (k + l) * 2;
-        let m = Math.sin(n/180*3.14) * 25; // Reduced from 30 to 25 for less horizontal movement
-        let height = Math.max(5, Math.min(25, m + 12)); // Reduced height values
-
-        // Draw each horizontal slice of the logo - properly centered
-        ctx.drawImage(
-          logo_img, 
-          0, sourceY, originalWidth, 1, // Source rectangle
-          centerX + m, 40 + l, displayWidth, height // Destination rectangle
-        );
-      }
+      // Draw the logo as a single static image without sine wave animation
+      ctx.drawImage(
+        logo_img,
+        0, 0, originalWidth, originalHeight, // Source rectangle (full image)
+        centerX, 40, displayWidth, displayHeight // Destination rectangle
+      );
     } else {
       // Fallback if the image isn't loaded yet
       ctx.font = 'bold 35px Arial'; // Reduced from 40px to 35px
@@ -403,6 +626,9 @@ export function handleIntroState(setGameState) {
     ctx.shadowOffsetY = 0;
   }
   
+  // Update and render Tetris block fireworks
+  updateTetrisFireworks();
+  
   return true;
 }
 
@@ -478,6 +704,126 @@ function loadHighScoreData() {
     console.error("Error loading high scores:", e);
     high_scores = [];
   }
+}
+
+/**
+ * Load high scores from Firebase cloud
+ */
+function loadCloudHighScores() {
+  // Don't start a new load if we're already loading
+  if (isLoadingScores) return;
+  
+  isLoadingScores = true;
+  loadStartTime = Date.now();
+  cloudLoadError = false;
+  
+  // Load high scores from Firebase
+  loadHighScores()
+    .then(scores => {
+      if (scores && scores.length > 0) {
+        high_scores = scores;
+        cloudScoresLoaded = true;
+      } else {
+        // If no scores returned, keep using localStorage scores
+        // or default sample scores
+        if (high_scores.length === 0) {
+          high_scores = createSampleHighScores();
+        }
+        cloudScoresLoaded = false;
+      }
+      isLoadingScores = false;
+    })
+    .catch(error => {
+      console.error("Error loading high scores from Firebase:", error);
+      cloudLoadError = true;
+      isLoadingScores = false;
+      
+      // Retry a few times if needed
+      if (scoreLoadRetries < MAX_RETRIES) {
+        scoreLoadRetries++;
+        setTimeout(loadCloudHighScores, 3000); // Retry after 3 seconds
+      }
+    });
+}
+
+/**
+ * Create sample high scores for initial display
+ * 
+ * @returns {Array} Array of sample high score objects
+ */
+function createSampleHighScores() {
+  return [
+    {
+      player_name: "TETRIS-MASTER",
+      score: 25000,
+      level: 10,
+      cleared_lines: 125,
+      time: "08:43"
+    },
+    {
+      player_name: "BLOCK-WIZARD",
+      score: 18750,
+      level: 8,
+      cleared_lines: 96,
+      time: "06:12"
+    },
+    {
+      player_name: "LINE-CRUSHER",
+      score: 15300,
+      level: 7,
+      cleared_lines: 82,
+      time: "05:38"
+    },
+    {
+      player_name: "TETRA-PRO",
+      score: 12400,
+      level: 6,
+      cleared_lines: 67,
+      time: "04:55"
+    },
+    {
+      player_name: "SQUARE-STACKER",
+      score: 9800,
+      level: 5,
+      cleared_lines: 52,
+      time: "04:10"
+    },
+    {
+      player_name: "J-FLIPPER",
+      score: 7500,
+      level: 4,
+      cleared_lines: 43,
+      time: "03:25"
+    },
+    {
+      player_name: "L-MASTER",
+      score: 5250,
+      level: 3,
+      cleared_lines: 32,
+      time: "02:48"
+    },
+    {
+      player_name: "Z-SPINNER",
+      score: 3800,
+      level: 2,
+      cleared_lines: 24,
+      time: "02:15"
+    },
+    {
+      player_name: "T-SLAMMER",
+      score: 2200,
+      level: 1,
+      cleared_lines: 15,
+      time: "01:42"
+    },
+    {
+      player_name: "I-DROPPER",
+      score: 1000,
+      level: 1,
+      cleared_lines: 8,
+      time: "01:05"
+    }
+  ];
 }
 
 /**

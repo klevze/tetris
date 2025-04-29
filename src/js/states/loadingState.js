@@ -78,16 +78,30 @@ export function drawLoadingScreen() {
     // Draw 3D stars in background
     Draw3DStars();
     
-    // Calculate the vertical center of the screen
-    const screenCenterY = HEIGHT / 2;
-    
-    // Define loading bar dimensions and position
-    const barWidth = UI.LOADING_BAR_WIDTH;
+    // Calculate dimensions and sizes of all elements to properly center them
+    const logoHeight = logo_img && logo_img.complete ? calculateLogoHeight() : 0;
+    const loadingTextHeight = 20; // Approximate height of "LOADING" text
     const barHeight = UI.LOADING_BAR_HEIGHT;
-    const barX = (WIDTH - barWidth) / 2;
+    const barPaddingVertical = 35; // Space between loading text and bar
+    const percentTextHeight = 20; // Approximate height of percentage text
+    const pressSpaceHeight = showPressSpace ? 20 : 0; // Height of "PRESS SPACE" text if shown
+    const spacingBetweenElements = 15; // Vertical spacing between elements
     
-    // The loading bar will be positioned slightly below the center
-    const barY = screenCenterY + 80;
+    // Calculate total height of all elements combined
+    const totalContentHeight = logoHeight
+        + (logoHeight > 0 ? spacingBetweenElements : 0) // Add spacing only if logo exists
+        + loadingTextHeight
+        + barPaddingVertical
+        + barHeight
+        + spacingBetweenElements
+        + percentTextHeight
+        + (pressSpaceHeight > 0 ? spacingBetweenElements : 0)
+        + pressSpaceHeight;
+    
+    // Calculate starting Y position to center everything vertically
+    const startY = (HEIGHT - totalContentHeight) / 2;
+    
+    let currentY = startY;
     
     // Draw static logo without sine wave effect if loaded
     if (logo_img && logo_img.complete) {
@@ -111,34 +125,42 @@ export function drawLoadingScreen() {
         const displayWidth = logoWidth * scaleFactor;
         const displayHeight = logoHeight * scaleFactor;
         
-        // Center the logo horizontally and position it above "LOADING" text
+        // Center the logo horizontally
         const logoX = (WIDTH - displayWidth) / 2;
         
-        // Position logo at 25% from top on smaller screens, higher up on larger screens
-        const logoY = HEIGHT * 0.25 - displayHeight / 2;
+        // Draw the logo at the calculated vertical position
+        ctx.drawImage(logo_img, logoX, currentY, displayWidth, displayHeight);
         
-        // Draw the logo as a complete image without slicing or sine effect
-        ctx.drawImage(logo_img, logoX, logoY, displayWidth, displayHeight);
+        currentY += displayHeight + spacingBetweenElements;
     }
     
-    // Use DrawBitmapTextSmall instead of DrawBitmapText for "LOADING" to make it smaller
-    DrawBitmapTextSmall("LOADING", 0, barY - 35, 1, 0, 0);
+    // Define loading bar dimensions and position
+    const barWidth = UI.LOADING_BAR_WIDTH;
+    const barX = (WIDTH - barWidth) / 2;
+    
+    // Draw "LOADING" text centered
+    currentY += loadingTextHeight;
+    DrawBitmapTextSmall("LOADING", 0, currentY, 1, 0, 0);
+    
+    // Position the bar after the text with padding
+    currentY += barPaddingVertical;
     
     // Bar border (dark gray)
     ctx.fillStyle = '#444';
-    ctx.fillRect(barX - 3, barY - 3, barWidth + 6, barHeight + 6);
+    ctx.fillRect(barX - 3, currentY - 3, barWidth + 6, barHeight + 6);
     
     // Bar background (darker gray)
     ctx.fillStyle = '#222';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
+    ctx.fillRect(barX, currentY, barWidth, barHeight);
     
     // Progress bar (gold color)
     ctx.fillStyle = '#ffcc00';
-    ctx.fillRect(barX, barY, barWidth * loadingProgress, barHeight);
+    ctx.fillRect(barX, currentY, barWidth * loadingProgress, barHeight);
     
     // Progress percentage - position it below the loading bar
+    currentY += barHeight + spacingBetweenElements;
     const percentText = `${Math.floor(loadingProgress * 100)}%`;
-    DrawBitmapTextSmall(percentText, 0, barY + barHeight + 5, 1, 0, 0);
+    DrawBitmapTextSmall(percentText, 0, currentY, 1, 0, 0);
     
     // Show "PRESS SPACE TO START" when loading is done, with smooth blinking effect
     if (showPressSpace) {
@@ -150,11 +172,34 @@ export function drawLoadingScreen() {
         
         if (alpha > 0) {
             // Apply the same bitmap text with alpha for blinking effect - using small text
+            currentY += spacingBetweenElements + 20;
             ctx.globalAlpha = alpha;
-            DrawBitmapTextSmall("PRESS SPACE TO START", 0, barY + barHeight + 40, 1, 0, 0);
+            DrawBitmapTextSmall("PRESS SPACE TO START", 0, currentY, 1, 0, 0);
             ctx.globalAlpha = 1.0;
         }
     }
+}
+
+/**
+ * Calculate the actual display height of the logo based on scaling
+ * @returns {number} The height of the logo in pixels
+ */
+function calculateLogoHeight() {
+    if (!logo_img || !logo_img.complete) return 0;
+    
+    const logoWidth = 872;
+    const logoHeight = 273;
+    
+    const maxLogoWidth = UI.MAX_LOGO_WIDTH;
+    const availableWidth = Math.min(WIDTH * 0.9, maxLogoWidth);
+    const availableHeight = HEIGHT * 0.4;
+    
+    const scaleFactorWidth = availableWidth / logoWidth;
+    const scaleFactorHeight = availableHeight / logoHeight;
+    
+    const scaleFactor = Math.min(scaleFactorWidth, scaleFactorHeight);
+    
+    return logoHeight * scaleFactor;
 }
 
 /**

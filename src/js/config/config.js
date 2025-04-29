@@ -84,7 +84,7 @@ export const FPS = GAME.FPS;
 // Initial game values
 export const INITIAL_SCORE = 0;
 export const INITIAL_LINES = 0;
-export const INITIAL_LEVEL = 1;
+export const INITIAL_LEVEL = 0;  // Changed from 1 to 0
 export const INITIAL_LEVEL_GOAL = 10;
 export const INITIAL_GAME_STATE = GAME_STATES.LOADING;
 
