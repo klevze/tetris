@@ -143,10 +143,10 @@ export function handleIntroState(setGameState) {
       
       // Calculate available space respecting MAX_LOGO_WIDTH setting
       const maxLogoWidth = UI.MAX_LOGO_WIDTH;
-      const availableWidth = Math.min(WIDTH * 0.9, maxLogoWidth);
+      const availableWidth = Math.min(WIDTH * 0.75, maxLogoWidth); // Reduced from 0.9 to 0.75
       
       // Calculate scaling factor while maintaining aspect ratio
-      const scaleFactor = availableWidth / originalWidth;
+      const scaleFactor = (availableWidth / originalWidth) * 0.85; // Added additional 0.85 scaling factor
       
       // Calculate the display width and height
       const displayWidth = originalWidth * scaleFactor;
@@ -161,8 +161,8 @@ export function handleIntroState(setGameState) {
         const sourceY = Math.floor(lineHeightRatio * originalHeight);
         
         const n = (k + l) * 2;
-        let m = Math.sin(n/180*3.14) * 30;
-        let height = Math.max(5, Math.min(30, m + 15));
+        let m = Math.sin(n/180*3.14) * 25; // Reduced from 30 to 25 for less horizontal movement
+        let height = Math.max(5, Math.min(25, m + 12)); // Reduced height values
 
         // Draw each horizontal slice of the logo - properly centered
         ctx.drawImage(
@@ -173,7 +173,7 @@ export function handleIntroState(setGameState) {
       }
     } else {
       // Fallback if the image isn't loaded yet
-      ctx.font = 'bold 40px Arial';
+      ctx.font = 'bold 35px Arial'; // Reduced from 40px to 35px
       ctx.fillStyle = '#ffcc00';
       ctx.textAlign = 'center';
       ctx.fillText("TETRIS", WIDTH/2, 40);
@@ -219,14 +219,14 @@ export function handleIntroState(setGameState) {
 
   // Calculate positions for the high scores section
   // Logo + space + scores list + space + bottom text
-  const verticalSpacing = HEIGHT * 0.30; // Increased from 0.25 to 0.30 to move lower
-  const topPlayersY = Math.max(220, verticalSpacing + 100); // Increased from 200 to 220
+  const verticalSpacing = HEIGHT * 0.18; // Decreased from 0.30 to 0.18 to move higher
+  const topPlayersY = Math.max(160, verticalSpacing + 70); // Decreased from 220 to 160 for higher position
   
   // Draw "TOP PLAYERS" text centered with larger font
   DrawBitmapText("TOP PLAYERS", 0, topPlayersY, 1, 0, 0);
     
   // Start high scores list below the title with more spacing
-  let y = topPlayersY + 130; // Increased from 110 to 130 for first entry to be even lower
+  let y = topPlayersY + 80; // Decreased from 130 to 80 to reduce space between title and first entry
   let p = 0;
   let ps = 0;
   

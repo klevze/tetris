@@ -143,7 +143,7 @@ export const POINTS = {
 
 // User Interface settings
 export const UI = {
-    MAX_LOGO_WIDTH: 800,     // Maximum width for the logo in pixels
+    MAX_LOGO_WIDTH: 600,     // Reduced from 800 to 600 for smaller logo
     LOADING_BAR_WIDTH: 400,  // Width of the loading progress bar
     LOADING_BAR_HEIGHT: 20   // Height of the loading progress bar
 };
