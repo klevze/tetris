@@ -176,10 +176,10 @@ class Block {
             
             if (this.shape[i] == 1) {
                 // Use consistent semi-transparent styling for ghost blocks
-                ctx.globalAlpha = 0.2;
+                ctx.globalAlpha = 0.3;
                 
                 // Draw a filled rectangle without stroke to avoid the black outline
-                ctx.fillStyle = '#FFFFFF';
+                ctx.fillStyle = '#333355';
                 ctx.fillRect(
                     Math.floor(xx + Math.floor(block_width * 0.03)),
                     Math.floor(yy + Math.floor(block_width * 0.03)),
