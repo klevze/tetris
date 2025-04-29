@@ -138,7 +138,8 @@ function gameLoop(timestamp) {
   // This helps prevent "spiral of death" when frames take longer than expected
   lastFrameTime = timestamp - (elapsed % frameInterval);
   
-  // Call the draw function to render the current frame
+  // Always call draw function to render the current frame - even when paused
+  // This ensures the pause screen is drawn
   draw();
   
   // Performance monitoring
@@ -454,4 +455,30 @@ export function initAudio() {
 export function toggleGamePause() {
   game_pause = togglePause();
   return game_pause;
+}
+
+// Export music toggle for events.js to use
+export function toggleGameMusic() {
+  music_on = !music_on;
+  
+  // Save music preference to local storage
+  if (typeof(Storage) !== "undefined") {
+    localStorage.setItem(STORAGE_KEYS.MUSIC_PREFERENCE, music_on);
+  }
+  
+  // Control audio playback based on preference
+  if (music_on && ambient_audio) {
+    if (audioInitialized) {
+      const playPromise = ambient_audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.log("Audio playback failed: ", error);
+        });
+      }
+    }
+  } else if (ambient_audio) {
+    ambient_audio.pause();
+  }
+  
+  return music_on;
 }

@@ -952,7 +952,8 @@ export function getGridState() {
     origin,
     grid_width,
     grid_height,
-    block_width
+    block_width,
+    isPaused: false // Add pause state to grid state
   };
 }
 

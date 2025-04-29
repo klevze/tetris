@@ -528,8 +528,11 @@ export function check2MoveBlockRotate(new_shape, bx, by, type) {
  * @returns {boolean} false if game is over
  */
 export function moveBlock(currentLevel) {
-    // Don't move blocks if a row clearing animation is in progress
-    if (isAnimationInProgress()) {
+    // Get the game state to check for pause
+    const gameState = getGridState();
+    
+    // Don't move blocks if the game is paused or row clearing animation is in progress
+    if (gameState.isPaused || isAnimationInProgress()) {
         // Still render the block where it is, but don't update position
         if (currentBlock) {
             currentBlock.showBlock();

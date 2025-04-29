@@ -108,27 +108,27 @@ export const STORAGE_KEYS = {
 
 // Image assets with their paths
 export const IMAGES = {
-    BLOCKS: '/images/blocks90px_001.png', // Using the new 90px block image
-    GRID: '/images/grid5.png',
-    BACKGROUND_LEVEL1: '/images/tetris_main_level_1.webp',
-    BACKGROUND_LEVEL2: '/images/tetris_main_back_level2.jpg',
-    BACKGROUND_LEVEL3: '/images/tetris_main_back_level3.jpg',
-    BACKGROUND_LEVEL4: '/images/tetris_main_back_level4.jpg',
-    BACKGROUND_LEVEL5: '/images/tetris_main_back_level5.jpg',
-    BACKGROUND_LEVEL6: '/images/tetris_main_back_level6.jpg',
-    BACKGROUND_LEVEL7: '/images/tetris_main_back_level7.jpg',
-    BACKGROUND_LEVEL8: '/images/tetris_main_back_level8.jpg',
-    BACKGROUND_LEVEL9: '/images/tetris_main_back_level9.jpg',
-    BACKGROUND_LEVEL10: '/images/tetris_main_back_level10.jpg',
-    INTRO_BACKGROUND: '/images/main_background.webp',
-    LOGO: '/images/logo.webp',
-    CONTROLS: '/images/controls.png'
+    BLOCKS: './images/blocks90px_001.png', // Using the new 90px block image
+    GRID: './images/grid5.png',
+    BACKGROUND_LEVEL1: './images/tetris_main_level_1.webp',
+    BACKGROUND_LEVEL2: './images/tetris_main_back_level2.jpg',
+    BACKGROUND_LEVEL3: './images/tetris_main_back_level3.jpg',
+    BACKGROUND_LEVEL4: './images/tetris_main_back_level4.jpg',
+    BACKGROUND_LEVEL5: './images/tetris_main_back_level5.jpg',
+    BACKGROUND_LEVEL6: './images/tetris_main_back_level6.jpg',
+    BACKGROUND_LEVEL7: './images/tetris_main_back_level7.jpg',
+    BACKGROUND_LEVEL8: './images/tetris_main_back_level8.jpg',
+    BACKGROUND_LEVEL9: './images/tetris_main_back_level9.jpg',
+    BACKGROUND_LEVEL10: './images/tetris_main_back_level10.jpg',
+    INTRO_BACKGROUND: './images/main_background.webp',
+    LOGO: './images/logo.webp',
+    CONTROLS: './images/controls.png'
 };
 
 // Audio assets with their paths
 export const AUDIO = {
-    AMBIENT: '/music/48997.wav',
-    CLEAR_LINE: '/music/GONG0.WAV'
+    AMBIENT: './music/48997.wav',
+    CLEAR_LINE: './music/GONG0.WAV'
 };
 
 // Point values for actions

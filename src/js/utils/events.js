@@ -5,6 +5,7 @@
 
 import { Block, currentBlock as blockCurrentBlock, rotateBlock, moveBlockDirection, HoldBlock } from '../components/gameplay/block.js';
 import { getState, changeState, togglePause, toggleMusic } from '../core/gameState.js';
+import { toggleGamePause, toggleGameMusic } from '../core/game.js';
 import { GAME_STATES } from '../config/config.js';
 import { getAudio } from './assetManager.js';
 import { isAnimationInProgress } from '../components/gameplay/grid.js';
@@ -426,42 +427,56 @@ function handleKeyDown(e) {
     }
     
     // Handle gameplay keys
-    if (game_state === GAME_STATES.PLAY_GAME && !game_pause && !isAnimationInProgress()) {
-        if (e.key === 'ArrowLeft' || e.key === 'a') {
-            e.preventDefault();
-            moveBlockDirection('left');
-        }
-        if (e.key === 'ArrowRight' || e.key === 'd') {
-            e.preventDefault();
-            moveBlockDirection('right');
-        }
-        if (e.key === 'ArrowDown' || e.key === 's') {
-            e.preventDefault();
-            moveBlockDirection('down');
-        }
-        if (e.key === ' ') {
-            e.preventDefault();
-            eventSpace.pressed = true;
-            keyState.space = true;
-            moveBlockDirection('drop');
-        }
-        if (e.key === 'ArrowUp' || e.key === 'w') {
-            e.preventDefault();
-            rotateBlock();
-        }
-        if (e.key === 'h' || e.key === 'c') {
-            e.preventDefault();
-            HoldBlock();
-        }
+    if (game_state === GAME_STATES.PLAY_GAME) {
+        // P key can be used ANY time to toggle pause
         if (e.key === 'p') {
             e.preventDefault();
-            togglePause();
+            keyState.p = true;
+            // Update the local game_pause state with the new value returned by toggleGamePause()
+            game_pause = toggleGamePause();
+            // Emit event to notify other modules
             eventBus.emit(game_pause ? GAME_EVENTS.GAME_PAUSE : GAME_EVENTS.GAME_RESUME);
+            return;
         }
+        
+        // M key can be used even when paused
         if (e.key === 'm') {
             e.preventDefault();
-            toggleMusic();
-            eventBus.emit(GAME_EVENTS.MUSIC_TOGGLE);
+            keyState.m = true;
+            // Toggle music using the game.js function and emit event
+            const musicEnabled = toggleGameMusic();
+            eventBus.emit(GAME_EVENTS.MUSIC_TOGGLE, { enabled: musicEnabled });
+            return;
+        }
+        
+        // Only allow these keys when game is not paused and no animation is in progress
+        if (!game_pause && !isAnimationInProgress()) {
+            if (e.key === 'ArrowLeft' || e.key === 'a') {
+                e.preventDefault();
+                moveBlockDirection('left');
+            }
+            if (e.key === 'ArrowRight' || e.key === 'd') {
+                e.preventDefault();
+                moveBlockDirection('right');
+            }
+            if (e.key === 'ArrowDown' || e.key === 's') {
+                e.preventDefault();
+                moveBlockDirection('down');
+            }
+            if (e.key === ' ') {
+                e.preventDefault();
+                eventSpace.pressed = true;
+                keyState.space = true;
+                moveBlockDirection('drop');
+            }
+            if (e.key === 'ArrowUp' || e.key === 'w') {
+                e.preventDefault();
+                rotateBlock();
+            }
+            if (e.key === 'h' || e.key === 'c') {
+                e.preventDefault();
+                HoldBlock();
+            }
         }
     }
 }

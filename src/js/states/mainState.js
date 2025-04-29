@@ -83,8 +83,8 @@ export function initMainState(images, audio, updateGameStateCallback) {
  * Start the game timer
  */
 export function startGameTimer() {
-  // Update game timer
-  if (game_pause !== true) {
+  // Only increment time if the game is not paused
+  if (!game_pause) {
     TotalSeconds += 1;
   }
   setTimeout(startGameTimer, 1000);
@@ -184,30 +184,60 @@ function createGameStartFireworks(width, height) {
  * Handles the display of the pause screen
  */
 export function handlePauseScreen() {
-  clearScreen('#000');
-  showBackground(back_intro_img, 0, 0, WIDTH, HEIGHT);
-  showBackground(controls_img, 0, 510, WIDTH, 89);
+  // Get grid dimensions to create blur effect specifically over the grid
+  const gridState = getGridState();
+  const gridOriginX = gridState.origin.x;
+  const gridOriginY = gridState.origin.y;
+  const totalGridWidth = gridState.grid_width * gridState.block_width;
+  const totalGridHeight = gridState.grid_height * gridState.block_width;
   
-  // Animate logo
-  let k = 0;
-  k += 0.8;
-  for (let l = 0; l < 100; l++) {
-    const n = (k + l) * 2;
-    let m = Math.sin(n/180*3.14) * 30;
-    let height = m + 15;
-    
-    if (height < 5) {
-      height = 5;
-    }
-    if (height > 20) {
-      height = 20;
-    }
-
-    ctx.drawImage(logo_img, 0, l, 321, 1, m + 240, l+60, 321, height);
-  }
+  // Create a semi-transparent overlay for the blur effect
+  ctx.save();
   
-  DrawBitmapText("GAME PAUSED", 0, HEIGHT/2-80, 1, 1, 50);
-  DrawBitmapTextSmall("PRESS P TO RESUME YOUR GAME", 0, HEIGHT/2+40, 0, 1, 20);
+  // Add blur and darkening effect specifically over the grid area
+  ctx.fillStyle = 'rgba(0, 0, 20, 0.2)';
+  // Add padding around the grid for a better visual effect
+  const padding = 0;
+  ctx.fillRect(
+    gridOriginX - padding,
+    gridOriginY - padding,
+    totalGridWidth + padding * 2,
+    totalGridHeight + padding * 2
+  );
+  
+  // Draw a glowing border around the grid
+  ctx.strokeStyle = '#4466CC';
+  ctx.lineWidth = 1;
+  ctx.shadowColor = '#6699FF';
+  ctx.shadowBlur = 1;
+  ctx.strokeRect(
+    gridOriginX - padding,
+    gridOriginY - padding,
+    totalGridWidth + padding * 2,
+    totalGridHeight + padding * 2
+  );
+  ctx.shadowBlur = 0;
+  
+  // Calculate the center of the grid
+  const gridCenterX = gridOriginX + totalGridWidth / 2;
+  const gridCenterY = gridOriginY + totalGridHeight / 2;
+  
+  // Add shadow behind text
+  ctx.shadowColor = 'rgba(100, 149, 237, 0.2)';
+  ctx.shadowBlur = 20;
+  
+  // Draw main GAME PAUSED text properly centered
+  // Use 0 as X position since the third parameter in DrawBitmapText is 1 for center alignment
+  DrawBitmapText("GAME PAUSED", 0, gridCenterY - 30, 1, 0, 60);
+  
+  // Remove shadow for smaller text
+  ctx.shadowBlur = 0;
+  
+  // Draw instruction text, also centered
+  DrawBitmapTextSmall("PRESS P TO RESUME YOUR GAME", 0, gridCenterY + 50, 0, 0, 25);
+  
+  // Restore canvas context
+  ctx.restore();
 }
 
 /**
@@ -215,6 +245,13 @@ export function handlePauseScreen() {
  */
 export function togglePause() {
   game_pause = !game_pause;
+  
+  // Update the grid state with the new pause state
+  const gridState = getGridState();
+  if (gridState) {
+    gridState.isPaused = game_pause;
+  }
+  
   return game_pause;
 }
 
