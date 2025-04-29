@@ -384,42 +384,25 @@ function showScore() {
   const timer = formatGameTime();
   
   const uiPositions = getUIPositions();
+  // Create a solid background panel for the stats with full opacity for better text visibility
+  //ctx.fillStyle = 'rgba(220, 120, 200, 0.1)';
+  //ctx.roundRect(uiPositions.panelX, uiPositions.panelY, uiPositions.panelWidth, uiPositions.panelHeight, 10);
+  //ctx.fill(); 
   
-  // Create a semi-transparent background panel for the stats
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-  ctx.roundRect(uiPositions.panelX, uiPositions.panelY, uiPositions.panelWidth, uiPositions.panelHeight, 10);
-  ctx.fill();
+  // Calculate left position (35% of panel width) for better left alignment
+  const leftAlignedX = uiPositions.panelX + (uiPositions.panelWidth * 0.035);
   
-  // Add a subtle border to the panel
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-  ctx.lineWidth = 2;
-  ctx.roundRect(uiPositions.panelX, uiPositions.panelY, uiPositions.panelWidth, uiPositions.panelHeight, 10);
-  ctx.stroke();
-
-  // Draw labels with small bitmap font in gold color
-  DrawBitmapTextSmall("SCORE", uiPositions.labelX, uiPositions.scoreY, 1, 0);
-  DrawBitmapTextSmall("LINES", uiPositions.labelX, uiPositions.linesY, 1, 0);
-  DrawBitmapTextSmall("LEVEL", uiPositions.labelX, uiPositions.levelY, 1, 0);
-  DrawBitmapTextSmall("TIME", uiPositions.labelX, uiPositions.timerY, 1, 0);
+  // Draw left-aligned labels with bitmap font in gold color
+  DrawBitmapTextSmall("SCORE", leftAlignedX-50, uiPositions.scoreY-32, 1, 0, 1); // 1 = centered
+  DrawBitmapTextSmall("LINES", leftAlignedX-50, uiPositions.linesY-32, 1, 0, 1); // 1 = centered
+  DrawBitmapTextSmall("LEVEL", leftAlignedX-50, uiPositions.levelY-32, 1, 0, 1); // 1 = centered
+  DrawBitmapTextSmall("TIME", leftAlignedX-50, uiPositions.timerY-32, 1, 0, 1); // 1 = centered
   
-  // Save context to apply right alignment for values
-  ctx.save();
-  ctx.textAlign = 'right';
-  
-  // Draw values with bitmap font in white with right alignment
-  // Adjust text position to ensure it stays within the panel
-  DrawBitmapTextSmall(score.toString(), uiPositions.valueX, uiPositions.scoreY, 0, 0);
-  DrawBitmapTextSmall(lines.toString(), uiPositions.valueX, uiPositions.linesY, 0, 0);
-  
-  // Level is highlighted in different colors based on value
-  const levelColor = getLevelColor(level);
-  DrawBitmapTextSmall(level.toString(), uiPositions.valueX, uiPositions.levelY, levelColor, 0);
-  
-  // Timer uses white color consistently (not flashing)
-  DrawBitmapTextSmall(timer, uiPositions.valueX, uiPositions.timerY, 0, 0);
-  
-  // Restore context
-  ctx.restore();
+  // Draw values with larger bitmap font below labels with consistent padding
+  DrawBitmapTextSmall(score.toString(), leftAlignedX-50, uiPositions.scoreY - 10, 8, 0, 1); // Consistent 30px padding, yellow
+  DrawBitmapTextSmall(lines.toString(), leftAlignedX-50, uiPositions.linesY - 10, 6, 0, 1); // Consistent 30px padding, blue
+  DrawBitmapTextSmall(level.toString(), leftAlignedX-50, uiPositions.levelY - 10, getLevelColor(level), 0, 1); // Consistent 30px padding, level-based color
+  DrawBitmapTextSmall(timer, leftAlignedX-50, uiPositions.timerY - 10, 7, 0, 1); // Consistent 30px padding, magenta
   
   // Show score addition animation when clearing lines
   if (showAddScore) {
@@ -461,7 +444,8 @@ function formatGameTime() {
   
   // Only update separator animation every 15 frames
   spc = (spc + 1) % 60;
-  const separator = spc < 30 ? ' : ' : '   ';
+  // Using a smaller separator and reducing spacing to save space
+  const separator = spc < 30 ? ':' : ':';
   
   return (minutes < 10 ? "0" + minutes : minutes) + separator + (seconds < 10 ? "0" + seconds : seconds);
 }
@@ -493,26 +477,24 @@ function calculateUIPositions() {
   const totalGridWidth = gridState.grid_width * gridState.block_width;
   const totalGridHeight = gridState.grid_height * gridState.block_width;
 
-  // Size and position of the stats panel - moved further to the right
-  const panelWidth = Math.max(gridState.block_width * 7, 180);
-  const panelHeight = Math.max(gridState.block_width * 5, 150);
-  const panelX = gridOriginX + totalGridWidth + gridState.block_width * 2.5; // Increased from 1.5 to 2.5
-  const panelY = gridOriginY + totalGridHeight * 0.55 - panelHeight / 2;
+  // Size and position of the stats panel - made wider and taller with higher border
+  const panelWidth = Math.max(gridState.block_width * 7.5, 180); // Slightly narrowed width
+  const panelHeight = Math.max(gridState.block_width * 9, 270); // Further increased height for more space
+  const panelX = gridOriginX + totalGridWidth + gridState.block_width * 3;
+  const panelY = gridOriginY + totalGridHeight * 0.5 - panelHeight / 2; // Centered vertically with grid
 
-  // Calculate positions for text within the panel
-  const labelX = panelX + 20; // Left align labels
-  const valueX = panelX + panelWidth - 20; // Right align values
-  const elementSpacing = panelHeight / 5; // Evenly space the elements
+  // Element spacing needs to be larger for the new layout (label + value below)
+  const elementSpacing = panelHeight / 4.8; // Adjusted for better vertical distribution with larger text
 
   // Calculate UI element positions relative to grid position and block size
   return {
     // Position for the "Next" block preview - centered in the next block area above the grid
-    nextBlockX: gridOriginX + (gridState.block_width * 2.5), // Centered horizontally in the 8-block wide container
-    nextBlockY: gridOriginY - (gridState.block_width * 6) + 100, // Added +10px to move down
+    nextBlockX: gridOriginX + (gridState.block_width * 2.5),
+    nextBlockY: gridOriginY - (gridState.block_width * 6) + 100,
     
     // Position for the "Hold" block preview - to the right of the grid
-    holdBlockX: gridOriginX + totalGridWidth + gridState.block_width * 2.5, // Increased from 1.5 to 2.5
-    holdBlockY: gridOriginY + gridState.block_width * 2, // Align with the top part of the grid
+    holdBlockX: gridOriginX + totalGridWidth + gridState.block_width * 3,
+    holdBlockY: gridOriginY + gridState.block_width * 2,
     
     // Panel dimensions for stats background
     panelX,
@@ -520,24 +502,25 @@ function calculateUIPositions() {
     panelWidth,
     panelHeight,
     
-    // Label column positions (left aligned)
-    labelX,
+    // Label column positions - kept for compatibility
+    labelX: panelX + 25,
     
-    // Value column positions (right aligned)
-    valueX,
+    // Value column positions - kept for compatibility
+    valueX: panelX + panelWidth - 25,
     
-    // Vertical positions for each statistic row
-    scoreY: panelY + elementSpacing * 1,
+    // Vertical positions for each statistic pair (label & value) with more spacing
+    // Add padding at the top to start elements further down
+    scoreY: panelY + elementSpacing * 0.9,
     linesY: panelY + elementSpacing * 2,
-    levelY: panelY + elementSpacing * 3,
-    timerY: panelY + elementSpacing * 4,
+    levelY: panelY + elementSpacing * 3.1,
+    timerY: panelY + elementSpacing * 4.2,
     
     // Position for score addition animation
     addScoreX: gridOriginX + totalGridWidth / 2,
     addScoreY: gridOriginY + totalGridHeight / 2,
     
-    // Position for blocks statistics panel (on the left side of the grid) - moved further to the left
-    blocksStatsX: gridOriginX - (gridState.block_width * 9.5), // Increased from 8 to 9.5 (moved further left)
+    // Position for blocks statistics panel (on the left side of the grid)
+    blocksStatsX: gridOriginX - (gridState.block_width * 9.5),
     blocksStatsY: gridOriginY
   };
 }
