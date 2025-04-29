@@ -3,17 +3,17 @@ import {
   DrawBitmapText, DrawBitmapTextSmall, 
   clearScreen, showBackground, showSlika 
 } from '../utils/functions.js';
-import { init3DStarfield, Draw3DStars } from '../components/starfield_3d.js';
-import { initGrid, fillGrid, checkRows, clearRows, showGrid, setupGrid, getGridState, setDrawBlockFunction } from '../components/grid.js';
+import { init3DStarfield, Draw3DStars } from '../components/effects/starfield3d.js';
+import { initGrid, fillGrid, checkRows, clearRows, showGrid, setupGrid, getGridState, setDrawBlockFunction } from '../components/gameplay/grid.js';
 import { 
   setupBlockHandler, showBlock, showNextBlock, showHoldBlock, 
   drawFallingBlock, newBlock, moveBlock, Block, storeBlock, drawBlock 
-} from '../components/block.js';
+} from '../components/gameplay/block.js';
 import { initEventHandlers, updateGameState, eventSpace, eventSpaceFunc, game_state as events_game_state } from '../utils/events.js';
 import { initHighScore, ShowHighScore, LoadHighScoreData } from './high_score.js';
 import {
   initLoadingScreen, updateLoadingProgress, isLoadingComplete, hidePressSpace, handleLoadingState
-} from '../gameplay/loading_state.js';
+} from '../states/loadingState.js';
 import {
   FPS, GRID_WIDTH, GRID_HEIGHT, BLOCK_WIDTH, GRID_POS_X, GRID_POS_Y,
   INITIAL_SCORE, INITIAL_LINES, INITIAL_LEVEL, INITIAL_LEVEL_GOAL, INITIAL_GAME_STATE,
@@ -23,13 +23,13 @@ import { registerImage } from '../utils/assetManager.js';
 import {
   initMainState, startMainGame, handleMainGameState, startGameTimer,
   togglePause, getGameStats, setBlockFinish
-} from '../gameplay/main_state.js';
+} from '../states/mainState.js';
 import {
   initIntroState, handleIntroState, setGameStats, startNewGame
-} from '../gameplay/intro_state.js';
+} from '../states/introState.js';
 import {
   initGameOverState, handleGameOverState, resetGameOverState, setGameOverData
-} from '../gameplay/game_over_state.js';
+} from '../states/gameOverState.js';
 
 // Game variables
 let game_state = INITIAL_GAME_STATE; // Initial game state set to loading screen

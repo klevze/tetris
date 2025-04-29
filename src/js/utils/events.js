@@ -3,11 +3,11 @@
  * Centralized event system for the Tetris game
  */
 
-import { Block, currentBlock as blockCurrentBlock, rotateBlock, moveBlockDirection, HoldBlock } from '../components/block.js';
+import { Block, currentBlock as blockCurrentBlock, rotateBlock, moveBlockDirection, HoldBlock } from '../components/gameplay/block.js';
 import { getState, changeState, togglePause, toggleMusic } from '../core/gameState.js';
 import { GAME_STATES } from '../config/config.js';
 import { getAudio } from './assetManager.js';
-import { isAnimationInProgress } from '../components/grid.js';
+import { isAnimationInProgress } from '../components/gameplay/grid.js';
 
 // Game events enum - centralized definition of all game events
 export const GAME_EVENTS = {
