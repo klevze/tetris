@@ -24,6 +24,8 @@ let savingToCloud = false;
 let saveSuccess = false;
 let saveMessage = "";
 let saveMessageTimer = 0;
+let cursorBlinkTimer = 0;
+let cursorBlinking = true;
 
 // Asset references
 let back_intro_img;
@@ -40,6 +42,16 @@ export function initGameOverState(images, updateGameStateCallback) {
   
   // Store callback for state changes
   gameStateCallback = updateGameStateCallback;
+  
+  // Try to get saved player name from localStorage
+  try {
+    const savedName = localStorage.getItem("player_name");
+    if (savedName && savedName.trim() !== "") {
+      player_name = savedName;
+    }
+  } catch (e) {
+    console.warn("Could not retrieve saved player name:", e);
+  }
 }
 
 /**
@@ -90,13 +102,24 @@ export function handleGameOverState(setGameState) {
   if (score > 0) {
     DrawBitmapTextSmall('PLEASE ENTER YOUR NAME', 0, 180, 1, 0, 0);
     
-    // Draw player name with shadow effect
+    // Update cursor blink state every 30 frames (approximately 0.5 seconds)
+    if (cursorBlinkTimer++ > 30) {
+      cursorBlinkTimer = 0;
+      cursorBlinking = !cursorBlinking;
+    }
+    
+    // Draw player name with shadow effect - centered
+    const displayName = cursorBlinking ? player_name + "_" : player_name + " ";
     ctx.font = "40px Arial";
-    ctx.textAlign = "center";
+    ctx.textAlign = "center"; // Center alignment
+    
+    // Draw shadow
     ctx.fillStyle = '#333';
-    ctx.fillText(player_name, 403, 283);
+    ctx.fillText(displayName, WIDTH / 2 + 3, 283);
+    
+    // Draw text
     ctx.fillStyle = '#fff';
-    ctx.fillText(player_name, 400, 280);
+    ctx.fillText(displayName, WIDTH / 2, 280);
     
     // Show cloud save status message if applicable
     if (saveMessage) {
@@ -111,6 +134,14 @@ export function handleGameOverState(setGameState) {
         // Clear message after timer expires
         saveMessage = "";
       }
+    }
+    
+    // Add a hint about using the previous name
+    if (player_name !== "PLAYER" && player_name !== "") {
+      ctx.font = "16px Arial";
+      ctx.textAlign = "center";
+      ctx.fillStyle = '#aaa';
+      ctx.fillText("Press ENTER to submit", WIDTH / 2, 320);
     }
   } else {
     // For score of 0, show different message
@@ -151,10 +182,24 @@ function handleGameOverKeyDown(evt) {
     document.removeEventListener('keydown', handleGameOverKeyDown, true);
     gameOverEventListenersAdded = false;
     
-    // Transition to intro state
-    if (gameStateCallback) {
-      gameStateCallback(GAME_STATES.GAME_INTRO);
-    }
+    // Import the refreshHighScores function to update high scores in the intro state
+    import('../states/introState.js').then(introModule => {
+      // Refresh high scores before transitioning to intro screen
+      if (typeof introModule.refreshHighScores === 'function') {
+        introModule.refreshHighScores();
+      }
+      
+      // Transition to intro state
+      if (gameStateCallback) {
+        gameStateCallback(GAME_STATES.GAME_INTRO);
+      }
+    }).catch(error => {
+      console.error("Error importing introState module:", error);
+      // Still transition to intro state even if refresh fails
+      if (gameStateCallback) {
+        gameStateCallback(GAME_STATES.GAME_INTRO);
+      }
+    });
     
     return;
   }
@@ -183,10 +228,24 @@ function handleZeroScoreKeyDown(evt) {
   document.removeEventListener('keydown', handleZeroScoreKeyDown, true);
   gameOverEventListenersAdded = false;
   
-  // Transition to intro state
-  if (gameStateCallback) {
-    gameStateCallback(GAME_STATES.GAME_INTRO);
-  }
+  // Import the refreshHighScores function to update high scores in the intro state
+  import('../states/introState.js').then(introModule => {
+    // Refresh high scores before transitioning to intro screen
+    if (typeof introModule.refreshHighScores === 'function') {
+      introModule.refreshHighScores();
+    }
+    
+    // Transition to intro state
+    if (gameStateCallback) {
+      gameStateCallback(GAME_STATES.GAME_INTRO);
+    }
+  }).catch(error => {
+    console.error("Error importing introState module:", error);
+    // Still transition to intro state even if refresh fails
+    if (gameStateCallback) {
+      gameStateCallback(GAME_STATES.GAME_INTRO);
+    }
+  });
 }
 
 /**
@@ -248,6 +307,11 @@ function saveHighScoreData(name, scoreVal) {
  */
 function saveToLocalStorage(name, scoreVal, formattedTime) {
   try {
+    // Save player name for future games
+    if (name && name.trim() !== "" && name !== "UNKNOWN") {
+      localStorage.setItem("player_name", name);
+    }
+    
     // Get existing high scores from localStorage or initialize empty array
     const highScores = JSON.parse(localStorage.getItem(STORAGE_KEYS.HIGH_SCORES) || '[]');
     
@@ -280,8 +344,22 @@ function saveToLocalStorage(name, scoreVal, formattedTime) {
  * Reset state when leaving the game over screen
  */
 export function resetGameOverState() {
-  // Reset player name for next game
-  player_name = "PLAYER";
+  // Try to get saved player name from localStorage
+  try {
+    const savedName = localStorage.getItem("player_name");
+    if (savedName && savedName.trim() !== "") {
+      player_name = savedName;
+    } else {
+      player_name = "PLAYER"; // Default if no saved name found
+    }
+  } catch (e) {
+    console.warn("Could not retrieve saved player name:", e);
+    player_name = "PLAYER"; // Default on error
+  }
+  
+  // Reset cursor blinking
+  cursorBlinking = true;
+  cursorBlinkTimer = 0;
   
   // Reset save status
   savingToCloud = false;
@@ -292,6 +370,7 @@ export function resetGameOverState() {
   // Remove event listeners if active
   if (gameOverEventListenersAdded) {
     document.removeEventListener('keydown', handleGameOverKeyDown, true);
+    document.removeEventListener('keydown', handleZeroScoreKeyDown, true);
     gameOverEventListenersAdded = false;
   }
 }

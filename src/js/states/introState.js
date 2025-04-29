@@ -96,6 +96,18 @@ function loadCloudHighScores() {
 }
 
 /**
+ * Refresh high scores data - can be called externally when returning to intro screen
+ * after submitting a new high score
+ */
+export function refreshHighScores() {
+  // First load from localStorage as a fallback
+  loadHighScoreData();
+  
+  // Then try to load from Firebase
+  loadCloudHighScores();
+}
+
+/**
  * Handle the intro state
  * Shows intro screen with logo, top players and "press space to start" prompt
  * 
