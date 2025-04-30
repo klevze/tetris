@@ -184,6 +184,70 @@ function createGameStartFireworks(width, height) {
  * Handles the display of the pause screen
  */
 export function handlePauseScreen() {
+  // Create a "Sparkle" class for pause screen particles
+  class PauseSparkle {
+    constructor(x, y, width, height) {
+      // Initialize within the provided boundaries
+      this.x = x + Math.random() * width;
+      this.y = y + Math.random() * height;
+      this.size = Math.random() * 3 + 1;
+      this.speedX = (Math.random() - 0.5) * 1.2;
+      this.speedY = (Math.random() - 0.5) * 1.2;
+      this.opacity = Math.random() * 0.7 + 0.3;
+      this.color = this.getRandomColor();
+      // Add boundaries to keep sparkles inside
+      this.minX = x + this.size;
+      this.maxX = x + width - this.size;
+      this.minY = y + this.size;
+      this.maxY = y + height - this.size;
+    }
+    
+    getRandomColor() {
+      // Colors for the sparkles - gold, blue, white with varying brightness
+      const colors = [
+        '#FFD700', '#FFC107', '#FFEB3B', // Gold shades
+        '#2196F3', '#03A9F4', '#00BCD4', // Blue shades
+        '#FFFFFF', '#F5F5F5', '#EEEEEE'  // White shades
+      ];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+    
+    update() {
+      this.x += this.speedX;
+      this.y += this.speedY;
+      
+      // Bounce off the edges of the box
+      if (this.x <= this.minX || this.x >= this.maxX) {
+        this.speedX *= -1;
+        // Ensure position is within bounds
+        this.x = Math.max(this.minX, Math.min(this.maxX, this.x));
+      }
+      if (this.y <= this.minY || this.y >= this.maxY) {
+        this.speedY *= -1;
+        // Ensure position is within bounds
+        this.y = Math.max(this.minY, Math.min(this.maxY, this.y));
+      }
+      
+      // Pulsate size slightly
+      this.size += Math.sin(Date.now() * 0.01) * 0.05;
+    }
+    
+    draw(context) {
+      context.save();
+      context.globalAlpha = this.opacity;
+      context.fillStyle = this.color;
+      context.beginPath();
+      context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      context.fill();
+      
+      // Add glow effect
+      context.shadowColor = this.color;
+      context.shadowBlur = this.size * 2;
+      context.fill();
+      context.restore();
+    }
+  }
+  
   // Get grid dimensions to create blur effect specifically over the grid
   const gridState = getGridState();
   const gridOriginX = gridState.origin.x;
@@ -191,50 +255,63 @@ export function handlePauseScreen() {
   const totalGridWidth = gridState.grid_width * gridState.block_width;
   const totalGridHeight = gridState.grid_height * gridState.block_width;
   
+  // Add padding around the grid for a better visual effect
+  const padding = 60;
+  const boxX = gridOriginX - padding;
+  const boxY = gridOriginY - padding;
+  const boxWidth = totalGridWidth + padding * 2;
+  const boxHeight = totalGridHeight + padding * 2;
+  
+  // Create sparkles if they don't exist yet or resize the game
+  if (!handlePauseScreen.sparkles || handlePauseScreen.lastBoxDimensions?.width !== boxWidth) {
+    // Store box dimensions for reference
+    handlePauseScreen.lastBoxDimensions = { x: boxX, y: boxY, width: boxWidth, height: boxHeight };
+    
+    // Create sparkles specifically within this box
+    const sparkleCount = Math.min(80, Math.floor(boxWidth * boxHeight / 500)); // Scale count by box size
+    handlePauseScreen.sparkles = Array(sparkleCount)
+      .fill()
+      .map(() => new PauseSparkle(boxX, boxY, boxWidth, boxHeight));
+  }
+  
   // Create a semi-transparent overlay for the blur effect
   ctx.save();
   
   // Add blur and darkening effect specifically over the grid area
-  ctx.fillStyle = 'rgba(0, 0, 20, 0.2)';
-  // Add padding around the grid for a better visual effect
-  const padding = 0;
-  ctx.fillRect(
-    gridOriginX - padding,
-    gridOriginY - padding,
-    totalGridWidth + padding * 2,
-    totalGridHeight + padding * 2
-  );
+  ctx.fillStyle = 'rgba(0, 0, 20, 0.7)';
+  ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
   
   // Draw a glowing border around the grid
   ctx.strokeStyle = '#4466CC';
   ctx.lineWidth = 1;
   ctx.shadowColor = '#6699FF';
   ctx.shadowBlur = 1;
-  ctx.strokeRect(
-    gridOriginX - padding,
-    gridOriginY - padding,
-    totalGridWidth + padding * 2,
-    totalGridHeight + padding * 2
-  );
+  ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
   ctx.shadowBlur = 0;
+  
+  // Update and draw sparkles contained within the blur box
+  handlePauseScreen.sparkles.forEach(sparkle => {
+    sparkle.update();
+    sparkle.draw(ctx);
+  });
   
   // Calculate the center of the grid
   const gridCenterX = gridOriginX + totalGridWidth / 2;
   const gridCenterY = gridOriginY + totalGridHeight / 2;
   
   // Add shadow behind text
-  ctx.shadowColor = 'rgba(100, 149, 237, 0.2)';
+  ctx.shadowColor = 'rgba(100, 149, 237, 0.8)';
   ctx.shadowBlur = 20;
   
   // Draw main GAME PAUSED text properly centered
   // Use 0 as X position since the third parameter in DrawBitmapText is 1 for center alignment
-  DrawBitmapText("GAME PAUSED", 0, gridCenterY - 30, 1, 0, 60);
+  DrawBitmapText("GAME PAUSED", 0, gridCenterY - 30, 3, 0, 60);
   
   // Remove shadow for smaller text
   ctx.shadowBlur = 0;
   
   // Draw instruction text, also centered
-  DrawBitmapTextSmall("PRESS P TO RESUME YOUR GAME", 0, gridCenterY + 50, 0, 0, 25);
+  DrawBitmapTextSmall("PRESS P TO RESUME YOUR GAME", 0, gridCenterY + 50, 2, 0, 25);
   
   // Restore canvas context
   ctx.restore();
