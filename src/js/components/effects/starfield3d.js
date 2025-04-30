@@ -12,31 +12,17 @@ let height_3d = window.innerHeight || 600;
 
 // Configuration constants
 const MAX_DEPTH = 32;      // Maximum star depth (z-distance)
-const STAR_SPEED = 0.4;    // Base speed of stars moving toward/away from viewer
+const STAR_SPEED = 0.4;    // Base speed of stars moving toward viewer
 const STAR_COUNT = 300;    // Number of stars in the field
 const DEPTH_FACTOR = 256.0; // Perspective division factor (higher = more pronounced effect)
 const MIN_Z = 0.1;         // Minimum Z value to prevent division by zero
 const MAX_Z = 40;          // Maximum Z value for stars moving away
 
-// Directional movement constants
-const MAX_VELOCITY = 0.25;                 // Maximum velocity in X and Y directions
-const VELOCITY_CHANGE = 0.03;              // Rate of velocity change for direction transitions
-
-// Animation state control
-const ANIMATION_MODE = {
-    INWARD: 0,     // Moving into the galaxy
-    TRANSITION: 1, // Slowing down/stopping
-    OUTWARD: 2     // Moving out of the galaxy
-};
-
-// Animation timing (in frames)
-const INWARD_DURATION = 300;     // How long to move inward (about 5 seconds at 60fps)
-const TRANSITION_DURATION = 60;  // How long to pause/transition (about 1 second)
-
-// Current animation state
-let currentMode = ANIMATION_MODE.INWARD;
-let animationTimer = 0;
-let transitionProgress = 0;  // 0 to 1 for smooth transitions
+// New directional movement constants
+const DIRECTION_CHANGE_PROBABILITY = 0.008; // Increased probability of changing direction
+const MAX_VELOCITY = 0.3;                  // Increased maximum velocity in X and Y directions
+const VELOCITY_CHANGE = 0.03;              // Increased rate of velocity change for more dynamic motion
+const REVERSE_PROBABILITY = 0.4;           // Probability that a star will move away from viewer
 
 // Field of view configuration (in radians)
 const HFOV = 100 * Math.PI / 180; // Horizontal field of view
@@ -57,14 +43,18 @@ const stars = new Array(STAR_COUNT);
  */
 class Star3D {
     constructor() {
-        this.x = 0;         // X position in 3D space
-        this.y = 0;         // Y position in 3D space
-        this.z = 0;         // Z position (depth)
-        this.vx = 0;        // X velocity component
-        this.vy = 0;        // Y velocity component
-        this.vz = 0;        // Z velocity component (negative for approaching, positive for receding)
-        this.baseVz = 0;    // Base Z velocity (for transition effects)
-        this.type = 0;      // Star type (determines color)
+        this.x = 0;      // X position in 3D space
+        this.y = 0;      // Y position in 3D space
+        this.z = 0;      // Z position (depth)
+        this.vx = 0;     // X velocity component
+        this.vy = 0;     // Y velocity component
+        this.vz = 0;     // Z velocity component (negative for approaching)
+        this.targetVx = 0; // Target X velocity for smooth transitions
+        this.targetVy = 0; // Target Y velocity for smooth transitions
+        this.targetVz = 0; // Target Z velocity for smooth transitions
+        this.changing = false; // Whether star is currently changing direction
+        this.changeTimer = 0;  // Timer for direction change duration
+        this.type = 0;   // Star type (determines color)
     }
 }
 
@@ -106,53 +96,65 @@ function randomFloat(minVal, maxVal) {
 }
 
 /**
- * Initialize a star for inward movement
- * @param {Star3D} star - Star object to initialize
+ * Set random target velocities for a star
+ * @param {Star3D} star - Star object to update
  */
-function initInwardStar(star) {
-    star.x = randomRange(-25, 25);
-    star.y = randomRange(-25, 25);
-    star.z = randomRange(MAX_DEPTH/2, MAX_DEPTH);
-    star.vx = randomFloat(-MAX_VELOCITY, MAX_VELOCITY);
-    star.vy = randomFloat(-MAX_VELOCITY, MAX_VELOCITY);
-    star.vz = -STAR_SPEED * randomFloat(0.7, 1.2);
-    star.baseVz = star.vz;
-    star.type = Math.floor(Math.random() * STAR_COLORS.length);
+function setRandomDirection(star) {
+    star.targetVx = randomFloat(-MAX_VELOCITY, MAX_VELOCITY);
+    star.targetVy = randomFloat(-MAX_VELOCITY, MAX_VELOCITY);
+    
+    // Allow stars to move both toward and away from viewer
+    if (Math.random() < REVERSE_PROBABILITY) {
+        // Move away from viewer (positive Z)
+        star.targetVz = STAR_SPEED * randomFloat(0.5, 1.0);
+    } else {
+        // Move toward viewer (negative Z)
+        star.targetVz = -STAR_SPEED * randomFloat(0.7, 1.3);
+    }
+    
+    star.changing = true;
+    star.changeTimer = randomRange(30, 120); // Direction change lasts 30-120 frames
 }
 
 /**
- * Initialize a star for outward movement
- * @param {Star3D} star - Star object to initialize
- */
-function initOutwardStar(star) {
-    star.x = randomRange(-25, 25);
-    star.y = randomRange(-25, 25);
-    star.z = randomRange(MIN_Z + 1, MAX_DEPTH/3);
-    star.vx = randomFloat(-MAX_VELOCITY, MAX_VELOCITY);
-    star.vy = randomFloat(-MAX_VELOCITY, MAX_VELOCITY);
-    star.vz = STAR_SPEED * randomFloat(0.6, 1.0);
-    star.baseVz = star.vz;
-    star.type = Math.floor(Math.random() * STAR_COLORS.length);
-}
-
-/**
- * Reset a star based on current animation mode
+ * Reset a star to a new random position
  * @param {number} i - Index of star to update
  */
-function resetStar(i) {
+function update3DStar(i) {
     const star = stars[i];
+    star.x = randomRange(-25, 25);
+    star.y = randomRange(-25, 25);
+    star.z = randomRange(1, MAX_DEPTH);
     
-    if (currentMode === ANIMATION_MODE.INWARD) {
-        initInwardStar(star);
-    } else if (currentMode === ANIMATION_MODE.OUTWARD) {
-        initOutwardStar(star);
+    // Give stars initial velocities in all possible directions
+    if (Math.random() < 0.5) {
+        // Half stars start moving toward viewer
+        star.vx = randomFloat(-0.1, 0.1);
+        star.vy = randomFloat(-0.1, 0.1);
+        star.vz = -STAR_SPEED * randomFloat(0.8, 1.2);
     } else {
-        // During transition, initialize based on where we're heading
-        if (animationTimer > TRANSITION_DURATION / 2) {
-            initOutwardStar(star);
+        // Half stars start moving in random directions
+        star.vx = randomFloat(-0.2, 0.2);
+        star.vy = randomFloat(-0.2, 0.2);
+        
+        // 30% chance to start moving away
+        if (Math.random() < 0.3) {
+            star.vz = STAR_SPEED * randomFloat(0.5, 0.8);
         } else {
-            initInwardStar(star);
+            star.vz = -STAR_SPEED * randomFloat(0.8, 1.2);
         }
+    }
+    
+    star.targetVx = star.vx;
+    star.targetVy = star.vy;
+    star.targetVz = star.vz;
+    star.changing = false;
+    star.changeTimer = 0;
+    star.type = Math.floor(Math.random() * STAR_COLORS.length);
+    
+    // Give some stars initial direction variations
+    if (Math.random() < 0.4) {
+        setRandomDirection(star);
     }
 }
 
@@ -160,13 +162,9 @@ function resetStar(i) {
  * Create the entire starfield by initializing all stars
  */
 export function create3DStarfield() {
-    // Start with inward movement
-    currentMode = ANIMATION_MODE.INWARD;
-    animationTimer = 0;
-    
     for (let i = 0; i < stars.length; i++) {
         stars[i] = new Star3D();
-        initInwardStar(stars[i]);
+        update3DStar(i);  // Initialize with random position and properties
     }
 }
 
@@ -176,72 +174,40 @@ export function create3DStarfield() {
  */
 export function Draw3DStars() {
     try {
-        // Update animation state
-        animationTimer++;
-        
-        // Check for mode transitions
-        if (currentMode === ANIMATION_MODE.INWARD && animationTimer >= INWARD_DURATION) {
-            currentMode = ANIMATION_MODE.TRANSITION;
-            animationTimer = 0;
-        } else if (currentMode === ANIMATION_MODE.TRANSITION && animationTimer >= TRANSITION_DURATION) {
-            currentMode = ANIMATION_MODE.OUTWARD;
-            animationTimer = 0;
-            
-            // Initialize all stars for outward movement
-            for (let i = 0; i < stars.length; i++) {
-                initOutwardStar(stars[i]);
-            }
-        }
-        
-        // Calculate transition progress (0 to 1) for smooth slowdown/speedup
-        if (currentMode === ANIMATION_MODE.TRANSITION) {
-            transitionProgress = animationTimer / TRANSITION_DURATION;
-        }
-        
         for (let i = 0; i < stars.length; i++) {
             const star = stars[i]; // Cache star reference for better performance
             
-            // Apply velocity based on current mode
-            if (currentMode === ANIMATION_MODE.INWARD || currentMode === ANIMATION_MODE.OUTWARD) {
-                // Normal movement
-                star.x += star.vx;
-                star.y += star.vy;
-                star.z += star.vz;
-            } else if (currentMode === ANIMATION_MODE.TRANSITION) {
-                // During transition, gradually slow down to a stop (at middle) then speed up in reverse
-                const midpoint = TRANSITION_DURATION / 2;
-                if (animationTimer < midpoint) {
-                    // First half: slow down
-                    const slowFactor = 1 - (animationTimer / midpoint);
-                    star.x += star.vx * slowFactor;
-                    star.y += star.vy * slowFactor;
-                    star.z += star.vz * slowFactor;
-                } else {
-                    // Second half: speed up in opposite direction
-                    const speedupFactor = (animationTimer - midpoint) / midpoint;
-                    
-                    // For Z, we're reversing direction
-                    const newVz = -star.baseVz * speedupFactor;
-                    
-                    star.x += star.vx * speedupFactor;
-                    star.y += star.vy * speedupFactor;
-                    star.z += newVz;
+            // Randomly change direction occasionally
+            if (!star.changing && Math.random() < DIRECTION_CHANGE_PROBABILITY) {
+                setRandomDirection(star);
+            }
+            
+            // Update velocities to approach target values
+            if (star.changing) {
+                // Smoothly transition to target velocities
+                star.vx += (star.targetVx - star.vx) * VELOCITY_CHANGE;
+                star.vy += (star.targetVy - star.vy) * VELOCITY_CHANGE;
+                star.vz += (star.targetVz - star.vz) * VELOCITY_CHANGE;
+                
+                // Decrement change timer
+                star.changeTimer--;
+                if (star.changeTimer <= 0) {
+                    star.changing = false;
                 }
             }
             
-            // Handle boundaries based on current mode
-            if (currentMode === ANIMATION_MODE.INWARD) {
-                // Reset stars when they get too close or move too far sideways
-                if (star.z <= MIN_Z || Math.abs(star.x) > 50 || Math.abs(star.y) > 50) {
-                    resetStar(i);
-                    continue;
-                }
-            } else if (currentMode === ANIMATION_MODE.OUTWARD) {
-                // Reset stars when they get too far or move too far sideways
-                if (star.z >= MAX_Z || Math.abs(star.x) > 50 || Math.abs(star.y) > 50) {
-                    resetStar(i);
-                    continue;
-                }
+            // Update position using current velocity
+            star.x += star.vx;
+            star.y += star.vy;
+            star.z += star.vz;
+            
+            // Handle boundaries - reset star if it moves out of bounds, too close, or too far
+            if (star.z <= MIN_Z || 
+                star.z >= MAX_Z || 
+                Math.abs(star.x) > 50 || 
+                Math.abs(star.y) > 50) {
+                update3DStar(i);
+                continue; // Skip to next star
             }
             
             // Calculate perspective projection factor
@@ -288,17 +254,4 @@ export function init3DStarfield(context, canvasWidth, canvasHeight) {
     
     // Initialize stars
     create3DStarfield();
-}
-
-/**
- * Reset the starfield animation to start from the beginning
- * This can be called when returning to the loading screen
- */
-export function resetStarfieldAnimation() {
-    currentMode = ANIMATION_MODE.INWARD;
-    animationTimer = 0;
-    
-    for (let i = 0; i < stars.length; i++) {
-        initInwardStar(stars[i]);
-    }
 }
