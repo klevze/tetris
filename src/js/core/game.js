@@ -31,6 +31,11 @@ import {
 import {
   initGameOverState, handleGameOverState, resetGameOverState, setGameOverData
 } from '../states/gameOverState.js';
+// Import the new music player
+import { 
+  initMusicPlayer, loadMusicTracks, startMusic, 
+  stopMusic, toggleMusic as toggleMusicPlayer 
+} from '../utils/musicPlayer.js';
 
 // Game variables
 let game_state = INITIAL_GAME_STATE; // Initial game state set to loading screen
@@ -71,7 +76,7 @@ let level26_img, level27_img, level28_img, level29_img, level30_img;
 let level31_img, level32_img;
 let grid_img;
 let logo_img;
-let ambient_audio;
+// Audio assets
 let clear_line_audio;
 
 // Image loading status
@@ -86,7 +91,7 @@ let loadedImages = 0;
  */
 export async function init() {
   // Initialize necessary game variables and set up event listeners
-  initEventHandlers(Block, ambient_audio, { game_state }, { grid_width: GRID_WIDTH, grid_height: GRID_HEIGHT });
+  initEventHandlers(Block, null, { game_state }, { grid_width: GRID_WIDTH, grid_height: GRID_HEIGHT });
   
   // Load high scores and preferences first (doesn't require graphics loaded)
   LoadHighScoreData();
@@ -98,6 +103,9 @@ export async function init() {
       music_on = storedMusicPref === "true";
     }
   }
+  
+  // Initialize the music player
+  initMusicPlayer(music_on);
   
   // Start loading assets asynchronously
   const assetsPromise = Promise.all([
@@ -380,31 +388,33 @@ function loadGraphicsAsync() {
 function loadAudioAsync() {
   return new Promise((resolve, reject) => {
     try {
-      // Load game audio files
-      ambient_audio = new Audio();
-      ambient_audio.src = AUDIO.AMBIENT;
-      
+      // Load the line clearing sound effect
       clear_line_audio = new Audio();
       clear_line_audio.src = AUDIO.CLEAR_LINE;
       
-      ambient_audio.oncanplaythrough = () => {
-        console.log('Ambient audio loaded successfully');
-        resolve();
-      };
+      // Track loading progress
+      let sfxLoaded = false;
       
       clear_line_audio.oncanplaythrough = () => {
         console.log('Clear line audio loaded successfully');
-        resolve();
-      };
-      
-      ambient_audio.onerror = () => {
-        console.error('Failed to load ambient audio');
-        resolve(); // Resolve even if audio fails
+        sfxLoaded = true;
+        
+        // Load all music tracks after SFX is loaded
+        loadMusicTracks().then(() => {
+          console.log('All audio assets loaded');
+          resolve();
+        });
       };
       
       clear_line_audio.onerror = () => {
         console.error('Failed to load clear line audio');
-        resolve(); // Resolve even if audio fails
+        sfxLoaded = true;
+        
+        // Still try to load music tracks even if SFX fails
+        loadMusicTracks().then(() => {
+          console.log('Music tracks loaded (SFX failed)');
+          resolve();
+        });
       };
     } catch (error) {
       console.error('Error loading audio:', error);
@@ -525,13 +535,8 @@ export function initAudio() {
       audioInitialized = true;
       console.log("Audio initialization completed");
       
-      // Set ambient_audio to loop automatically
-      if (ambient_audio) {
-        ambient_audio.loop = true;
-      }
-      
       // Start playing music immediately if music is enabled
-      if (music_on && ambient_audio && game_state === GAME_STATES.PLAY_GAME) {
+      if (music_on && game_state === GAME_STATES.PLAY_GAME) {
         startGameMusic();
       }
     }
@@ -543,44 +548,16 @@ export function initAudio() {
 // Function to start playing music (only called when needed)
 export function startGameMusic() {
   // First check if music is enabled in user preferences
-  if (music_on && ambient_audio) {
+  if (music_on) {
     // Make sure audio is initialized first
     if (!audioInitialized) {
       initAudio();
     }
     
-    // Set necessary audio properties
-    ambient_audio.loop = true;
-    ambient_audio.volume = 0.7; // Set to 70% volume
-    
-    // Try to play the ambient audio with better error handling
-    try {
-      const playPromise = ambient_audio.play();
-      
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            console.log("Game music playback started successfully");
-          })
-          .catch(error => {
-            console.log("Game music playback was prevented:", error);
-            
-            // If playback was prevented, we'll re-attempt after user interaction
-            const musicStartHandler = function() {
-              if (music_on && (game_state === GAME_STATES.PLAY_GAME || game_state === GAME_STATES.GAME_START)) {
-                ambient_audio.play().catch(e => console.error("Still cannot play audio:", e));
-                document.removeEventListener('click', musicStartHandler);
-              }
-            };
-            
-            document.addEventListener('click', musicStartHandler, { once: false });
-          });
-      }
-    } catch (error) {
-      console.error("Error playing audio:", error);
-    }
+    // Start playing music with our new music player
+    startMusic();
   } else {
-    console.log("Music is disabled or audio not loaded, skipping playback");
+    console.log("Music is disabled, skipping playback");
   }
 }
 
@@ -599,19 +576,8 @@ export function toggleGameMusic() {
     localStorage.setItem(STORAGE_KEYS.MUSIC_PREFERENCE, music_on);
   }
   
-  // Control audio playback based on preference
-  if (music_on && ambient_audio) {
-    if (audioInitialized) {
-      const playPromise = ambient_audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.log("Audio playback failed: ", error);
-        });
-      }
-    }
-  } else if (ambient_audio) {
-    ambient_audio.pause();
-  }
+  // Toggle music with our new music player
+  toggleMusicPlayer();
   
   return music_on;
 }

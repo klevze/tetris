@@ -150,8 +150,15 @@ export const IMAGES = {
 
 // Audio assets with their paths
 export const AUDIO = {
-    AMBIENT: './music/music001.mp3',
-    CLEAR_LINE: './music/clear_line.wav'
+    CLEAR_LINE: './music/clear_line.wav',
+    // Music tracks
+    MUSIC_TRACK_1: './music/music001.mp3',
+    MUSIC_TRACK_2: './music/music002.mp3',
+    MUSIC_TRACK_3: './music/music003.mp3',
+    MUSIC_TRACK_4: './music/music004.mp3',
+    MUSIC_TRACK_5: './music/music005.mp3',
+    MUSIC_TRACK_6: './music/music006.mp3',
+    MUSIC_TRACK_7: './music/music007.mp3'
 };
 
 // Point values for actions
