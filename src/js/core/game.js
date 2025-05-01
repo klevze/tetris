@@ -38,6 +38,9 @@ let game_state = INITIAL_GAME_STATE; // Initial game state set to loading screen
 // Make game_state accessible globally to allow other modules to update it
 window.game_state = game_state;
 
+// Store selected level globally to ensure persistence between state changes
+window.selected_game_level = 0;
+
 let game_pause = false;
 let music_on = true;
 let audioInitialized = false; // Flag to track audio initialization status
@@ -52,8 +55,16 @@ let background;
 let back_intro_img;
 let lego;
 let controls_img;
+// Background images for all levels
+let level0_img;
+let level1_img;
 let level2_img, level3_img, level4_img, level5_img;
 let level6_img, level7_img, level8_img, level9_img, level10_img;
+let level11_img, level12_img, level13_img, level14_img, level15_img;
+let level16_img, level17_img, level18_img, level19_img, level20_img;
+let level21_img, level22_img, level23_img, level24_img, level25_img;
+let level26_img, level27_img, level28_img, level29_img, level30_img;
+let level31_img, level32_img;
 let grid_img;
 let logo_img;
 let ambient_audio;
@@ -171,6 +182,8 @@ function loadGraphicsAsync() {
     logo_img = new Image();
     background = new Image();
     grid_img = new Image();
+    level0_img = new Image();
+    level1_img = new Image();
     level2_img = new Image();
     level3_img = new Image();
     level4_img = new Image();
@@ -180,6 +193,28 @@ function loadGraphicsAsync() {
     level8_img = new Image();
     level9_img = new Image();
     level10_img = new Image();
+    level11_img = new Image();
+    level12_img = new Image();
+    level13_img = new Image();
+    level14_img = new Image();
+    level15_img = new Image();
+    level16_img = new Image();
+    level17_img = new Image();
+    level18_img = new Image();
+    level19_img = new Image();
+    level20_img = new Image();
+    level21_img = new Image();
+    level22_img = new Image();
+    level23_img = new Image();
+    level24_img = new Image();
+    level25_img = new Image();
+    level26_img = new Image();
+    level27_img = new Image();
+    level28_img = new Image();
+    level29_img = new Image();
+    level30_img = new Image();
+    level31_img = new Image();
+    level32_img = new Image();
     controls_img = new Image();
     back_intro_img = new Image();
     lego = new Image();
@@ -187,7 +222,8 @@ function loadGraphicsAsync() {
     // Create an array of all images for tracking load status
     const imageObjects = [
       { img: logo_img, src: IMAGES.LOGO },
-      { img: background, src: IMAGES.BACKGROUND_LEVEL1 },
+      { img: level0_img, src: IMAGES.BACKGROUND_LEVEL0 },
+      { img: level1_img, src: IMAGES.BACKGROUND_LEVEL1 },
       { img: grid_img, src: IMAGES.GRID },
       { img: level2_img, src: IMAGES.BACKGROUND_LEVEL2 },
       { img: level3_img, src: IMAGES.BACKGROUND_LEVEL3 },
@@ -198,6 +234,28 @@ function loadGraphicsAsync() {
       { img: level8_img, src: IMAGES.BACKGROUND_LEVEL8 },
       { img: level9_img, src: IMAGES.BACKGROUND_LEVEL9 },
       { img: level10_img, src: IMAGES.BACKGROUND_LEVEL10 },
+      { img: level11_img, src: IMAGES.BACKGROUND_LEVEL11 },
+      { img: level12_img, src: IMAGES.BACKGROUND_LEVEL12 },
+      { img: level13_img, src: IMAGES.BACKGROUND_LEVEL13 },
+      { img: level14_img, src: IMAGES.BACKGROUND_LEVEL14 },
+      { img: level15_img, src: IMAGES.BACKGROUND_LEVEL15 },
+      { img: level16_img, src: IMAGES.BACKGROUND_LEVEL16 },
+      { img: level17_img, src: IMAGES.BACKGROUND_LEVEL17 },
+      { img: level18_img, src: IMAGES.BACKGROUND_LEVEL18 },
+      { img: level19_img, src: IMAGES.BACKGROUND_LEVEL19 },
+      { img: level20_img, src: IMAGES.BACKGROUND_LEVEL20 },
+      { img: level21_img, src: IMAGES.BACKGROUND_LEVEL21 },
+      { img: level22_img, src: IMAGES.BACKGROUND_LEVEL22 },
+      { img: level23_img, src: IMAGES.BACKGROUND_LEVEL23 },
+      { img: level24_img, src: IMAGES.BACKGROUND_LEVEL24 },
+      { img: level25_img, src: IMAGES.BACKGROUND_LEVEL25 },
+      { img: level26_img, src: IMAGES.BACKGROUND_LEVEL26 },
+      { img: level27_img, src: IMAGES.BACKGROUND_LEVEL27 },
+      { img: level28_img, src: IMAGES.BACKGROUND_LEVEL28 },
+      { img: level29_img, src: IMAGES.BACKGROUND_LEVEL29 },
+      { img: level30_img, src: IMAGES.BACKGROUND_LEVEL30 },
+      { img: level31_img, src: IMAGES.BACKGROUND_LEVEL31 },
+      { img: level32_img, src: IMAGES.BACKGROUND_LEVEL32 },
       { img: controls_img, src: IMAGES.CONTROLS },
       { img: back_intro_img, src: IMAGES.INTRO_BACKGROUND },
       { img: lego, src: IMAGES.BLOCKS },
@@ -235,6 +293,8 @@ function loadGraphicsAsync() {
           controls: controls_img,
           back_intro: back_intro_img,
           logo: logo_img,
+          level0: level0_img,
+          level1: level1_img,
           level2: level2_img,
           level3: level3_img,
           level4: level4_img,
@@ -244,6 +304,28 @@ function loadGraphicsAsync() {
           level8: level8_img,
           level9: level9_img,
           level10: level10_img,
+          level11: level11_img,
+          level12: level12_img,
+          level13: level13_img,
+          level14: level14_img,
+          level15: level15_img,
+          level16: level16_img,
+          level17: level17_img,
+          level18: level18_img,
+          level19: level19_img,
+          level20: level20_img,
+          level21: level21_img,
+          level22: level22_img,
+          level23: level23_img,
+          level24: level24_img,
+          level25: level25_img,
+          level26: level26_img,
+          level27: level27_img,
+          level28: level28_img,
+          level29: level29_img,
+          level30: level30_img,
+          level31: level31_img,
+          level32: level32_img,
           grid: grid_img,
           blocks: lego,
         };

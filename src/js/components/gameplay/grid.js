@@ -884,9 +884,18 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
   // Store audio and reset game state
   clear_line_audio = audio;
   
-  // Reset game state
+  // Reset game state, but preserve selected level if available
   lines = 0;
-  level = 0;
+  
+  // Use the global selected level if available, otherwise default to 0
+  if (typeof window.selected_game_level === 'number') {
+    level = window.selected_game_level;
+    console.log(`Grid using selected level: ${level} from global variable`);
+  } else {
+    level = 0;
+    console.log(`Grid using default level 0`);
+  }
+  
   level_goal = 10;
   score = 0;
   showAddScore = false;

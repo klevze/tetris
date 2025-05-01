@@ -17,6 +17,10 @@ let k = 0; // Animation counter for logo sine wave effect
 let sc = 0; // Counter used in score display animations
 let introEventListenersAdded = false; // Track if event listeners are active
 
+// Level selection
+let selectedLevel = 0; // Selected starting level (0-9)
+let showLevelSelector = false; // Whether to show the level selector
+
 // Tetris block fireworks animation variables
 let tetrisFireworks = [];
 const MAX_FIREWORKS = 6;
@@ -353,9 +357,8 @@ export function handleIntroState(setGameState) {
     // Remove any existing listeners first
     removeAllEventListeners();
       
-    // Add intro-specific event listeners
+    // Add intro-specific event listeners - only listen for keydown, not mousedown
     document.addEventListener('keydown', handleIntroKeyDown);
-    document.addEventListener('mousedown', handleIntroMouseDown);
     introEventListenersAdded = true;
   }
 
@@ -408,6 +411,87 @@ export function handleIntroState(setGameState) {
     ctx.fillStyle = '#ffcc00';
     ctx.textAlign = 'center';
     ctx.fillText("TETRIS", WIDTH/2, 40);
+  }
+
+  // Add a level selector on the left side of the screen
+  const levelSelectorX = 50;
+  const levelSelectorY = 200;
+  const levelButtonSize = 40;
+  const levelButtonSpacing = 10;
+  const levelButtonsPerRow = 5;
+  
+  // Draw level selector title
+  ctx.fillStyle = '#ffcc00'; // Gold color for title
+  DrawBitmapTextSmall("STARTING LEVEL", levelSelectorX, levelSelectorY - 30, 0, 0, 0);
+  
+  // Draw level buttons (0-9)
+  for (let i = 0; i <= 9; i++) {
+    const row = Math.floor(i / levelButtonsPerRow);
+    const col = i % levelButtonsPerRow;
+    const buttonX = levelSelectorX + col * (levelButtonSize + levelButtonSpacing);
+    const buttonY = levelSelectorY + row * (levelButtonSize + levelButtonSpacing);
+    
+    // Button background (highlight selected button)
+    if (i === selectedLevel) {
+      // Selected level - gold gradient with glow
+      const gradient = ctx.createRadialGradient(
+        buttonX + levelButtonSize/2, buttonY + levelButtonSize/2, 0,
+        buttonX + levelButtonSize/2, buttonY + levelButtonSize/2, levelButtonSize
+      );
+      gradient.addColorStop(0, '#ffcc00');
+      gradient.addColorStop(1, '#cc9900');
+      ctx.fillStyle = gradient;
+      
+      // Add glow effect
+      ctx.shadowColor = '#ffcc00';
+      ctx.shadowBlur = 10;
+    } else {
+      // Unselected levels - dark gradient
+      const gradient = ctx.createRadialGradient(
+        buttonX + levelButtonSize/2, buttonY + levelButtonSize/2, 0,
+        buttonX + levelButtonSize/2, buttonY + levelButtonSize/2, levelButtonSize
+      );
+      gradient.addColorStop(0, '#444444');
+      gradient.addColorStop(1, '#222222');
+      ctx.fillStyle = gradient;
+      ctx.shadowBlur = 0;
+    }
+    
+    // Draw button
+    ctx.fillRect(buttonX, buttonY, levelButtonSize, levelButtonSize);
+    ctx.shadowBlur = 0;
+    
+    // Button text
+    ctx.fillStyle = i === selectedLevel ? '#000' : '#fff';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i.toString(), buttonX + levelButtonSize/2, buttonY + levelButtonSize/2);
+    
+    // Add click handler for level buttons
+    canvas.addEventListener('click', function levelButtonClick(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      for (let j = 0; j <= 9; j++) {
+        const btnRow = Math.floor(j / levelButtonsPerRow);
+        const btnCol = j % levelButtonsPerRow;
+        const btnX = levelSelectorX + btnCol * (levelButtonSize + levelButtonSpacing);
+        const btnY = levelSelectorY + btnRow * (levelButtonSize + levelButtonSpacing);
+        
+        if (mouseX >= btnX && mouseX <= btnX + levelButtonSize &&
+            mouseY >= btnY && mouseY <= btnY + levelButtonSize) {
+          // Update selected level
+          selectedLevel = j;
+          console.log(`Selected starting level: ${selectedLevel}`);
+          
+          // Remove this handler to avoid duplicates (will be re-added next frame)
+          canvas.removeEventListener('click', levelButtonClick);
+          break;
+        }
+      }
+    });
   }
 
   // Add a cloud high scores badge
@@ -605,10 +689,10 @@ export function handleIntroState(setGameState) {
   
   if (useEnhancedText) {
     // For larger screens, use the big bitmap font with a subtle effect
-    DrawBitmapText("PRESS SPACE OR CLICK TO START", 0, yPosition - 10, 1, 0, 0);
+    DrawBitmapText("PRESS SPACE TO START", 0, yPosition - 10, 1, 0, 0);
   } else {
     // For standard/smaller screens, use the small bitmap font
-    DrawBitmapTextSmall("PRESS SPACE OR CLICK TO START A NEW GAME", 0, yPosition, 1, 0, 0);
+    DrawBitmapTextSmall("PRESS SPACE TO START A NEW GAME", 0, yPosition, 1, 0, 0);
     
     // Add a subtle glow effect to make the text stand out
     ctx.shadowColor = '#ffcc00';
@@ -617,7 +701,7 @@ export function handleIntroState(setGameState) {
     ctx.shadowOffsetY = 0;
     
     // Re-draw the text with glow effect
-    DrawBitmapTextSmall("PRESS SPACE OR CLICK TO START A NEW GAME", 0, yPosition, 1, 0, 0);
+    DrawBitmapTextSmall("PRESS SPACE TO START A NEW GAME", 0, yPosition, 1, 0, 0);
     
     // Reset shadow effects
     ctx.shadowColor = 'transparent';
@@ -640,6 +724,10 @@ export function startNewGame() {
     // Remove all event listeners
     removeAllEventListeners();
     
+    // Store selected level in multiple places to ensure it persists
+    window.selected_game_level = selectedLevel;
+    console.log(`Starting game with level: ${selectedLevel}, stored in global variable as: ${window.selected_game_level}`);
+    
     // Call the callback to update game state
     if (gameStateCallback) {
       gameStateCallback(GAME_STATES.GAME_START);
@@ -660,7 +748,6 @@ export function startNewGame() {
 function removeAllEventListeners() {
   if (introEventListenersAdded) {
     document.removeEventListener('keydown', handleIntroKeyDown);
-    document.removeEventListener('mousedown', handleIntroMouseDown);
     introEventListenersAdded = false;
   }
 }
@@ -674,15 +761,6 @@ function handleIntroKeyDown(evt) {
     console.log("Space key pressed on intro screen");
     startNewGame();
   }
-}
-
-/**
- * Handle mouse clicks on intro screen
- */
-function handleIntroMouseDown(evt) {
-  // Any mouse click starts a new game
-  console.log("Mouse clicked on intro screen");
-  startNewGame();
 }
 
 /**

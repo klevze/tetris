@@ -36,8 +36,16 @@ let background;
 let controls_img;
 let back_intro_img;
 let logo_img;
-let level2_img, level3_img, level4_img, level5_img;
+
+// Level background images (0-32)
+let level0_img, level1_img, level2_img, level3_img, level4_img, level5_img;
 let level6_img, level7_img, level8_img, level9_img, level10_img;
+let level11_img, level12_img, level13_img, level14_img, level15_img;
+let level16_img, level17_img, level18_img, level19_img, level20_img;
+let level21_img, level22_img, level23_img, level24_img, level25_img;
+let level26_img, level27_img, level28_img, level29_img, level30_img;
+let level31_img, level32_img;
+
 let grid_img;
 let lego;
 let clear_line_audio;
@@ -55,6 +63,8 @@ export function initMainState(images, audio, updateGameStateCallback) {
   controls_img = images.controls;
   back_intro_img = images.back_intro;
   logo_img = images.logo;
+  level0_img = images.level0;
+  level1_img = images.level1;
   level2_img = images.level2;
   level3_img = images.level3;
   level4_img = images.level4;
@@ -64,6 +74,28 @@ export function initMainState(images, audio, updateGameStateCallback) {
   level8_img = images.level8;
   level9_img = images.level9;
   level10_img = images.level10;
+  level11_img = images.level11;
+  level12_img = images.level12;
+  level13_img = images.level13;
+  level14_img = images.level14;
+  level15_img = images.level15;
+  level16_img = images.level16;
+  level17_img = images.level17;
+  level18_img = images.level18;
+  level19_img = images.level19;
+  level20_img = images.level20;
+  level21_img = images.level21;
+  level22_img = images.level22;
+  level23_img = images.level23;
+  level24_img = images.level24;
+  level25_img = images.level25;
+  level26_img = images.level26;
+  level27_img = images.level27;
+  level28_img = images.level28;
+  level29_img = images.level29;
+  level30_img = images.level30;
+  level31_img = images.level31;
+  level32_img = images.level32;
   grid_img = images.grid;
   lego = images.blocks;
   
@@ -97,7 +129,16 @@ export function startMainGame() {
   // Start a new game
   score = INITIAL_SCORE;
   lines = INITIAL_LINES;
-  level = 0;  // Explicitly set to 0 instead of using INITIAL_LEVEL
+  
+  // Get starting level directly from global variable (most reliable source)
+  if (typeof window.selected_game_level === 'number') {
+    level = window.selected_game_level;
+    console.log(`Starting game with level from global variable: ${level}`);
+  } else {
+    level = 0;  // Default to level 0 if no selection was made
+    console.log(`No global level set, defaulting to level 0`);
+  }
+  
   level_goal = INITIAL_LEVEL_GOAL;
   
   // Calculate canvas dimensions for proper centering
@@ -443,6 +484,28 @@ function getBackgroundForLevel(level) {
   if (!getBackgroundForLevel.cache.has(level)) {
     let img;
     switch(level) {
+      case 32: img = level32_img; break;
+      case 31: img = level31_img; break;
+      case 30: img = level30_img; break;
+      case 29: img = level29_img; break;
+      case 28: img = level28_img; break;
+      case 27: img = level27_img; break;
+      case 26: img = level26_img; break;
+      case 25: img = level25_img; break;
+      case 24: img = level24_img; break;
+      case 23: img = level23_img; break;
+      case 22: img = level22_img; break;
+      case 21: img = level21_img; break;
+      case 20: img = level20_img; break;
+      case 19: img = level19_img; break;
+      case 18: img = level18_img; break;
+      case 17: img = level17_img; break;
+      case 16: img = level16_img; break;
+      case 15: img = level15_img; break;
+      case 14: img = level14_img; break;
+      case 13: img = level13_img; break;
+      case 12: img = level12_img; break;
+      case 11: img = level11_img; break;
       case 10: img = level10_img; break;
       case 9: img = level9_img; break;
       case 8: img = level8_img; break;
@@ -452,6 +515,8 @@ function getBackgroundForLevel(level) {
       case 4: img = level4_img; break;
       case 3: img = level3_img; break;
       case 2: img = level2_img; break;
+      case 1: img = level1_img; break;
+      case 0: img = level0_img; break;
       default: img = background;
     }
     getBackgroundForLevel.cache.set(level, img);
