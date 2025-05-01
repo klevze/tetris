@@ -56,29 +56,28 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Set up event listeners for initial user interaction
  * Modern browsers require user interaction before playing audio
+ * Modified to only initialize audio on space key press, not mouse click
  */
 function setupUserInteractionHandlers() {
-    const userInteractionEvents = ['click', 'touchstart', 'keydown'];
-    
-    const handleFirstInteraction = () => {
-        console.log('User interaction detected, audio can play now');
-        
-        // Initialize audio after user interaction
-        initAudio();
-        
-        // Emit event through the event bus
-        eventBus.emit(GAME_EVENTS.SOUND_TOGGLE, { enabled: true });
-        
-        // Remove all interaction listeners since we only need one interaction
-        userInteractionEvents.forEach(event => {
-            document.removeEventListener(event, handleFirstInteraction);
-        });
+    // Handle keydown event for space key
+    const handleKeyDown = (event) => {
+        // Only initialize audio when space key is pressed (code 32)
+        if (event.keyCode === 32) {
+            console.log('Space key pressed, audio can play now');
+            
+            // Initialize audio after user interaction
+            initAudio();
+            
+            // Emit event through the event bus
+            eventBus.emit(GAME_EVENTS.SOUND_TOGGLE, { enabled: true });
+            
+            // Remove the keydown listener since we only need one interaction
+            document.removeEventListener('keydown', handleKeyDown);
+        }
     };
     
-    // Add event listeners for first user interaction
-    userInteractionEvents.forEach(event => {
-        document.addEventListener(event, handleFirstInteraction);
-    });
+    // Add keydown event listener for space bar
+    document.addEventListener('keydown', handleKeyDown);
 }
 
 // Prevent default spacebar and arrow key behavior (scrolling)

@@ -557,7 +557,7 @@ export function handleIntroState(setGameState) {
   // Calculate positions for the high scores section
   // Logo + space + scores list + space + bottom text
   const verticalSpacing = HEIGHT * 0.18; // Decreased from 0.30 to 0.18 to move higher
-  const topPlayersY = Math.max(160, verticalSpacing + 70); // Decreased from 220 to 160 for higher position
+  const topPlayersY = Math.max(160, verticalSpacing + 40); // Decreased from 220 to 160 for higher position
   
   // Draw "TOP PLAYERS" text centered with larger font
   DrawBitmapText("TOP PLAYERS", 0, topPlayersY, 1, 0, 0);

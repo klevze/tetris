@@ -150,7 +150,7 @@ export const IMAGES = {
 
 // Audio assets with their paths
 export const AUDIO = {
-    AMBIENT: './music/48997.wav',
+    AMBIENT: './music/music001.mp3',
     CLEAR_LINE: './music/clear_line.wav'
 };
 
