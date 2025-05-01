@@ -13,10 +13,10 @@ let height_3d = window.innerHeight || 600;
 // Configuration constants
 const MAX_DEPTH = 32;      // Maximum star depth (z-distance)
 const STAR_SPEED = 0.4;    // Base speed of stars moving toward viewer
-const STAR_COUNT = 300;    // Number of stars in the field
+const STAR_COUNT = 160;    // Number of stars in the field
 const DEPTH_FACTOR = 256.0; // Perspective division factor (higher = more pronounced effect)
 const MIN_Z = 0.1;         // Minimum Z value to prevent division by zero
-const MAX_Z = 40;          // Maximum Z value for stars moving away
+const MAX_Z = 50;          // Maximum Z value for stars moving away
 
 // New directional movement constants
 const DIRECTION_CHANGE_PROBABILITY = 0.008; // Increased probability of changing direction

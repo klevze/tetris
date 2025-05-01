@@ -218,41 +218,7 @@ export function startMainGame() {
   block_finish = true;
   TotalSeconds = 0;
   
-  // Only create celebratory fireworks if starting level is greater than 0
-  if (level > 0) {
-    createGameStartFireworks(canvasWidth, canvasHeight);
-  }
-  
   return GAME_STATES.PLAY_GAME;
-}
-
-/**
- * Create celebratory fireworks when the game starts
- * @param {number} width - Canvas width
- * @param {number} height - Canvas height
- */
-function createGameStartFireworks(width, height) {
-  // Create an initial burst of fireworks
-  createFirework(width * 0.25, height * 0.3, 0); // Left side, gold
-  createFirework(width * 0.75, height * 0.3, 1); // Right side, blue
-  
-  // Create additional fireworks with slight delays for a dynamic effect
-  setTimeout(() => {
-    createFirework(width * 0.5, height * 0.25, 2); // Center top, purple
-    createFirework(width * 0.2, height * 0.5, 3); // Left middle, rainbow
-  }, 300);
-  
-  setTimeout(() => {
-    createFirework(width * 0.8, height * 0.5, 0); // Right middle, gold
-    createFirework(width * 0.5, height * 0.4, 1); // Center, blue
-  }, 600);
-  
-  // Final round of fireworks
-  setTimeout(() => {
-    createFirework(width * 0.3, height * 0.2, 3); // Upper left, rainbow
-    createFirework(width * 0.7, height * 0.2, 3); // Upper right, rainbow
-    createFirework(width * 0.5, height * 0.15, 2); // Top center, purple
-  }, 900);
 }
 
 /**
