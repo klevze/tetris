@@ -33,6 +33,16 @@ let showAddScore = false;
 let sac = 0;
 let addScore = 0;
 
+// Countdown variables for unpausing
+let isCountingDown = false;
+let countdownValue = 3;
+let lastCountdownTime = 0;
+
+// Expose isCountingDown to window so events.js can access it
+Object.defineProperty(window, 'isCountingDown', {
+  get: function() { return isCountingDown; }
+});
+
 // Assets
 let background;
 let controls_img;
@@ -379,6 +389,18 @@ export function handlePauseScreen() {
  * Toggle game pause state
  */
 export function togglePause() {
+  // If we're unpausing the game, start the countdown sequence
+  if (game_pause) {
+    // Set up the countdown values
+    isCountingDown = true;
+    countdownValue = 3;
+    lastCountdownTime = Date.now();
+  } else {
+    // Pausing the game - no countdown needed
+    isCountingDown = false;
+  }
+  
+  // Toggle the pause state
   game_pause = !game_pause;
   
   // Update the grid state with the new pause state
@@ -457,8 +479,15 @@ export function setScoreData(scoreData) {
  * @returns {boolean} True if the state was handled, false otherwise
  */
 export function handleMainGameState(setGameState) {
+  // Handle pause screen display when paused
   if (game_pause) {
     handlePauseScreen();
+    return true;
+  }
+  
+  // Handle countdown when unpausing
+  if (isCountingDown) {
+    handleCountdown();
     return true;
   }
   
@@ -521,6 +550,80 @@ export function handleMainGameState(setGameState) {
   drawGameIcons();
   
   return true;
+}
+
+/**
+ * Handle countdown display when unpausing
+ */
+function handleCountdown() {
+  const currentTime = Date.now();
+  const elapsedTime = currentTime - lastCountdownTime;
+
+  // Clear screen and show the game in the background
+  clearScreen('#000');
+  
+  // Get current level background and draw it
+  const backgroundImg = getBackgroundForLevel(level);
+  showBackgroundCover(backgroundImg);
+  
+  // Draw the actual game grid and blocks
+  fillGrid();
+  
+  // Get the grid state and current block information
+  const gridState = getGridState();
+  
+  // Process block movement to make sure the current falling block is displayed
+  // But pass true as second parameter to prevent actual movement (just render)
+  moveBlock(level, true);
+
+  // Cache UI positions for performance
+  const uiPositions = getUIPositions();
+  
+  // Show next/hold blocks and score
+  showNextBlock(uiPositions.nextBlockX+15, uiPositions.nextBlockY);
+  showHoldBlock(uiPositions.holdBlockX, uiPositions.holdBlockY);
+  showScore();
+  
+  // Show blocks statistics panel on the left side
+  showBlocksStatistics(uiPositions.blocksStatsX, uiPositions.blocksStatsY);
+  
+  // Draw game control icons
+  drawGameIcons();
+
+  // Add semi-transparent overlay - much more transparent than before
+  ctx.fillStyle = 'rgba(0, 0, 20, 0.3)';
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  // Update countdown every second (1000ms)
+  if (elapsedTime >= 1000) {
+    countdownValue--;
+    lastCountdownTime = currentTime;
+  }
+
+  // Add a glow effect
+  ctx.shadowColor = '#ffcc00';
+  ctx.shadowBlur = 20;
+
+  // Get the grid center to position the countdown
+  const gridCenterX = gridState.origin.x + (gridState.grid_width * gridState.block_width) / 2;
+  const gridCenterY = gridState.origin.y + (gridState.grid_height * gridState.block_width) / 2;
+
+  // Display the countdown number (0 is GO!)
+  const displayText = countdownValue > 0 ? countdownValue.toString() : "GO!";
+  
+  // Scale the number size based on the time since last update for a pulsing effect
+  const pulseScale = 1 + 0.2 * Math.sin((elapsedTime / 1000) * Math.PI);
+  const fontSize = 100 * pulseScale;
+  
+  // Draw the countdown centered on the grid
+  ctx.save();
+  DrawBitmapText(displayText, 0, gridCenterY, 4, 0, fontSize);
+  ctx.restore();
+
+  // End countdown when we reach 0 and have shown "GO!" for a second
+  if (countdownValue < 0) {
+    isCountingDown = false;
+  }
 }
 
 /**

@@ -671,7 +671,10 @@ function handleSpaceAction() {
 function handleRightMove() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
+    // Also check if countdown is in progress (by checking isCountingDown from mainState)
+    const isCountdownActive = typeof window.isCountingDown === 'boolean' ? window.isCountingDown : false;
+    
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress() && !isCountdownActive) {
         moveBlockDirection('right');
         eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'right' });
     }
@@ -684,7 +687,10 @@ function handleRightMove() {
 function handleLeftMove() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
+    // Also check if countdown is in progress (by checking isCountingDown from mainState)
+    const isCountdownActive = typeof window.isCountingDown === 'boolean' ? window.isCountingDown : false;
+    
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress() && !isCountdownActive) {
         moveBlockDirection('left');
         eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'left' });
     }
@@ -697,7 +703,10 @@ function handleLeftMove() {
 function handleDownMove() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
+    // Also check if countdown is in progress
+    const isCountdownActive = typeof window.isCountingDown === 'boolean' ? window.isCountingDown : false;
+    
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress() && !isCountdownActive) {
         moveBlockDirection('down');
         eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'down' });
     }
@@ -710,7 +719,10 @@ function handleDownMove() {
 function handleUpMove() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
+    // Also check if countdown is in progress
+    const isCountdownActive = typeof window.isCountingDown === 'boolean' ? window.isCountingDown : false;
+    
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress() && !isCountdownActive) {
         rotateBlock();
         eventBus.emit(GAME_EVENTS.BLOCK_ROTATE);
     }
@@ -723,7 +735,10 @@ function handleUpMove() {
 function handleDoubleTap() {
     const state = getState();
     
-    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
+    // Also check if countdown is in progress
+    const isCountdownActive = typeof window.isCountingDown === 'boolean' ? window.isCountingDown : false;
+    
+    if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress() && !isCountdownActive) {
         moveBlockDirection('drop');
         eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'drop' });
     }

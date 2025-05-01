@@ -407,100 +407,117 @@ export function checkRows() {
 
       // Track this row for clearing
       rowsToBeCleared.push(y);
+    }
+  }
 
-      // Calculate score based on current level and combo
-      // More points for multiple rows at once
-      if (completedRows === 1) {
-        addScore = SCORE_SYSTEM.SINGLE * (level + 1); // Single
-        shouldTriggerFireworks = true; // TEST: Enable fireworks for single line clear
-      } else if (completedRows === 2) {
-        addScore = SCORE_SYSTEM.DOUBLE * (level + 1); // Double
-        shouldTriggerFireworks = true; // TEST: Enable fireworks for double line clear
-        
-        // Play random sound from double_row_audio array for 2-row clears
-        if (double_row_audio && double_row_audio.length > 0) {
-          const randomIndex = Math.floor(Math.random() * double_row_audio.length);
-          const sound = double_row_audio[randomIndex];
-          sound.currentTime = 0;
-          sound.play().catch(e => console.log('Double row sound play prevented:', e));
-          console.log(`Playing 2-row clear sound: ${randomIndex === 0 ? 'nice_combo.mp3' : 'you_fire.mp3'}`);
-        }
-      } else if (completedRows === 3) {
-        addScore = SCORE_SYSTEM.TRIPLE * (level + 1); // Triple
-        shouldTriggerFireworks = true; // TEST: Enable fireworks for triple line clear
-        
-        // Play random sound from triple_row_audio array for 3-row clears
-        if (triple_row_audio && triple_row_audio.length > 0) {
-          const randomIndex = Math.floor(Math.random() * triple_row_audio.length);
-          const sound = triple_row_audio[randomIndex];
-          sound.currentTime = 0;
-          sound.play().catch(e => console.log('Triple row sound play prevented:', e));
-          console.log(`Playing 3-row clear sound: ${randomIndex === 0 ? 'great_move.mp3' : 'smooth_clear.mp3'}`);
-        }
-      } else if (completedRows === 4) {
-        addScore = SCORE_SYSTEM.TETRIS * (level + 1); // Tetris!
-        shouldTriggerFireworks = true; // Trigger fireworks for Tetris
-        
-        // Play the special "amazing" sound for Tetris (4 rows cleared)
-        if (tetris_audio) {
-          tetris_audio.currentTime = 0;
-          tetris_audio.play().catch(e => console.log('Tetris sound play prevented:', e));
-          console.log('Playing Tetris special sound: amazing.mp3');
-        }
-      }
-
-      // Mark row for clearing animation
+  // Now determine score and play voice based on the TOTAL completed rows
+  // Only one voice will play, appropriate to the exact number of rows cleared
+  if (completedRows === 1) {
+    addScore = SCORE_SYSTEM.SINGLE * (level + 1); // Single
+    shouldTriggerFireworks = true; // TEST: Enable fireworks for single line clear
+    // No special voice for 1 row
+  } else if (completedRows === 2) {
+    addScore = SCORE_SYSTEM.DOUBLE * (level + 1); // Double
+    shouldTriggerFireworks = true; // TEST: Enable fireworks for double line clear
+    
+    // Play random sound from double_row_audio array for 2-row clears with 1s delay
+    if (double_row_audio && double_row_audio.length > 0) {
+      const randomIndex = Math.floor(Math.random() * double_row_audio.length);
+      const sound = double_row_audio[randomIndex];
+      sound.currentTime = 0;
+      
+      // Add 1 second delay before playing the voice
+      setTimeout(() => {
+        sound.play().catch(e => console.log('Double row sound play prevented:', e));
+        console.log(`Playing 2-row clear sound (delayed): ${randomIndex === 0 ? 'nice_combo.mp3' : 'you_fire.mp3'}`);
+      }, 1000); // 1 second delay
+    }
+  } else if (completedRows === 3) {
+    addScore = SCORE_SYSTEM.TRIPLE * (level + 1); // Triple
+    shouldTriggerFireworks = true; // TEST: Enable fireworks for triple line clear
+    
+    // Play random sound from triple_row_audio array for 3-row clears with 1s delay
+    if (triple_row_audio && triple_row_audio.length > 0) {
+      const randomIndex = Math.floor(Math.random() * triple_row_audio.length);
+      const sound = triple_row_audio[randomIndex];
+      sound.currentTime = 0;
+      
+      // Add 1 second delay before playing the voice
+      setTimeout(() => {
+        sound.play().catch(e => console.log('Triple row sound play prevented:', e));
+        console.log(`Playing 3-row clear sound (delayed): ${randomIndex === 0 ? 'great_move.mp3' : 'smooth_clear.mp3'}`);
+      }, 1000); // 1 second delay
+    }
+  } else if (completedRows === 4) {
+    addScore = SCORE_SYSTEM.TETRIS * (level + 1); // Tetris!
+    shouldTriggerFireworks = true; // Trigger fireworks for Tetris
+    
+    // Play the special "amazing" sound for Tetris (4 rows cleared) with 1s delay
+    if (tetris_audio) {
+      tetris_audio.currentTime = 0;
+      
+      // Add 1 second delay before playing the voice
+      setTimeout(() => {
+        tetris_audio.play().catch(e => console.log('Tetris sound play prevented:', e));
+        console.log('Playing Tetris special sound (delayed): amazing.mp3');
+      }, 1000); // 1 second delay
+    }
+  }
+  
+  // Process the completed rows, marking them and creating particles
+  if (completedRows > 0) {
+    // Mark rows for clearing animation
+    rowsToBeCleared.forEach(y => {
       markRow(y);
-
       // Create particles for the row
       createParticles(y);
+    });
 
-      // Update score and check level up
-      score += addScore;
-      addScoreValue = addScore;
+    // Update score and check level up
+    score += addScore;
+    addScoreValue = addScore;
 
-      // Check for level up based on starting level rules
-      if (startingLevel >= 10) {
-        // For starting levels 10+: Stay on starting level until cleared (StartLevel + 1) * 10 lines, then level up every 10 lines
-        const threshold = (startingLevel + 1) * 10;
-        
-        if (lines >= threshold) {
-          // Once we've cleared the threshold lines, we follow the standard "every 10 lines" rule
-          // Calculate how many levels to add after passing threshold
-          const linesAfterThreshold = lines - threshold;
-          if (linesAfterThreshold % 10 === 0 && linesAfterThreshold > 0) {
-            level++;
-            console.log(`Leveled up to ${level} after clearing ${lines} lines (threshold was ${threshold})`);
-            shouldTriggerLevelUpFireworks = true;
-          }
-        }
-      } else {
-        // For starting levels 0-9: Level up at specific thresholds according to the table
-        // Level 0: 10, 20, 30...
-        // Level 1: 20, 30, 40...
-        // Level 2: 30, 40, 50...
-        // And so on...
-        const levelThreshold = (startingLevel + 1) * 10;
-        
-        // Check if we've reached the threshold based on starting level
-        if (lines === levelThreshold) {
+    // Check for level up based on starting level rules
+    if (startingLevel >= 10) {
+      // For starting levels 10+: Stay on starting level until cleared (StartLevel + 1) * 10 lines, then level up every 10 lines
+      const threshold = (startingLevel + 1) * 10;
+      
+      if (lines >= threshold) {
+        // Once we've cleared the threshold lines, we follow the standard "every 10 lines" rule
+        // Calculate how many levels to add after passing threshold
+        const linesAfterThreshold = lines - threshold;
+        if (linesAfterThreshold % 10 === 0 && linesAfterThreshold > 0) {
           level++;
-          console.log(`Leveled up to ${level} after clearing ${lines} lines (threshold was ${levelThreshold})`);
-          shouldTriggerLevelUpFireworks = true;
-        } 
-        // After first level up, follow standard "every 10 lines" rule
-        else if (lines > levelThreshold && (lines - levelThreshold) % 10 === 0) {
-          level++;
-          console.log(`Leveled up to ${level} after clearing ${lines} lines`);
+          console.log(`Leveled up to ${level} after clearing ${lines} lines (threshold was ${threshold})`);
           shouldTriggerLevelUpFireworks = true;
         }
       }
-
-      // Play sound effect
-      if (clear_line_audio) {
-        clear_line_audio.currentTime = 0;
-        clear_line_audio.play().catch(e => console.log('Audio play prevented:', e));
+    } else {
+      // For starting levels 0-9: Level up at specific thresholds according to the table
+      // Level 0: 10, 20, 30...
+      // Level 1: 20, 30, 40...
+      // Level 2: 30, 40, 50...
+      // And so on...
+      const levelThreshold = (startingLevel + 1) * 10;
+      
+      // Check if we've reached the threshold based on starting level
+      if (lines === levelThreshold) {
+        level++;
+        console.log(`Leveled up to ${level} after clearing ${lines} lines (threshold was ${levelThreshold})`);
+        shouldTriggerLevelUpFireworks = true;
+      } 
+      // After first level up, follow standard "every 10 lines" rule
+      else if (lines > levelThreshold && (lines - levelThreshold) % 10 === 0) {
+        level++;
+        console.log(`Leveled up to ${level} after clearing ${lines} lines`);
+        shouldTriggerLevelUpFireworks = true;
       }
+    }
+
+    // Play regular line clear sound effect immediately (not delayed)
+    if (clear_line_audio) {
+      clear_line_audio.currentTime = 0;
+      clear_line_audio.play().catch(e => console.log('Audio play prevented:', e));
     }
   }
 
