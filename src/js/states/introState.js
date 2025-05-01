@@ -19,7 +19,10 @@ let introEventListenersAdded = false; // Track if event listeners are active
 
 // Level selection
 let selectedLevel = 0; // Selected starting level (0-19)
-let showLevelSelector = false; // Whether to show the level selector
+
+// Settings popup variables
+let showSettingsPopup = false; // Controls visibility of settings popup
+let musicEnabled = true;       // Whether music is enabled
 
 // Tetris block fireworks animation variables
 let tetrisFireworks = [];
@@ -65,8 +68,8 @@ export function initIntroState(images, updateGameStateCallback) {
   // Store callback for state changes
   gameStateCallback = updateGameStateCallback;
   
-  // Load selected level from localStorage
-  loadSelectedLevel();
+  // Load settings (level and music preferences) 
+  loadSettings();
   
   // First load from localStorage as a fallback
   loadHighScoreData();
@@ -76,6 +79,62 @@ export function initIntroState(images, updateGameStateCallback) {
   
   // Initialize fireworks
   tetrisFireworks = [];
+}
+
+/**
+ * Load settings from localStorage
+ */
+function loadSettings() {
+  try {
+    if (typeof(Storage) !== "undefined") {
+      // Load selected level
+      const savedLevel = localStorage.getItem('tetris_selected_level');
+      if (savedLevel !== null) {
+        selectedLevel = parseInt(savedLevel, 10);
+        // Update the global variable used by the game
+        window.selected_game_level = selectedLevel;
+        console.log(`Loaded selected level ${selectedLevel} from localStorage`);
+      }
+      
+      // Load music preference
+      const storedMusicPref = localStorage.getItem('music_on');
+      if (storedMusicPref !== null) {
+        musicEnabled = storedMusicPref === "true";
+        // Update the global music variable if it exists
+        if (typeof window.music_on !== 'undefined') {
+          window.music_on = musicEnabled;
+        }
+        console.log(`Loaded music preference: ${musicEnabled} from localStorage`);
+      }
+    }
+  } catch (e) {
+    console.error("Error loading settings:", e);
+  }
+}
+
+/**
+ * Save settings to localStorage
+ */
+function saveSettings() {
+  try {
+    if (typeof(Storage) !== "undefined") {
+      // Save selected level
+      localStorage.setItem('tetris_selected_level', selectedLevel.toString());
+      // Update the global variable used by the game
+      window.selected_game_level = selectedLevel;
+      
+      // Save music preference
+      localStorage.setItem('music_on', musicEnabled.toString());
+      // Update the global music variable
+      if (typeof window.music_on !== 'undefined') {
+        window.music_on = musicEnabled;
+      }
+      
+      console.log(`Saved settings - Level: ${selectedLevel}, Music: ${musicEnabled}`);
+    }
+  } catch (e) {
+    console.error("Error saving settings:", e);
+  }
 }
 
 /**
@@ -379,6 +438,7 @@ export function handleIntroState(setGameState) {
       
     // Add intro-specific event listeners - only listen for keydown, not mousedown
     document.addEventListener('keydown', handleIntroKeyDown);
+    canvas.addEventListener('click', handleIntroScreenClick);
     introEventListenersAdded = true;
   }
 
@@ -431,97 +491,6 @@ export function handleIntroState(setGameState) {
     ctx.fillStyle = '#ffcc00';
     ctx.textAlign = 'center';
     ctx.fillText("TETRIS", WIDTH/2, 40);
-  }
-
-  // Add a level selector on the left side of the screen
-  const levelSelectorX = 50;
-  const levelSelectorY = 200;
-  const levelButtonSize = 40;
-  const levelButtonSpacing = 10;
-  const levelButtonsPerRow = 5;
-  
-  // Draw level selector title
-  ctx.fillStyle = '#ffcc00'; // Gold color for title
-  DrawBitmapTextSmall("STARTING LEVEL", levelSelectorX, levelSelectorY - 30, 0, 0, 0);
-  
-  // Draw level buttons (0-19)
-  for (let i = 0; i <= 19; i++) {
-    const row = Math.floor(i / levelButtonsPerRow);
-    const col = i % levelButtonsPerRow;
-    const buttonX = levelSelectorX + col * (levelButtonSize + levelButtonSpacing);
-    const buttonY = levelSelectorY + row * (levelButtonSize + levelButtonSpacing);
-    
-    // Button background (highlight selected button)
-    if (i === selectedLevel) {
-      // Selected level - gold gradient with glow
-      const gradient = ctx.createRadialGradient(
-        buttonX + levelButtonSize/2, buttonY + levelButtonSize/2, 0,
-        buttonX + levelButtonSize/2, buttonY + levelButtonSize/2, levelButtonSize
-      );
-      gradient.addColorStop(0, '#ffcc00');
-      gradient.addColorStop(1, '#cc9900');
-      ctx.fillStyle = gradient;
-      
-      // Add glow effect
-      ctx.shadowColor = '#ffcc00';
-      ctx.shadowBlur = 10;
-    } else {
-      // Unselected levels - dark gradient
-      const gradient = ctx.createRadialGradient(
-        buttonX + levelButtonSize/2, buttonY + levelButtonSize/2, 0,
-        buttonX + levelButtonSize/2, buttonY + levelButtonSize/2, levelButtonSize
-      );
-      gradient.addColorStop(0, '#444444');
-      gradient.addColorStop(1, '#222222');
-      ctx.fillStyle = gradient;
-      ctx.shadowBlur = 0;
-    }
-    
-    // Draw button
-    ctx.fillRect(buttonX, buttonY, levelButtonSize, levelButtonSize);
-    ctx.shadowBlur = 0;
-    
-    // Button text
-    ctx.fillStyle = i === selectedLevel ? '#000' : '#fff';
-    ctx.font = 'bold 20px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(i.toString(), buttonX + levelButtonSize/2, buttonY + levelButtonSize/2);
-    
-    // Add click handler for level buttons
-    canvas.addEventListener('click', function levelButtonClick(e) {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      
-      for (let j = 0; j <= 19; j++) {
-        const btnRow = Math.floor(j / levelButtonsPerRow);
-        const btnCol = j % levelButtonsPerRow;
-        const btnX = levelSelectorX + btnCol * (levelButtonSize + levelButtonSpacing);
-        const btnY = levelSelectorY + btnRow * (levelButtonSize + levelButtonSpacing);
-        
-        if (mouseX >= btnX && mouseX <= btnX + levelButtonSize &&
-            mouseY >= btnY && mouseY <= btnY + levelButtonSize) {
-          // Update selected level
-          selectedLevel = j;
-          console.log(`Selected starting level: ${selectedLevel}`);
-          
-          // Save selected level to localStorage
-          try {
-            if (typeof(Storage) !== "undefined") {
-              localStorage.setItem('tetris_selected_level', selectedLevel.toString());
-              console.log(`Saved selected level ${selectedLevel} to localStorage`);
-            }
-          } catch (e) {
-            console.error("Error saving selected level:", e);
-          }
-          
-          // Remove this handler to avoid duplicates (will be re-added next frame)
-          canvas.removeEventListener('click', levelButtonClick);
-          break;
-        }
-      }
-    });
   }
 
   // Add a cloud high scores badge
@@ -743,6 +712,14 @@ export function handleIntroState(setGameState) {
   // Update and render Tetris block fireworks
   updateTetrisFireworks();
   
+  // Draw settings button
+  drawSettingsButton();
+  
+  // Draw settings popup if visible
+  if (showSettingsPopup) {
+    drawSettingsPopup();
+  }
+  
   return true;
 }
 
@@ -757,6 +734,11 @@ export function startNewGame() {
     // Store selected level in multiple places to ensure it persists
     window.selected_game_level = selectedLevel;
     console.log(`Starting game with level: ${selectedLevel}, stored in global variable as: ${window.selected_game_level}`);
+    
+    // Start playing music if enabled (only when starting actual gameplay)
+    if (typeof window.startGameMusic === 'function') {
+      window.startGameMusic();
+    }
     
     // Call the callback to update game state
     if (gameStateCallback) {
@@ -778,6 +760,7 @@ export function startNewGame() {
 function removeAllEventListeners() {
   if (introEventListenersAdded) {
     document.removeEventListener('keydown', handleIntroKeyDown);
+    canvas.removeEventListener('click', handleIntroScreenClick);
     introEventListenersAdded = false;
   }
 }
@@ -957,4 +940,351 @@ function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes < 10 ? '0' : ''}${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+}
+
+/**
+ * Draw settings button in the top-right corner
+ */
+function drawSettingsButton() {
+  const buttonSize = 40;
+  const margin = 20;
+  const buttonX = WIDTH - buttonSize - margin;
+  const buttonY = margin;
+  
+  // Button background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.beginPath();
+  ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Button border
+  ctx.strokeStyle = '#ffcc00';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Settings gear icon
+  drawGearIcon(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize * 0.3);
+}
+
+/**
+ * Draw a gear icon for settings button
+ * 
+ * @param {number} x - Center X position
+ * @param {number} y - Center Y position
+ * @param {number} size - Size of the gear
+ */
+function drawGearIcon(x, y, size) {
+  const outerRadius = size;
+  const innerRadius = size * 0.6;
+  const teethCount = 8;
+  
+  ctx.fillStyle = '#ffcc00';
+  ctx.beginPath();
+  
+  // Draw gear teeth
+  for (let i = 0; i < teethCount; i++) {
+    const angle = (i / teethCount) * Math.PI * 2;
+    const nextAngle = ((i + 0.5) / teethCount) * Math.PI * 2;
+    
+    ctx.lineTo(x + Math.cos(angle) * outerRadius, y + Math.sin(angle) * outerRadius);
+    ctx.lineTo(x + Math.cos(nextAngle) * innerRadius, y + Math.sin(nextAngle) * innerRadius);
+  }
+  
+  ctx.closePath();
+  ctx.fill();
+  
+  // Draw center circle
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/**
+ * Draw settings popup with level selection and music toggle
+ */
+function drawSettingsPopup() {
+  // Popup dimensions and position
+  const popupWidth = Math.min(WIDTH * 0.8, 500);
+  const popupHeight = 350; // Increased height to accommodate level selector
+  const popupX = (WIDTH - popupWidth) / 2;
+  const popupY = (HEIGHT - popupHeight) / 2;
+  
+  // Semi-transparent background overlay
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  
+  // Popup background
+  ctx.fillStyle = '#222';
+  ctx.strokeStyle = '#ffcc00';
+  ctx.lineWidth = 3;
+  roundRect(ctx, popupX, popupY, popupWidth, popupHeight, 10);
+  ctx.fill();
+  ctx.stroke();
+  
+  // Popup title
+  DrawBitmapText("SETTINGS", 0, popupY + 40, 1, 0, 0);
+  
+  // Divider line
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(popupX + 20, popupY + 70);
+  ctx.lineTo(popupX + popupWidth - 20, popupY + 70);
+  ctx.stroke();
+  
+  // Level selection section
+  DrawBitmapTextSmall("STARTING LEVEL", 0, popupY + 100, 1, 0, 0);
+  
+  // Draw level buttons (0-19)
+  const buttonSize = 32; // Increased size for better visibility
+  const buttonSpacing = 10;
+  
+  // Reorganize buttons into 2-3 rows instead of 4
+  const maxButtonsPerRow = 10; // Show 10 buttons per row for max of 2 rows
+  const rows = Math.ceil(20 / maxButtonsPerRow); // Will be 2 for 20 levels
+  const buttonsPerRow = Math.ceil(20 / rows); // Evenly distribute buttons
+  
+  // Calculate starting position for the grid of buttons
+  const gridWidth = (buttonSize * buttonsPerRow) + (buttonSpacing * (buttonsPerRow - 1));
+  let startX = (WIDTH - gridWidth) / 2;
+  let startY = popupY + 130;
+  
+  for (let i = 0; i < 20; i++) {
+    const row = Math.floor(i / buttonsPerRow);
+    const col = i % buttonsPerRow;
+    const buttonX = startX + (col * (buttonSize + buttonSpacing));
+    const buttonY = startY + (row * (buttonSize + buttonSpacing));
+    
+    // Button background (highlight selected level)
+    if (i === selectedLevel) {
+      // Selected level - gold gradient with glow
+      const gradient = ctx.createRadialGradient(
+        buttonX + buttonSize/2, buttonY + buttonSize/2, 0,
+        buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize
+      );
+      gradient.addColorStop(0, '#ffcc00');
+      gradient.addColorStop(1, '#cc9900');
+      ctx.fillStyle = gradient;
+      ctx.shadowColor = '#ffcc00';
+      ctx.shadowBlur = 10;
+    } else {
+      // Unselected levels - dark gradient
+      const gradient = ctx.createRadialGradient(
+        buttonX + buttonSize/2, buttonY + buttonSize/2, 0,
+        buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize
+      );
+      gradient.addColorStop(0, '#444444');
+      gradient.addColorStop(1, '#222222');
+      ctx.fillStyle = gradient;
+      ctx.shadowBlur = 0;
+    }
+    
+    // Draw button
+    ctx.fillRect(buttonX, buttonY, buttonSize, buttonSize);
+    ctx.shadowBlur = 0;
+    
+    // Button text
+    ctx.fillStyle = i === selectedLevel ? '#000' : '#fff';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i.toString(), buttonX + buttonSize/2, buttonY + buttonSize/2);
+  }
+  
+  // Music toggle section - adjusted Y position to maintain proper spacing
+  DrawBitmapTextSmall("MUSIC", 0, popupY + 230, 1, 0, 0);
+  
+  // Draw toggle button - adjusted Y position
+  const toggleWidth = 80;
+  const toggleHeight = 30;
+  const toggleX = (WIDTH - toggleWidth) / 2;
+  const toggleY = popupY + 260;
+  
+  // Toggle background
+  const toggleColor = musicEnabled ? '#4CAF50' : '#F44336';
+  ctx.fillStyle = toggleColor;
+  roundRect(ctx, toggleX, toggleY, toggleWidth, toggleHeight, toggleHeight / 2);
+  ctx.fill();
+  
+  // Toggle circle
+  const circleX = musicEnabled ? toggleX + toggleWidth - toggleHeight + 5 : toggleX + 5;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(circleX + (toggleHeight - 10) / 2, toggleY + toggleHeight / 2, (toggleHeight - 10) / 2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Toggle text
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(musicEnabled ? "ON" : "OFF", musicEnabled ? toggleX + 25 : toggleX + toggleWidth - 25, toggleY + toggleHeight / 2);
+  
+  // Close button
+  const closeButtonSize = 30;
+  const closeButtonX = popupX + popupWidth - closeButtonSize - 10;
+  const closeButtonY = popupY + 10;
+  
+  // Button circle
+  ctx.fillStyle = '#cc0000';
+  ctx.beginPath();
+  ctx.arc(closeButtonX + closeButtonSize / 2, closeButtonY + closeButtonSize / 2, closeButtonSize / 2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // X mark
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(closeButtonX + closeButtonSize * 0.3, closeButtonY + closeButtonSize * 0.3);
+  ctx.lineTo(closeButtonX + closeButtonSize * 0.7, closeButtonY + closeButtonSize * 0.7);
+  ctx.moveTo(closeButtonX + closeButtonSize * 0.7, closeButtonY + closeButtonSize * 0.3);
+  ctx.lineTo(closeButtonX + closeButtonSize * 0.3, closeButtonY + closeButtonSize * 0.7);
+  ctx.stroke();
+}
+
+/**
+ * Helper function to draw rounded rectangles
+ * 
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - Top-left X position
+ * @param {number} y - Top-left Y position
+ * @param {number} width - Rectangle width
+ * @param {number} height - Rectangle height
+ * @param {number} radius - Corner radius
+ */
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+/**
+ * Export click handler for intro screen
+ * Handles clicks on settings button, settings popup, and level buttons
+ * 
+ * @param {MouseEvent} event - Mouse click event
+ */
+export function handleIntroScreenClick(event) {
+  // Get click position relative to canvas
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+  
+  if (showSettingsPopup) {
+    // Handle clicks within settings popup
+    handleSettingsPopupClick(mouseX, mouseY);
+  } else {
+    // Check if settings button was clicked
+    checkSettingsButtonClick(mouseX, mouseY);
+  }
+}
+
+/**
+ * Check if the settings button was clicked
+ * 
+ * @param {number} mouseX - Mouse X position
+ * @param {number} mouseY - Mouse Y position
+ */
+function checkSettingsButtonClick(mouseX, mouseY) {
+  const buttonSize = 40;
+  const margin = 20;
+  const buttonX = WIDTH - buttonSize - margin;
+  const buttonY = margin;
+  
+  // Calculate distance from button center
+  const centerX = buttonX + buttonSize/2;
+  const centerY = buttonY + buttonSize/2;
+  const distance = Math.sqrt(Math.pow(mouseX - centerX, 2) + Math.pow(mouseY - centerY, 2));
+  
+  // Check if click is within button circle
+  if (distance <= buttonSize/2) {
+    console.log("Settings button clicked");
+    showSettingsPopup = true;
+  }
+}
+
+/**
+ * Handle clicks within the settings popup
+ * 
+ * @param {number} mouseX - Mouse X position
+ * @param {number} mouseY - Mouse Y position
+ */
+function handleSettingsPopupClick(mouseX, mouseY) {
+  const popupWidth = Math.min(WIDTH * 0.8, 500);
+  const popupHeight = 350;
+  const popupX = (WIDTH - popupWidth) / 2;
+  const popupY = (HEIGHT - popupHeight) / 2;
+  
+  // Check close button click
+  const closeButtonSize = 30;
+  const closeButtonX = popupX + popupWidth - closeButtonSize - 10;
+  const closeButtonY = popupY + 10;
+  
+  // Calculate distance from close button center
+  const closeCenterX = closeButtonX + closeButtonSize/2;
+  const closeCenterY = closeButtonY + closeButtonSize/2;
+  const closeDistance = Math.sqrt(Math.pow(mouseX - closeCenterX, 2) + Math.pow(mouseY - closeCenterY, 2));
+  
+  if (closeDistance <= closeButtonSize/2) {
+    console.log("Settings popup close button clicked");
+    showSettingsPopup = false;
+    saveSettings(); // Save settings when closing popup
+    return;
+  }
+  
+  // Check music toggle click
+  const toggleWidth = 80;
+  const toggleHeight = 30;
+  const toggleX = (WIDTH - toggleWidth) / 2;
+  const toggleY = popupY + 260;
+  
+  if (mouseX >= toggleX && mouseX <= toggleX + toggleWidth &&
+      mouseY >= toggleY && mouseY <= toggleY + toggleHeight) {
+    console.log("Music toggle clicked");
+    musicEnabled = !musicEnabled;
+    
+    // Apply music setting immediately
+    if (typeof window.music_on !== 'undefined') {
+      window.music_on = musicEnabled;
+    }
+    
+    return;
+  }
+  
+  // Check level button clicks with updated layout
+  const buttonSize = 32;
+  const buttonSpacing = 10;
+  const maxButtonsPerRow = 10; // Match the drawing logic
+  const rows = Math.ceil(20 / maxButtonsPerRow); // Will be 2 for 20 levels
+  const buttonsPerRow = Math.ceil(20 / rows); // Evenly distribute buttons
+  
+  // Calculate grid position using same logic as in drawSettingsPopup
+  const gridWidth = (buttonSize * buttonsPerRow) + (buttonSpacing * (buttonsPerRow - 1));
+  const startX = (WIDTH - gridWidth) / 2;
+  const startY = popupY + 130;
+  
+  for (let i = 0; i < 20; i++) {
+    const row = Math.floor(i / buttonsPerRow);
+    const col = i % buttonsPerRow;
+    const buttonX = startX + (col * (buttonSize + buttonSpacing));
+    const buttonY = startY + (row * (buttonSize + buttonSpacing));
+    
+    if (mouseX >= buttonX && mouseX <= buttonX + buttonSize &&
+        mouseY >= buttonY && mouseY <= buttonY + buttonSize) {
+      console.log(`Level ${i} button clicked`);
+      selectedLevel = i;
+      return;
+    }
+  }
 }

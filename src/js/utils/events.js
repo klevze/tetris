@@ -426,6 +426,16 @@ function handleKeyDown(e) {
         return;
     }
     
+    // M key can toggle music in ANY game state
+    if (e.key === 'm') {
+        e.preventDefault();
+        keyState.m = true;
+        // Toggle music using the game.js function and emit event
+        const musicEnabled = toggleGameMusic();
+        eventBus.emit(GAME_EVENTS.MUSIC_TOGGLE, { enabled: musicEnabled });
+        return;
+    }
+    
     // Handle gameplay keys
     if (game_state === GAME_STATES.PLAY_GAME) {
         // P key can be used ANY time to toggle pause
@@ -436,16 +446,6 @@ function handleKeyDown(e) {
             game_pause = toggleGamePause();
             // Emit event to notify other modules
             eventBus.emit(game_pause ? GAME_EVENTS.GAME_PAUSE : GAME_EVENTS.GAME_RESUME);
-            return;
-        }
-        
-        // M key can be used even when paused
-        if (e.key === 'm') {
-            e.preventDefault();
-            keyState.m = true;
-            // Toggle music using the game.js function and emit event
-            const musicEnabled = toggleGameMusic();
-            eventBus.emit(GAME_EVENTS.MUSIC_TOGGLE, { enabled: musicEnabled });
             return;
         }
         

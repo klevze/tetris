@@ -20,6 +20,9 @@ import { GAME_STATES } from './config/config.js';
 // Import the new event system
 import { eventBus, GAME_EVENTS } from './utils/events.js';
 
+// Import the intro state module to access the click handler
+import { handleIntroScreenClick } from './states/introState.js';
+
 /**
  * Initialize the game when the DOM is fully loaded
  * Sets up the canvas and starts the game initialization process
@@ -56,14 +59,16 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Set up event listeners for initial user interaction
  * Modern browsers require user interaction before playing audio
- * Modified to only initialize audio on space key press, not mouse click
  */
 function setupUserInteractionHandlers() {
-    // Handle keydown event for space key
-    const handleKeyDown = (event) => {
-        // Only initialize audio when space key is pressed (code 32)
-        if (event.keyCode === 32) {
-            console.log('Space key pressed, audio can play now');
+    // Flag to track if audio has been initialized
+    let audioInitialized = false;
+    
+    // Function to initialize audio once on any user interaction
+    const initAudioOnInteraction = () => {
+        if (!audioInitialized) {
+            console.log('User interaction detected, initializing audio');
+            audioInitialized = true;
             
             // Initialize audio after user interaction
             initAudio();
@@ -71,13 +76,38 @@ function setupUserInteractionHandlers() {
             // Emit event through the event bus
             eventBus.emit(GAME_EVENTS.SOUND_TOGGLE, { enabled: true });
             
-            // Remove the keydown listener since we only need one interaction
+            // Remove event listeners once audio is initialized
             document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('click', handleClick);
+            document.removeEventListener('touchstart', handleTouch);
         }
     };
     
-    // Add keydown event listener for space bar
+    // Handle keydown event for any key
+    const handleKeyDown = (event) => {
+        initAudioOnInteraction();
+    };
+    
+    // Handle mouse click anywhere
+    const handleClick = () => {
+        initAudioOnInteraction();
+    };
+    
+    // Handle touch events for mobile
+    const handleTouch = () => {
+        initAudioOnInteraction();
+    };
+    
+    // Add event listeners for multiple interaction types
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('click', handleClick);
+    document.addEventListener('touchstart', handleTouch);
+    
+    // Add click event listener for settings button and popup interaction
+    const canvas = document.getElementById('mainCanvas');
+    if (canvas) {
+        canvas.addEventListener('click', handleIntroScreenClick);
+    }
 }
 
 // Prevent default spacebar and arrow key behavior (scrolling)

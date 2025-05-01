@@ -41,6 +41,10 @@ window.game_state = game_state;
 // Store selected level globally to ensure persistence between state changes
 window.selected_game_level = 0;
 
+// Expose music functions globally
+window.startGameMusic = startGameMusic;
+window.toggleGameMusic = toggleGameMusic;
+
 let game_pause = false;
 let music_on = true;
 let audioInitialized = false; // Flag to track audio initialization status
@@ -516,20 +520,67 @@ window.addEventListener("keydown", function(e) {
 
 // Function to initialize audio after user interaction
 export function initAudio() {
-  if (!audioInitialized && music_on) {
-    // Try to play the ambient audio
-    const playPromise = ambient_audio.play();
-    
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          audioInitialized = true;
-          console.log("Audio playback started successfully");
-        })
-        .catch(error => {
-          console.log("Audio playback was prevented: ", error);
-        });
+  try {
+    if (!audioInitialized) {
+      audioInitialized = true;
+      console.log("Audio initialization completed");
+      
+      // Set ambient_audio to loop automatically
+      if (ambient_audio) {
+        ambient_audio.loop = true;
+      }
+      
+      // Start playing music immediately if music is enabled
+      if (music_on && ambient_audio && game_state === GAME_STATES.PLAY_GAME) {
+        startGameMusic();
+      }
     }
+  } catch (error) {
+    console.error("Error initializing audio:", error);
+  }
+}
+
+// Function to start playing music (only called when needed)
+export function startGameMusic() {
+  // First check if music is enabled in user preferences
+  if (music_on && ambient_audio) {
+    // Make sure audio is initialized first
+    if (!audioInitialized) {
+      initAudio();
+    }
+    
+    // Set necessary audio properties
+    ambient_audio.loop = true;
+    ambient_audio.volume = 0.7; // Set to 70% volume
+    
+    // Try to play the ambient audio with better error handling
+    try {
+      const playPromise = ambient_audio.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log("Game music playback started successfully");
+          })
+          .catch(error => {
+            console.log("Game music playback was prevented:", error);
+            
+            // If playback was prevented, we'll re-attempt after user interaction
+            const musicStartHandler = function() {
+              if (music_on && (game_state === GAME_STATES.PLAY_GAME || game_state === GAME_STATES.GAME_START)) {
+                ambient_audio.play().catch(e => console.error("Still cannot play audio:", e));
+                document.removeEventListener('click', musicStartHandler);
+              }
+            };
+            
+            document.addEventListener('click', musicStartHandler, { once: false });
+          });
+      }
+    } catch (error) {
+      console.error("Error playing audio:", error);
+    }
+  } else {
+    console.log("Music is disabled or audio not loaded, skipping playback");
   }
 }
 

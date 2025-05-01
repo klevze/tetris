@@ -141,6 +141,11 @@ export function startMainGame() {
   
   level_goal = INITIAL_LEVEL_GOAL;
   
+  // Start playing music if enabled (by calling the global music function)
+  if (typeof window.startGameMusic === 'function') {
+    window.startGameMusic();
+  }
+  
   // Calculate canvas dimensions for proper centering
   const canvasWidth = ctx.canvas.width / (window.devicePixelRatio || 1);
   const canvasHeight = ctx.canvas.height / (window.devicePixelRatio || 1);
@@ -581,9 +586,22 @@ function calculateLinesToNextLevel() {
       return nextLevelPoint - currentLines;
     }
   } else {
-    // For starting levels 0-9: Level up every 10 lines cleared
-    const nextLevelPoint = (Math.floor(currentLines / 10) + 1) * 10;
-    return nextLevelPoint - currentLines;
+    // For starting levels 0-9: Level up at specific thresholds according to the table
+    // Level 0: 10, 20, 30...
+    // Level 1: 20, 30, 40...
+    // Level 2: 30, 40, 50...
+    // And so on...
+    const levelThreshold = (startingLevel + 1) * 10;
+    
+    if (currentLines < levelThreshold) {
+      // Haven't reached first level-up threshold yet
+      return levelThreshold - currentLines;
+    } else {
+      // After first level up, follow standard "every 10 lines" rule
+      const linesAfterThreshold = currentLines - levelThreshold;
+      const nextLevelPoint = levelThreshold + (Math.floor(linesAfterThreshold / 10) + 1) * 10;
+      return nextLevelPoint - currentLines;
+    }
   }
 }
 

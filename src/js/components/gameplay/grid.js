@@ -448,8 +448,21 @@ export function checkRows() {
           }
         }
       } else {
-        // For starting levels 0-9: Level up every 10 lines cleared
-        if (lines % 10 === 0) {
+        // For starting levels 0-9: Level up at specific thresholds according to the table
+        // Level 0: 10, 20, 30...
+        // Level 1: 20, 30, 40...
+        // Level 2: 30, 40, 50...
+        // And so on...
+        const levelThreshold = (startingLevel + 1) * 10;
+        
+        // Check if we've reached the threshold based on starting level
+        if (lines === levelThreshold) {
+          level++;
+          console.log(`Leveled up to ${level} after clearing ${lines} lines (threshold was ${levelThreshold})`);
+          shouldTriggerLevelUpFireworks = true;
+        } 
+        // After first level up, follow standard "every 10 lines" rule
+        else if (lines > levelThreshold && (lines - levelThreshold) % 10 === 0) {
           level++;
           console.log(`Leveled up to ${level} after clearing ${lines} lines`);
           shouldTriggerLevelUpFireworks = true;
