@@ -45,6 +45,9 @@ let addScoreValue = 0;
 let scoreTextTimer = 0;
 let scoreTextPosition = { x: 0, y: 0 };
 
+// Store original starting level to use for level progression logic
+let startingLevel = 0;
+
 // Standard Tetris scoring system base points
 const SCORE_SYSTEM = {
   SINGLE: 40,    // 1 line cleared
@@ -429,13 +432,28 @@ export function checkRows() {
       score += addScore;
       addScoreValue = addScore;
 
-      // Check for level up - exactly every 10 lines
-      if (lines % 10 === 0) {
-        level++;
-        if (level > 10) {
-          level = 10; // Max level
+      // Check for level up based on starting level rules
+      if (startingLevel >= 10) {
+        // For starting levels 10+: Stay on starting level until cleared (StartLevel + 1) * 10 lines, then level up every 10 lines
+        const threshold = (startingLevel + 1) * 10;
+        
+        if (lines >= threshold) {
+          // Once we've cleared the threshold lines, we follow the standard "every 10 lines" rule
+          // Calculate how many levels to add after passing threshold
+          const linesAfterThreshold = lines - threshold;
+          if (linesAfterThreshold % 10 === 0 && linesAfterThreshold > 0) {
+            level++;
+            console.log(`Leveled up to ${level} after clearing ${lines} lines (threshold was ${threshold})`);
+            shouldTriggerLevelUpFireworks = true;
+          }
         }
-        shouldTriggerLevelUpFireworks = true; // Trigger level-up fireworks
+      } else {
+        // For starting levels 0-9: Level up every 10 lines cleared
+        if (lines % 10 === 0) {
+          level++;
+          console.log(`Leveled up to ${level} after clearing ${lines} lines`);
+          shouldTriggerLevelUpFireworks = true;
+        }
       }
 
       // Play sound effect
@@ -890,13 +908,25 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
   // Use the global selected level if available, otherwise default to 0
   if (typeof window.selected_game_level === 'number') {
     level = window.selected_game_level;
+    startingLevel = window.selected_game_level; // Store starting level
     console.log(`Grid using selected level: ${level} from global variable`);
   } else {
     level = 0;
+    startingLevel = 0; // Store starting level
     console.log(`Grid using default level 0`);
   }
   
-  level_goal = 10;
+  // Set initial level goal based on starting level
+  if (startingLevel >= 10) {
+    // For level 10+: need to clear (startingLevel + 1) * 10 lines before first level up
+    level_goal = (startingLevel + 1) * 10;
+    console.log(`Level goal set to ${level_goal} lines for starting level ${startingLevel}`);
+  } else {
+    // For levels 0-9: level up every 10 lines
+    level_goal = 10;
+    console.log(`Level goal set to ${level_goal} lines for starting level ${startingLevel}`);
+  }
+  
   score = 0;
   showAddScore = false;
   scoreTextTimer = 0;

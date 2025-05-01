@@ -556,6 +556,38 @@ function getUIPositions() {
 }
 
 /**
+ * Calculate the number of lines needed to reach the next level
+ * Uses the same logic as the level progression in the grid.js file
+ * @returns {number} Number of lines needed for next level
+ */
+function calculateLinesToNextLevel() {
+  // Get the game state from grid module
+  const gridState = getGridState();
+  const currentLines = gridState.lines;
+  const currentLevel = gridState.level;
+  const startingLevel = typeof window.selected_game_level === 'number' ? window.selected_game_level : 0;
+  
+  if (startingLevel >= 10) {
+    // For starting levels 10+: Stay on starting level until cleared (StartLevel + 1) * 10 lines, then level up every 10 lines
+    const threshold = (startingLevel + 1) * 10;
+    
+    if (currentLines < threshold) {
+      // Haven't reached the threshold yet
+      return threshold - currentLines;
+    } else {
+      // Past the threshold, so level up every 10 lines
+      const linesAfterThreshold = currentLines - threshold;
+      const nextLevelPoint = threshold + (Math.floor(linesAfterThreshold / 10) + 1) * 10;
+      return nextLevelPoint - currentLines;
+    }
+  } else {
+    // For starting levels 0-9: Level up every 10 lines cleared
+    const nextLevelPoint = (Math.floor(currentLines / 10) + 1) * 10;
+    return nextLevelPoint - currentLines;
+  }
+}
+
+/**
  * Display the game score, lines, level and time with optimized text rendering
  */
 function showScore() {
@@ -571,17 +603,26 @@ function showScore() {
   // Calculate left position (35% of panel width) for better left alignment
   const leftAlignedX = uiPositions.panelX + (uiPositions.panelWidth * 0.035);
   
+  // Calculate lines needed to reach the next level
+  const linesToNextLevel = calculateLinesToNextLevel();
+  
   // Draw left-aligned labels with bitmap font in gold color
   DrawBitmapTextSmall("SCORE", leftAlignedX-50, uiPositions.scoreY-32, 1, 0, 1); // 1 = centered
   DrawBitmapTextSmall("LINES", leftAlignedX-50, uiPositions.linesY-32, 1, 0, 1); // 1 = centered
   DrawBitmapTextSmall("LEVEL", leftAlignedX-50, uiPositions.levelY-32, 1, 0, 1); // 1 = centered
-  DrawBitmapTextSmall("TIME", leftAlignedX-50, uiPositions.timerY-32, 1, 0, 1); // 1 = centered
+  DrawBitmapTextSmall("NEXT LVL", leftAlignedX-50, uiPositions.levelY+20, 1, 0, 1); // New "NEXT LVL" label
+  DrawBitmapTextSmall("TIME", leftAlignedX-50, uiPositions.timerY+12, 1, 0, 1); // 1 = centered
   
   // Draw values with larger bitmap font below labels with consistent padding
   DrawBitmapTextSmall(score.toString(), leftAlignedX-50, uiPositions.scoreY - 10, 8, 0, 1); // Consistent 30px padding, yellow
   DrawBitmapTextSmall(lines.toString(), leftAlignedX-50, uiPositions.linesY - 10, 6, 0, 1); // Consistent 30px padding, blue
   DrawBitmapTextSmall(level.toString(), leftAlignedX-50, uiPositions.levelY - 10, getLevelColor(level), 0, 1); // Consistent 30px padding, level-based color
-  DrawBitmapTextSmall(timer, leftAlignedX-50, uiPositions.timerY - 10, 7, 0, 1); // Consistent 30px padding, magenta
+  
+  // Draw lines to next level with progress indicator
+  const linesToNextLevelText = linesToNextLevel + " LINES";
+  DrawBitmapTextSmall(linesToNextLevelText, leftAlignedX-50, uiPositions.levelY+42, 3, 0, 1); // Green color
+  
+  DrawBitmapTextSmall(timer, leftAlignedX-50, uiPositions.timerY + 35, 7, 0, 1); // Consistent 30px padding, magenta
   
   // Show score addition animation when clearing lines
   if (showAddScore) {

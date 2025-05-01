@@ -18,7 +18,7 @@ let sc = 0; // Counter used in score display animations
 let introEventListenersAdded = false; // Track if event listeners are active
 
 // Level selection
-let selectedLevel = 0; // Selected starting level (0-9)
+let selectedLevel = 0; // Selected starting level (0-19)
 let showLevelSelector = false; // Whether to show the level selector
 
 // Tetris block fireworks animation variables
@@ -65,6 +65,9 @@ export function initIntroState(images, updateGameStateCallback) {
   // Store callback for state changes
   gameStateCallback = updateGameStateCallback;
   
+  // Load selected level from localStorage
+  loadSelectedLevel();
+  
   // First load from localStorage as a fallback
   loadHighScoreData();
   
@@ -73,6 +76,23 @@ export function initIntroState(images, updateGameStateCallback) {
   
   // Initialize fireworks
   tetrisFireworks = [];
+}
+
+/**
+ * Load the user's previously selected level from localStorage
+ */
+function loadSelectedLevel() {
+  try {
+    if (typeof(Storage) !== "undefined") {
+      const savedLevel = localStorage.getItem('tetris_selected_level');
+      if (savedLevel !== null) {
+        selectedLevel = parseInt(savedLevel, 10);
+        console.log(`Loaded selected level ${selectedLevel} from localStorage`);
+      }
+    }
+  } catch (e) {
+    console.error("Error loading selected level:", e);
+  }
 }
 
 /**
@@ -424,8 +444,8 @@ export function handleIntroState(setGameState) {
   ctx.fillStyle = '#ffcc00'; // Gold color for title
   DrawBitmapTextSmall("STARTING LEVEL", levelSelectorX, levelSelectorY - 30, 0, 0, 0);
   
-  // Draw level buttons (0-9)
-  for (let i = 0; i <= 9; i++) {
+  // Draw level buttons (0-19)
+  for (let i = 0; i <= 19; i++) {
     const row = Math.floor(i / levelButtonsPerRow);
     const col = i % levelButtonsPerRow;
     const buttonX = levelSelectorX + col * (levelButtonSize + levelButtonSpacing);
@@ -474,7 +494,7 @@ export function handleIntroState(setGameState) {
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
       
-      for (let j = 0; j <= 9; j++) {
+      for (let j = 0; j <= 19; j++) {
         const btnRow = Math.floor(j / levelButtonsPerRow);
         const btnCol = j % levelButtonsPerRow;
         const btnX = levelSelectorX + btnCol * (levelButtonSize + levelButtonSpacing);
@@ -485,6 +505,16 @@ export function handleIntroState(setGameState) {
           // Update selected level
           selectedLevel = j;
           console.log(`Selected starting level: ${selectedLevel}`);
+          
+          // Save selected level to localStorage
+          try {
+            if (typeof(Storage) !== "undefined") {
+              localStorage.setItem('tetris_selected_level', selectedLevel.toString());
+              console.log(`Saved selected level ${selectedLevel} to localStorage`);
+            }
+          } catch (e) {
+            console.error("Error saving selected level:", e);
+          }
           
           // Remove this handler to avoid duplicates (will be re-added next frame)
           canvas.removeEventListener('click', levelButtonClick);
