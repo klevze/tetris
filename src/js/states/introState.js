@@ -576,20 +576,20 @@ export function handleIntroState(setGameState) {
   
   // Calculate center position for the scores list
   const centerX = WIDTH / 2;
-  const rankWidth = 60;   
-  const nameWidth = 200;  
-  const scoreWidth = 140; 
-  const statsWidth = 80;  
+  const rankWidth = 70;    
+  const nameWidth = 240;   
+  const scoreWidth = 170;  
+  const statsWidth = 110;  // Increased from 100 to 110
   
-  // Define column positions from center with more spacing
-  const totalWidth = rankWidth + nameWidth + scoreWidth + (statsWidth * 3) + 140; // Increased spacing from 120 to 140
+  // Define column positions from center with even more spacing
+  const totalWidth = rankWidth + nameWidth + scoreWidth + (statsWidth * 3) + 260; // Increased spacing from 220 to 260
   const startX = centerX - (totalWidth / 2);
-  const rankX = startX + 20;
-  const nameX = rankX + rankWidth + 25;     
-  const scoreX = nameX + nameWidth + 25;    
-  const linesX = scoreX + scoreWidth + 40;  // Increased from 25 to 40 for more space between SCORE and LINE
-  const levelX = linesX + statsWidth + 25;  
-  const timeX = levelX + statsWidth + 25;  
+  const rankX = startX + 50;        // Increased from 40 to 50
+  const nameX = rankX + rankWidth + 60;     // Increased from 50 to 60
+  const scoreX = nameX + nameWidth + 70;    // Increased from 60 to 70
+  const linesX = scoreX + scoreWidth + 75;  // Increased from 65 to 75
+  const levelX = linesX + statsWidth + 55;  // Increased from 45 to 55
+  const timeX = levelX + statsWidth + 55;   // Increased from 45 to 55
   
   // Add score column headers with shadows
   const headerY = y - 30; // Position headers above the scores
@@ -636,6 +636,10 @@ export function handleIntroState(setGameState) {
       
       // Format score with leading zeros to match the length of the highest score
       const formattedScore = val.score.toString().padStart(maxScoreLength, '0');
+      
+      // Format lines and level with leading zeros
+      const formattedLines = val.cleared_lines.toString().padStart(3, '0');
+      const formattedLevel = val.level.toString().padStart(2, '0');
         
       // Draw shadows
       ctx.fillStyle = shadowColor;
@@ -650,8 +654,8 @@ export function handleIntroState(setGameState) {
       DrawBitmapText(formattedScore, scoreX + m + 2, y + 2, 0, 0, 0);
       
       // Draw stats with shadow
-      DrawBitmapText(val.cleared_lines.toString(), linesX + m + 2, y + 2, 0, 0, 0);
-      DrawBitmapText(val.level.toString(), levelX + m + 2, y + 2, 0, 0, 0);
+      DrawBitmapText(formattedLines, linesX + m + 2, y + 2, 0, 0, 0);
+      DrawBitmapText(formattedLevel, levelX + m + 2, y + 2, 0, 0, 0);
       DrawBitmapText(val.time, timeX + m + 2, y + 2, 0, 0, 0);
       
       // Draw the text with proper color
@@ -667,8 +671,8 @@ export function handleIntroState(setGameState) {
       DrawBitmapText(formattedScore, scoreX + m, y, 0, 0, 0);
       
       // Draw stats
-      DrawBitmapText(val.cleared_lines.toString(), linesX + m, y, 0, 0, 0);
-      DrawBitmapText(val.level.toString(), levelX + m, y, 0, 0, 0);
+      DrawBitmapText(formattedLines, linesX + m, y, 0, 0, 0);
+      DrawBitmapText(formattedLevel, levelX + m, y, 0, 0, 0);
       DrawBitmapText(val.time, timeX + m, y, 0, 0, 0);
     }
       

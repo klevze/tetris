@@ -659,13 +659,18 @@ function showScore() {
   // This ensures we're showing the most up-to-date score value
   const scoreToDisplay = (typeof window.score === 'number') ? window.score : score;
   
+  // Format values with leading zeros
+  const formattedLines = lines.toString().padStart(3, '0');
+  const formattedLevel = level.toString().padStart(2, '0');
+  
   // Draw values with larger bitmap font below labels with consistent padding
   DrawBitmapTextSmall(scoreToDisplay.toString(), leftAlignedX-50, uiPositions.scoreY - 10, 8, 0, 1); // Yellow
-  DrawBitmapTextSmall(lines.toString(), leftAlignedX-50, uiPositions.linesY - 10, 6, 0, 1); // Blue
-  DrawBitmapTextSmall(level.toString(), leftAlignedX-50, uiPositions.levelY - 10, getLevelColor(level), 0, 1); // Level-based color
+  DrawBitmapTextSmall(formattedLines, leftAlignedX-50, uiPositions.linesY - 10, 6, 0, 1); // Blue, now with leading zeros
+  DrawBitmapTextSmall(formattedLevel, leftAlignedX-50, uiPositions.levelY - 10, getLevelColor(level), 0, 1); // Level-based color, with leading zeros
   
   // Draw lines to next level with progress indicator
-  const linesToNextLevelText = linesToNextLevel + " LINES";
+  const formattedLinesToNextLevel = linesToNextLevel.toString().padStart(2, '0');
+  const linesToNextLevelText = formattedLinesToNextLevel + " LINES";
   DrawBitmapTextSmall(linesToNextLevelText, leftAlignedX-50, uiPositions.levelY+42, 3, 0, 1); // Green color
   
   DrawBitmapTextSmall(timer, leftAlignedX-50, uiPositions.timerY + 35, 7, 0, 1); // Magenta
@@ -749,8 +754,8 @@ function calculateUIPositions() {
   const totalGridHeight = gridState.grid_height * gridState.block_width;
 
   // Size and position of the stats panel - made wider and taller with higher border
-  const panelWidth = Math.max(gridState.block_width * 7.5, 180); // Slightly narrowed width
-  const panelHeight = Math.max(gridState.block_width * 9, 270); // Further increased height for more space
+  const panelWidth = Math.max(gridState.block_width * 11, 280); // Increased from 9 to 11 blocks
+  const panelHeight = Math.max(gridState.block_width * 10, 290); // Further increased height for more space
   const panelX = gridOriginX + totalGridWidth + gridState.block_width * 3;
   const panelY = gridOriginY + totalGridHeight * 0.5 - panelHeight / 2; // Centered vertically with grid
 
@@ -773,11 +778,11 @@ function calculateUIPositions() {
     panelWidth,
     panelHeight,
     
-    // Label column positions - kept for compatibility
-    labelX: panelX + 25,
+    // Label column positions with even more padding
+    labelX: panelX + 65, // Increased from 45 to 65
     
-    // Value column positions - kept for compatibility
-    valueX: panelX + panelWidth - 25,
+    // Value column positions with even more padding
+    valueX: panelX + panelWidth - 65, // Increased from 45 to 65
     
     // Vertical positions for each statistic pair (label & value) with more spacing
     // Add padding at the top to start elements further down
