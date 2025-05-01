@@ -16,6 +16,8 @@ import {
 import { fillGrid, checkRows, clearRows, setupGrid, getGridState, setDrawBlockFunction } from '../components/gameplay/grid.js';
 import { setupBlockHandler, showNextBlock, showHoldBlock, newBlock, moveBlock, drawBlock, showBlocksStatistics } from '../components/gameplay/block.js';
 import { createFirework, updateFireworks } from '../components/effects/fireworks.js';
+import { eventBus, GAME_EVENTS } from '../utils/events.js'; // Import eventBus for listening to score changes
+import { addListener } from '../core/gameState.js'; // Import addListener for scoreChanged events
 
 // Game variables
 let score = INITIAL_SCORE;
@@ -145,6 +147,33 @@ export function startMainGame() {
   if (typeof window.startGameMusic === 'function') {
     window.startGameMusic();
   }
+  
+  // Expose the setScoreData function globally so block.js can access it directly
+  window.setScoreData = setScoreData;
+  
+  // IMPORTANT: Expose the score variable globally so hard drop can directly update it
+  window.score = score;
+  
+  // Register to listen for score changes from block movements (soft drop, hard drop)
+  eventBus.on(GAME_EVENTS.SCORE_CHANGE, (data) => {
+    // Update the score with the new value from block.js
+    if (data && typeof data.score === 'number') {
+      score = data.score;
+      // Keep window.score in sync
+      window.score = score;
+      console.log(`Score updated from block movement: ${score}`);
+    }
+  });
+  
+  // Add listener for scoreChanged events from core/gameState.js
+  const removeScoreListener = addListener((event, data) => {
+    if (event === 'scoreChanged' && data && typeof data.score === 'number') {
+      score = data.score;
+      // Keep window.score in sync 
+      window.score = score;
+      console.log(`Score updated from gameState: ${score}`);
+    }
+  });
   
   // Calculate canvas dimensions for proper centering
   const canvasWidth = ctx.canvas.width / (window.devicePixelRatio || 1);
@@ -398,11 +427,44 @@ export function getGameStats() {
  * @param {Object} scoreData - Object containing score data
  */
 export function setScoreData(scoreData) {
-  if (scoreData.score !== undefined) score = scoreData.score;
-  if (scoreData.lines !== undefined) lines = scoreData.lines;
-  if (scoreData.level !== undefined) level = scoreData.level;
-  if (scoreData.showAddScore !== undefined) showAddScore = scoreData.showAddScore;
-  if (scoreData.addScore !== undefined) addScore = scoreData.addScore;
+  console.log('[SCORE] setScoreData called with data:', JSON.stringify(scoreData));
+  console.log('[SCORE] Current score before update:', score);
+  
+  if (scoreData.score !== undefined) {
+    // Directly update the score variable that's used in DrawBitmapTextSmall
+    const oldScore = score;
+    score = scoreData.score;
+    console.log(`[SCORE] Score updated: ${oldScore} → ${score}`);
+  }
+  if (scoreData.lines !== undefined) {
+    console.log(`[SCORE] Lines updated: ${lines} → ${scoreData.lines}`);
+    lines = scoreData.lines;
+  }
+  if (scoreData.level !== undefined) {
+    console.log(`[SCORE] Level updated: ${level} → ${scoreData.level}`);
+    level = scoreData.level;
+  }
+  if (scoreData.showAddScore !== undefined) {
+    console.log(`[SCORE] showAddScore updated: ${showAddScore} → ${scoreData.showAddScore}`);
+    showAddScore = scoreData.showAddScore;
+  }
+  if (scoreData.addScore !== undefined) {
+    console.log(`[SCORE] addScore updated: ${addScore} → ${scoreData.addScore}`);
+    addScore = scoreData.addScore;
+  }
+
+  // Ensure animation variables are properly set for score display
+  if (scoreData.showAddScore && scoreData.addScore) {
+    console.log('[SCORE] Setting up score animation');
+    showAddScore = true;
+    addScore = scoreData.addScore;
+    sac = 0; // Reset animation counter to ensure full animation plays
+    console.log(`[SCORE] Animation parameters: showAddScore=${showAddScore}, addScore=${addScore}, sac=${sac}`);
+  }
+  
+  // Expose updated score to window for debugging
+  window.debugScore = score;
+  console.log('[SCORE] End of setScoreData, final score:', score);
 }
 
 /**
@@ -613,10 +675,6 @@ function showScore() {
   const timer = formatGameTime();
   
   const uiPositions = getUIPositions();
-  // Create a solid background panel for the stats with full opacity for better text visibility
-  //ctx.fillStyle = 'rgba(220, 120, 200, 0.1)';
-  //ctx.roundRect(uiPositions.panelX, uiPositions.panelY, uiPositions.panelWidth, uiPositions.panelHeight, 10);
-  //ctx.fill(); 
   
   // Calculate left position (35% of panel width) for better left alignment
   const leftAlignedX = uiPositions.panelX + (uiPositions.panelWidth * 0.035);
@@ -631,16 +689,20 @@ function showScore() {
   DrawBitmapTextSmall("NEXT LVL", leftAlignedX-50, uiPositions.levelY+20, 1, 0, 1); // New "NEXT LVL" label
   DrawBitmapTextSmall("TIME", leftAlignedX-50, uiPositions.timerY+12, 1, 0, 1); // 1 = centered
   
+  // IMPORTANT CHANGE: Always use window.score if available to display score
+  // This ensures we're showing the most up-to-date score value
+  const scoreToDisplay = (typeof window.score === 'number') ? window.score : score;
+  
   // Draw values with larger bitmap font below labels with consistent padding
-  DrawBitmapTextSmall(score.toString(), leftAlignedX-50, uiPositions.scoreY - 10, 8, 0, 1); // Consistent 30px padding, yellow
-  DrawBitmapTextSmall(lines.toString(), leftAlignedX-50, uiPositions.linesY - 10, 6, 0, 1); // Consistent 30px padding, blue
-  DrawBitmapTextSmall(level.toString(), leftAlignedX-50, uiPositions.levelY - 10, getLevelColor(level), 0, 1); // Consistent 30px padding, level-based color
+  DrawBitmapTextSmall(scoreToDisplay.toString(), leftAlignedX-50, uiPositions.scoreY - 10, 8, 0, 1); // Yellow
+  DrawBitmapTextSmall(lines.toString(), leftAlignedX-50, uiPositions.linesY - 10, 6, 0, 1); // Blue
+  DrawBitmapTextSmall(level.toString(), leftAlignedX-50, uiPositions.levelY - 10, getLevelColor(level), 0, 1); // Level-based color
   
   // Draw lines to next level with progress indicator
   const linesToNextLevelText = linesToNextLevel + " LINES";
   DrawBitmapTextSmall(linesToNextLevelText, leftAlignedX-50, uiPositions.levelY+42, 3, 0, 1); // Green color
   
-  DrawBitmapTextSmall(timer, leftAlignedX-50, uiPositions.timerY + 35, 7, 0, 1); // Consistent 30px padding, magenta
+  DrawBitmapTextSmall(timer, leftAlignedX-50, uiPositions.timerY + 35, 7, 0, 1); // Magenta
   
   // Show score addition animation when clearing lines
   if (showAddScore) {
@@ -657,6 +719,11 @@ function showScore() {
       sac = 0;
       showAddScore = false;
     }
+  }
+  
+  // Synchronize the local score with window.score if needed
+  if (typeof window.score === 'number' && score !== window.score) {
+    score = window.score;
   }
 }
 

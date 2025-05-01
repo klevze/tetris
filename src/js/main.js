@@ -17,8 +17,8 @@ import { setCanvasSize } from './utils/functions.js';
 // Import game state constants
 import { GAME_STATES } from './config/config.js';
 
-// Import the new event system
-import { eventBus, GAME_EVENTS } from './utils/events.js';
+// Import the new event system and secure score functions
+import { eventBus, GAME_EVENTS, getScore, setScore } from './utils/events.js';
 
 // Import the intro state module to access the click handler
 import { handleIntroScreenClick } from './states/introState.js';
@@ -54,6 +54,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize the game (this will handle loading screen and assets)
     initGame();
+    
+    // Create secure score getter/setter with Object.defineProperty
+    // This prevents direct manipulation via console while maintaining compatibility
+    Object.defineProperty(window, 'score', {
+        get: function() {
+            return getScore(); // Get the secure score value
+        },
+        set: function(value) {
+            console.warn('Direct score manipulation is not allowed!');
+            // Score is not actually changed, we just log a warning
+            return getScore(); // Return the real score value
+        },
+        configurable: false,
+        enumerable: false
+    });
 });
 
 /**

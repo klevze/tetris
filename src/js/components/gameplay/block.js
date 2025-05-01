@@ -1,7 +1,8 @@
 import { shapes, TETROMINOES } from '../../utils/dataStructures.js';
 import { isAnimationInProgress, gridToScreenCoordinates, getGridState } from './grid.js';
-import { BLOCK, GAME } from '../../config/config.js'; // Import block and game configuration
+import { BLOCK, GAME, POINTS } from '../../config/config.js'; // Import block, game configuration, and points
 import { EVENTS, eventDispatcher } from '../../utils/functions.js';
+import { eventBus, GAME_EVENTS, getScore, setScore, updateScore } from '../../utils/events.js'; 
 
 // Export the Block class and create wrapper functions for backward compatibility
 export { Block, currentBlock };
@@ -12,10 +13,16 @@ let origin = { x: 0, y: 0 }; // Grid origin point (top-left corner)
 let gridData = {}; // Renamed from "mreza" to "gridData" for consistency
 let ctx, lego;
 let next_block, hold_block = -1;
-let game_state, score = 0;
-let frame = 0, change_block = false, change_block_frame = 0;
-let level = 0; // Default level
-let nextBlockOpacity = 1; // Initial opacity for next block display
+let game_state;
+let level = 0; // Add level variable with default value of 0
+
+// Animation and game state variables
+let frame = 0; // Animation frame counter
+let change_block = false; // Flag to indicate if block should change on next frame
+let change_block_frame = 0; // Counter for block changing
+let nextBlockOpacity = 1; // Opacity for next block animation
+
+// No more local score variable - use getScore() instead
 
 // Track how many of each tetromino type has been received
 export let blockCounts = {
@@ -241,12 +248,43 @@ class Block {
             return true;
         } else if (direction === 'down' && Block.isValidPosition(this.x, this.y + 1, this.shape)) {
             this.y++;
+            // Add score for soft drop (1 point per cell moved down)
+            updateScore(POINTS.SOFT_DROP, false);
             return true;
         } else if (direction === 'drop') {
+            console.log('[HARD DROP] Starting hard drop...');
             // Hard drop - move block down until it can't move anymore
+            let cellsMoved = 0;
             while (Block.isValidPosition(this.x, this.y + 1, this.shape)) {
                 this.y++;
+                cellsMoved++;
             }
+            
+            // Calculate the number of blocks in the current tetromino
+            const blockCount = this.shape.filter(cell => cell === 1).length;
+            
+            // Calculate points earned - 2 points per cell moved, multiplied by the number of blocks
+            const pointsEarned = cellsMoved * POINTS.HARD_DROP;
+                       
+            // Update the score with the secure method
+            updateScore(pointsEarned, true);
+            
+            // Use the setScoreData function if available
+            if (typeof window.setScoreData === 'function') {
+                window.setScoreData({
+                    score: getScore(),
+                    showAddScore: true,
+                    addScore: pointsEarned
+                });
+                console.log(`[HARD DROP] Called window.setScoreData with:`, {
+                    score: getScore(),
+                    showAddScore: true,
+                    addScore: pointsEarned
+                });
+            }
+            
+            console.log(`[HARD DROP] Hard drop complete: ${cellsMoved} rows, scored ${pointsEarned} points, total score: ${getScore()}`);
+            
             this.storeBlock();
             return newBlock();
         }
@@ -410,7 +448,7 @@ export function drawBlock(x, y, type) {
 export function newBlock() {
     const nextType = next_block;
     next_block = Math.floor(Math.random() * Object.keys(TETROMINOES).length);
-    score += level * 4;
+    //updateScore(level * 4, false);
     
     // Increment the count for the received block type
     blockCounts[nextType]++;
@@ -659,10 +697,8 @@ export function setupBlockHandler(context, gridState, blockImg, params) {
         gridData = {};
     }
     
-    // Get the level from gridState
-    if (gridState.level) {
-        level = gridState.level;
-    }
+    // Get the level from gridState if it exists, otherwise default to 0
+    level = gridState.level !== undefined ? gridState.level : 0;
     
     // Initialize blocks with improved randomization
     next_block = getRandomTetrominoType();

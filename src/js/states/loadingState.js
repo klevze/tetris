@@ -7,7 +7,7 @@ import { canvas, ctx, WIDTH, HEIGHT, DrawBitmapText, DrawBitmapTextSmall, clearS
 import { Draw3DStars } from '../components/effects/starfield3d.js';
 import { UI, GAME_STATES } from '../config/config.js';
 // Import gameState functions to sync loading state
-import { updateLoadingProgress as updateStateLoadingProgress, getState } from '../states/gameState.js';
+import { updateLoadingProgress as updateStateLoadingProgress, getState } from '../core/gameState.js';
 
 /**
  * LOADING SCREEN MODULE

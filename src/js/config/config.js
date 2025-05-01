@@ -159,12 +159,12 @@ export const AUDIO = {
     MUSIC_TRACK_5: './music/music005.mp3',
     MUSIC_TRACK_6: './music/music006.mp3',
     MUSIC_TRACK_7: './music/music007.mp3'
-};
+};  
 
 // Point values for actions
 export const POINTS = {
     SOFT_DROP: 1,     // Points per cell for soft drop
-    HARD_DROP: 2,     // Points per cell for hard drop
+    HARD_DROP: 1,     // Points per cell for hard drop
     SINGLE: 100,      // Points for 1 line clear
     DOUBLE: 300,      // Points for 2 lines clear
     TRIPLE: 500,      // Points for 3 lines clear

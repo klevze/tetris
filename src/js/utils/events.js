@@ -126,7 +126,52 @@ export const eventBus = new EventBus();
 // Block reference and grid parameters are set during initialization
 let currentBlock;
 let grid_width, grid_height;
-let score = 0;
+// Create a secure score module using IIFE and closures for protection
+const secureScore = (function() {
+    let _score = 0;
+    let _checksum = 0;
+    
+    // Update the checksum whenever the score changes
+    function updateChecksum(score) {
+        // Simple checksum - can be made more complex for better security
+        return (score * 31) ^ 0xF7A3C1D6;
+    }
+    
+    return {
+        // Getter - returns current score
+        get: function() {
+            // Verify score integrity before returning
+            if (_checksum !== updateChecksum(_score)) {
+                console.error("Score tampering detected! Resetting score.");
+                _score = 0;
+                _checksum = updateChecksum(0);
+            }
+            return _score;
+        },
+        // Setter - updates score with validation
+        set: function(newScore) {
+            if (typeof newScore !== 'number' || isNaN(newScore)) {
+                console.error("Invalid score value");
+                return _score;
+            }
+            _score = newScore;
+            _checksum = updateChecksum(newScore);
+            return _score;
+        },
+        // Add points to current score
+        add: function(points) {
+            if (typeof points !== 'number' || isNaN(points)) {
+                console.error("Invalid points value");
+                return _score;
+            }
+            _score += points;
+            _checksum = updateChecksum(_score);
+            return _score;
+        }
+    };
+})();
+
+let score = 0; // Kept for compatibility with existing code
 
 // Game pause state
 let game_pause = false;
@@ -175,6 +220,64 @@ export function updateGameState(newState) {
     changeState(newState);
     // Emit state change event
     eventBus.emit(GAME_EVENTS.STATE_CHANGED, { state: newState });
+}
+
+/**
+ * Update the score across all parts of the game
+ * This function centralizes score updates to ensure consistency
+ * @param {number} points - Points to add to the score
+ * @param {boolean} showAnimation - Whether to show a score animation
+ */
+export function updateScore(points, showAnimation = false) {
+    // Update our secure score module
+    const currentScore = secureScore.get();
+    const newScore = secureScore.add(points);
+    
+    // For compatibility with old code - update the local score variable
+    score = newScore;
+    
+    // Update grid state score
+    const state = getState();
+    if (state && state.score !== undefined) {
+        state.score = newScore;
+    }
+    
+    // Update display using mainState's setScoreData if available
+    if (typeof window.setScoreData === 'function') {
+        window.setScoreData({
+            score: newScore,
+            showAddScore: showAnimation,
+            addScore: points
+        });
+    }
+    
+    // Emit score change event for other components that might be listening
+    eventBus.emit(GAME_EVENTS.SCORE_CHANGE, { 
+        score: newScore,
+        added: points
+    });
+    
+    // Optional logging for debugging
+    console.log(`Score updated: +${points}, total: ${newScore}`);
+}
+
+/**
+ * Get current score value (secure)
+ * @returns {number} The current score
+ */
+export function getScore() {
+    return secureScore.get();
+}
+
+/**
+ * Set score value (with validation)
+ * @param {number} newScore - The new score value
+ * @returns {number} The updated score value
+ */
+export function setScore(newScore) {
+    const updatedScore = secureScore.set(newScore);
+    score = updatedScore; // For compatibility
+    return updatedScore;
 }
 
 /**
@@ -664,9 +767,10 @@ function hardDrop() {
     
     if (state.currentState === GAME_STATES.PLAY_GAME && !state.isPaused && !isAnimationInProgress()) {
         moveBlockDirection('drop');
-        score += 20;
+        // Use the new updateScore function instead of manually updating score
+        // The score is actually calculated and applied in the moveBlockDirection function
+        // We just emit the block move event here
         eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'drop' });
-        eventBus.emit(GAME_EVENTS.SCORE_CHANGE, { score });
     }
 }
 
