@@ -39,6 +39,10 @@ let controls_img;
 let back_intro_img;
 let logo_img;
 
+// Game control icons variables
+let gameIconsEventListenersAdded = false;
+let isMusicEnabled = true; // Sync with window.music_on during initialization
+
 // Level background images (0-32)
 let level0_img, level1_img, level2_img, level3_img, level4_img, level5_img;
 let level6_img, level7_img, level8_img, level9_img, level10_img;
@@ -146,6 +150,19 @@ export function startMainGame() {
   // Start playing music if enabled (by calling the global music function)
   if (typeof window.startGameMusic === 'function') {
     window.startGameMusic();
+  }
+  
+  // Sync music state with global setting
+  if (typeof window.music_on === 'boolean') {
+    isMusicEnabled = window.music_on;
+    console.log(`Music state synced from global: ${isMusicEnabled}`);
+  }
+  
+  // Set up event listeners for game icons if not already added
+  if (!gameIconsEventListenersAdded) {
+    canvas.addEventListener('click', handleGameIconsClick);
+    gameIconsEventListenersAdded = true;
+    console.log("Game icons event listeners added");
   }
   
   // Expose the setScoreData function globally so block.js can access it directly
@@ -500,6 +517,9 @@ export function handleMainGameState(setGameState) {
   // Update and render fireworks if any are active
   updateFireworks();
   
+  // Draw game control icons
+  drawGameIcons();
+  
   return true;
 }
 
@@ -799,4 +819,296 @@ function calculateUIPositions() {
     blocksStatsX: gridOriginX - (gridState.block_width * 9.5),
     blocksStatsY: gridOriginY
   };
+}
+
+/**
+ * Draw icon buttons for game controls (Mute, Pause, Restart, Menu)
+ */
+function drawGameIcons() {
+  // Sync music state with global setting
+  if (typeof window.music_on === 'boolean') {
+    isMusicEnabled = window.music_on;
+  }
+
+  const iconSize = 35;
+  const margin = 15;
+  const spacing = 10;
+  const topY = margin;
+
+  // Calculate positions for each icon, aligned at the top of the screen
+  const muteX = margin;
+  const pauseX = muteX + iconSize + spacing;
+  const restartX = pauseX + iconSize + spacing;
+  const menuX = restartX + iconSize + spacing;
+
+  // Draw background circles for each icon
+  drawIconBackground(muteX, topY, iconSize);
+  drawIconBackground(pauseX, topY, iconSize);
+  drawIconBackground(restartX, topY, iconSize);
+  drawIconBackground(menuX, topY, iconSize);
+
+  // Draw specific icons
+  drawMuteIcon(muteX + iconSize/2, topY + iconSize/2, iconSize * 0.5, isMusicEnabled);
+  drawPauseIcon(pauseX + iconSize/2, topY + iconSize/2, iconSize * 0.5, game_pause);
+  drawRestartIcon(restartX + iconSize/2, topY + iconSize/2, iconSize * 0.5);
+  drawMenuIcon(menuX + iconSize/2, topY + iconSize/2, iconSize * 0.5);
+}
+
+/**
+ * Draw a background circle for an icon
+ * 
+ * @param {number} x - Left position
+ * @param {number} y - Top position
+ * @param {number} size - Size of the icon
+ */
+function drawIconBackground(x, y, size) {
+  // Button background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.beginPath();
+  ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Button border
+  ctx.strokeStyle = '#ffcc00';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+/**
+ * Draw a mute icon (speaker with or without X)
+ * 
+ * @param {number} x - Center X position
+ * @param {number} y - Center Y position
+ * @param {number} size - Size of the icon
+ * @param {boolean} enabled - Whether music is enabled
+ */
+function drawMuteIcon(x, y, size, enabled) {
+  const s = size * 0.8; // Slightly smaller for better fit
+  ctx.save();
+  ctx.strokeStyle = '#ffcc00';
+  ctx.fillStyle = '#ffcc00';
+  ctx.lineWidth = 2;
+  
+  // Draw speaker shape
+  ctx.beginPath();
+  ctx.moveTo(x - s/2, y);
+  ctx.lineTo(x - s/4, y - s/3);
+  ctx.lineTo(x, y - s/3);
+  ctx.lineTo(x, y + s/3);
+  ctx.lineTo(x - s/4, y + s/3);
+  ctx.lineTo(x - s/2, y);
+  ctx.fill();
+  
+  // Draw sound waves if enabled
+  if (enabled) {
+    ctx.beginPath();
+    ctx.arc(x + s/8, y, s/3, -Math.PI/3, Math.PI/3);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.arc(x + s/4, y, s/2, -Math.PI/3, Math.PI/3);
+    ctx.stroke();
+  } else {
+    // Draw X if muted
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y - s/3);
+    ctx.lineTo(x + s/2, y + s/3);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(x + s/2, y - s/3);
+    ctx.lineTo(x, y + s/3);
+    ctx.stroke();
+  }
+  
+  ctx.restore();
+}
+
+/**
+ * Draw a pause/play icon
+ * 
+ * @param {number} x - Center X position
+ * @param {number} y - Center Y position
+ * @param {number} size - Size of the icon
+ * @param {boolean} paused - Whether game is paused
+ */
+function drawPauseIcon(x, y, size, paused) {
+  const s = size * 0.8; // Slightly smaller for better fit
+  ctx.save();
+  ctx.fillStyle = '#ffcc00';
+  ctx.strokeStyle = '#ffcc00';
+  
+  if (paused) {
+    // Draw play triangle when paused
+    ctx.beginPath();
+    ctx.moveTo(x - s/4, y - s/2);
+    ctx.lineTo(x - s/4, y + s/2);
+    ctx.lineTo(x + s/2, y);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    // Draw pause symbol when playing
+    ctx.fillRect(x - s/2, y - s/2, s/3, s);
+    ctx.fillRect(x + s/6, y - s/2, s/3, s);
+  }
+  
+  ctx.restore();
+}
+
+/**
+ * Draw a restart icon (circular arrow)
+ * 
+ * @param {number} x - Center X position
+ * @param {number} y - Center Y position
+ * @param {number} size - Size of the icon
+ */
+function drawRestartIcon(x, y, size) {
+  const s = size; // Full size for restart icon
+  ctx.save();
+  ctx.strokeStyle = '#ffcc00';
+  ctx.lineWidth = 2;
+  
+  // Draw circular arrow
+  ctx.beginPath();
+  ctx.arc(x, y, s/2, Math.PI * 0.1, Math.PI * 1.9, false);
+  ctx.stroke();
+  
+  // Draw arrowhead
+  const arrowX = x + Math.cos(Math.PI * 0.1) * s/2;
+  const arrowY = y + Math.sin(Math.PI * 0.1) * s/2;
+  
+  ctx.beginPath();
+  ctx.moveTo(arrowX, arrowY);
+  ctx.lineTo(arrowX + s/4, arrowY - s/8);
+  ctx.lineTo(arrowX + s/6, arrowY + s/8);
+  ctx.closePath();
+  ctx.fillStyle = '#ffcc00';
+  ctx.fill();
+  
+  ctx.restore();
+}
+
+/**
+ * Draw a menu icon (hamburger menu)
+ * 
+ * @param {number} x - Center X position
+ * @param {number} y - Center Y position
+ * @param {number} size - Size of the icon
+ */
+function drawMenuIcon(x, y, size) {
+  const s = size * 0.8; // Slightly smaller for better fit
+  ctx.save();
+  ctx.strokeStyle = '#ffcc00';
+  ctx.lineWidth = 3;
+  
+  // Draw three horizontal lines
+  const top = y - s/2;
+  const middle = y;
+  const bottom = y + s/2;
+  
+  ctx.beginPath();
+  ctx.moveTo(x - s/2, top);
+  ctx.lineTo(x + s/2, top);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(x - s/2, middle);
+  ctx.lineTo(x + s/2, middle);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(x - s/2, bottom);
+  ctx.lineTo(x + s/2, bottom);
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+/**
+ * Handle mouse click on game control icons
+ * 
+ * @param {MouseEvent} event - Mouse click event
+ */
+function handleGameIconsClick(event) {
+  // Get click position relative to canvas
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+  
+  const iconSize = 35;
+  const margin = 15;
+  const spacing = 10;
+  const topY = margin;
+  
+  // Calculate positions for each icon
+  const muteX = margin;
+  const pauseX = muteX + iconSize + spacing;
+  const restartX = pauseX + iconSize + spacing;
+  const menuX = restartX + iconSize + spacing;
+  
+  // Check if mute icon was clicked
+  if (isPointInCircle(mouseX, mouseY, muteX + iconSize/2, topY + iconSize/2, iconSize/2)) {
+    console.log("Mute button clicked");
+    // Toggle music
+    isMusicEnabled = !isMusicEnabled;
+    
+    // Sync with global music state
+    if (typeof window.music_on !== 'undefined') {
+      window.music_on = isMusicEnabled;
+    }
+    
+    // Toggle music playback using global function
+    if (typeof window.toggleGameMusic === 'function') {
+      window.toggleGameMusic();
+    }
+    return;
+  }
+  
+  // Check if pause icon was clicked
+  if (isPointInCircle(mouseX, mouseY, pauseX + iconSize/2, topY + iconSize/2, iconSize/2)) {
+    console.log("Pause button clicked");
+    togglePause();
+    return;
+  }
+  
+  // Check if restart icon was clicked
+  if (isPointInCircle(mouseX, mouseY, restartX + iconSize/2, topY + iconSize/2, iconSize/2)) {
+    console.log("Restart button clicked");
+    // Send to game start state to restart
+    if (typeof window.game_state !== 'undefined') {
+      window.game_state = GAME_STATES.GAME_START;
+    }
+    return;
+  }
+  
+  // Check if menu icon was clicked
+  if (isPointInCircle(mouseX, mouseY, menuX + iconSize/2, topY + iconSize/2, iconSize/2)) {
+    console.log("Menu button clicked");
+    // Return to intro screen
+    if (typeof window.game_state !== 'undefined') {
+      window.game_state = GAME_STATES.GAME_INTRO;
+    }
+    return;
+  }
+}
+
+/**
+ * Helper function to check if a point is inside a circle
+ * 
+ * @param {number} pointX - Point X position
+ * @param {number} pointY - Point Y position
+ * @param {number} centerX - Circle center X position
+ * @param {number} centerY - Circle center Y position
+ * @param {number} radius - Circle radius
+ * @returns {boolean} Whether the point is inside the circle
+ */
+function isPointInCircle(pointX, pointY, centerX, centerY, radius) {
+  const distance = Math.sqrt(
+    Math.pow(pointX - centerX, 2) + 
+    Math.pow(pointY - centerY, 2)
+  );
+  return distance <= radius;
 }
