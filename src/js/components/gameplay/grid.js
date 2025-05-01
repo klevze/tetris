@@ -33,7 +33,9 @@ let gridData = {}; // Grid storage - switched to object-based grid for memory ef
 let origin = { x: 0, y: 0 }; 
 
 // Canvas context and audio
-let ctx, clear_line_audio;
+let ctx, clear_line_audio, tetris_audio;
+let double_row_audio = []; // Array to hold audio files for 2-row clears
+let triple_row_audio = []; // Array to hold audio files for 3-row clears
 
 // Remember parameters for grid recalculation on resize
 let canvasWidth, canvasHeight, verticalOffsetFactor;
@@ -414,12 +416,37 @@ export function checkRows() {
       } else if (completedRows === 2) {
         addScore = SCORE_SYSTEM.DOUBLE * (level + 1); // Double
         shouldTriggerFireworks = true; // TEST: Enable fireworks for double line clear
+        
+        // Play random sound from double_row_audio array for 2-row clears
+        if (double_row_audio && double_row_audio.length > 0) {
+          const randomIndex = Math.floor(Math.random() * double_row_audio.length);
+          const sound = double_row_audio[randomIndex];
+          sound.currentTime = 0;
+          sound.play().catch(e => console.log('Double row sound play prevented:', e));
+          console.log(`Playing 2-row clear sound: ${randomIndex === 0 ? 'nice_combo.mp3' : 'you_fire.mp3'}`);
+        }
       } else if (completedRows === 3) {
         addScore = SCORE_SYSTEM.TRIPLE * (level + 1); // Triple
         shouldTriggerFireworks = true; // TEST: Enable fireworks for triple line clear
+        
+        // Play random sound from triple_row_audio array for 3-row clears
+        if (triple_row_audio && triple_row_audio.length > 0) {
+          const randomIndex = Math.floor(Math.random() * triple_row_audio.length);
+          const sound = triple_row_audio[randomIndex];
+          sound.currentTime = 0;
+          sound.play().catch(e => console.log('Triple row sound play prevented:', e));
+          console.log(`Playing 3-row clear sound: ${randomIndex === 0 ? 'great_move.mp3' : 'smooth_clear.mp3'}`);
+        }
       } else if (completedRows === 4) {
         addScore = SCORE_SYSTEM.TETRIS * (level + 1); // Tetris!
         shouldTriggerFireworks = true; // Trigger fireworks for Tetris
+        
+        // Play the special "amazing" sound for Tetris (4 rows cleared)
+        if (tetris_audio) {
+          tetris_audio.currentTime = 0;
+          tetris_audio.play().catch(e => console.log('Tetris sound play prevented:', e));
+          console.log('Playing Tetris special sound: amazing.mp3');
+        }
       }
 
       // Mark row for clearing animation
@@ -914,6 +941,29 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
   
   // Store audio and reset game state
   clear_line_audio = audio;
+  
+  // Load tetris audio sound from AUDIO.TETRIS config
+  import('../../config/config.js').then(config => {
+    tetris_audio = new Audio(config.AUDIO.TETRIS);
+    tetris_audio.volume = 1.0; // Set maximum volume for the amazing.mp3 sound
+    console.log('Loaded Tetris special sound:', config.AUDIO.TETRIS);
+    
+    // Load audio for 2-row clears
+    const nice_combo = new Audio('./music/nice_combo.mp3');
+    const you_fire = new Audio('./music/you_fire.mp3');
+    nice_combo.volume = 1.0;
+    you_fire.volume = 1.0;
+    double_row_audio = [nice_combo, you_fire];
+    console.log('Loaded 2-row clear sounds');
+    
+    // Load audio for 3-row clears
+    const great_move = new Audio('./music/great_move.mp3');
+    const smooth_clear = new Audio('./music/smooth_clear.mp3');
+    great_move.volume = 1.0;
+    smooth_clear.volume = 1.0;
+    triple_row_audio = [great_move, smooth_clear];
+    console.log('Loaded 3-row clear sounds');
+  });
   
   // Reset game state, but preserve selected level if available
   lines = 0;

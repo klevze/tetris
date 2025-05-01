@@ -151,6 +151,7 @@ export const IMAGES = {
 // Audio assets with their paths
 export const AUDIO = {
     CLEAR_LINE: './music/clear_line.wav',
+    TETRIS: './music/amazing.mp3',  // New sound for Tetris (4-row clear)
     // Music tracks
     MUSIC_TRACK_1: './music/music001.mp3',
     MUSIC_TRACK_2: './music/music002.mp3',
