@@ -451,6 +451,7 @@ export function handleIntroState(setGameState) {
     // Add intro-specific event listeners - only listen for keydown, not mousedown
     document.addEventListener('keydown', handleIntroKeyDown);
     canvas.addEventListener('click', handleIntroScreenClick);
+    canvas.addEventListener('mousemove', handleMouseMove);
     introEventListenersAdded = true;
   }
 
@@ -641,7 +642,7 @@ export function handleIntroState(setGameState) {
     }
     
     // Apply sine wave effect for score listings (reduced)
-    const m = Math.sin((k+ps*20) / 180 * 3.14) * 10;
+    const m = Math.sin((k+ps*30) / 180 * 3.14) * 20;
       
     // Draw score entry with shadow effect - using larger bitmap font
     const isTopScore = ps == 1;
@@ -780,6 +781,13 @@ function drawActionButtons(y) {
   ctx.shadowBlur = 0;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
+  
+  /*// DEBUG: Draw red borders around the button hitboxes
+  ctx.strokeStyle = 'red';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(playX, y - buttonHeight, buttonWidth, buttonHeight);
+  ctx.strokeRect(levelX, y - buttonHeight, buttonWidth, buttonHeight);
+  */
 }
 
 /**
@@ -1077,13 +1085,14 @@ function handleLevelPopupClick(mouseX, mouseY) {
  * @param {number} mouseY - Mouse Y position
  */
 function checkActionButtonsClick(mouseX, mouseY) {
-  const buttonWidth = 200;
-  const buttonHeight = 60;
+  // Use the same dimensions as in drawActionButtons for consistency
+  const buttonWidth = 300;  // Updated from 200 to match drawing logic
+  const buttonHeight = 70;  // Updated from 60 to match drawing logic
   const buttonSpacing = 30;
   const totalWidth = (buttonWidth * 2) + buttonSpacing;
   
   // Calculate bottom position
-  const bottomPadding = HEIGHT * 0.09;
+  const bottomPadding = HEIGHT * 0.05;  // Update to 0.05 to match drawActionButtons
   const buttonY = HEIGHT - bottomPadding;
   
   // Center the buttons horizontally
@@ -1110,6 +1119,65 @@ function checkActionButtonsClick(mouseX, mouseY) {
     showLevelPopup = true;
     return;
   }
+}
+
+/**
+ * Check if the mouse is over one of the action buttons
+ * And change cursor style appropriately
+ * 
+ * @param {number} mouseX - Mouse X position
+ * @param {number} mouseY - Mouse Y position
+ * @returns {boolean} True if mouse is over a button
+ */
+function checkButtonHover(mouseX, mouseY) {
+  // Use the same button dimensions as in checkActionButtonsClick
+  const buttonWidth = 300;
+  const buttonHeight = 70;
+  const buttonSpacing = 30;
+  const totalWidth = (buttonWidth * 2) + buttonSpacing;
+  
+  // Calculate bottom position
+  const bottomPadding = HEIGHT * 0.05;
+  const buttonY = HEIGHT - bottomPadding;
+  
+  // Center the buttons horizontally
+  const startX = (WIDTH - totalWidth) / 2;
+  
+  // Play button position
+  const playX = startX;
+  
+  // Select Level button position
+  const levelX = startX + buttonWidth + buttonSpacing;
+  
+  // Check if mouse is over Play button
+  if (mouseX >= playX && mouseX <= playX + buttonWidth &&
+      mouseY >= buttonY - buttonHeight && mouseY <= buttonY) {
+    canvas.style.cursor = 'pointer';
+    return true;
+  }
+  
+  // Check if mouse is over Select Level button
+  if (mouseX >= levelX && mouseX <= levelX + buttonWidth &&
+      mouseY >= buttonY - buttonHeight && mouseY <= buttonY) {
+    canvas.style.cursor = 'pointer';
+    return true;
+  }
+  
+  // Not hovering over any button
+  canvas.style.cursor = 'default';
+  return false;
+}
+
+/**
+ * Handle mouse move events to check for button hover
+ * 
+ * @param {MouseEvent} event - Mouse move event
+ */
+function handleMouseMove(event) {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+  checkButtonHover(mouseX, mouseY);
 }
 
 /**
@@ -1150,6 +1218,7 @@ function removeAllEventListeners() {
   if (introEventListenersAdded) {
     document.removeEventListener('keydown', handleIntroKeyDown);
     canvas.removeEventListener('click', handleIntroScreenClick);
+    canvas.removeEventListener('mousemove', handleMouseMove);
     introEventListenersAdded = false;
   }
 }
