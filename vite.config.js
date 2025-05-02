@@ -52,6 +52,15 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: true,
     assetsInlineLimit: 4096, // Only inline assets smaller than 4kb
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        // Remove console.logs in production build
+        drop_console: true,
+        // Keep console.error and console.warn for important messages
+        pure_funcs: ['console.log']
+      }
+    }
   },
   server: {
     open: true

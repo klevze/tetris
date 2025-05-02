@@ -925,8 +925,8 @@ function calculateUIPositions() {
     addScoreX: gridOriginX + totalGridWidth / 2,
     addScoreY: gridOriginY + totalGridHeight / 2,
     
-    // Position for blocks statistics panel (on the left side of the grid)
-    blocksStatsX: gridOriginX - (gridState.block_width * 9.5),
+    // Position for blocks statistics panel - moved closer to the grid
+    blocksStatsX: gridOriginX - (gridState.block_width * 6),  // Changed from 9.5 to 6
     blocksStatsY: gridOriginY
   };
 }

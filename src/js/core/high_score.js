@@ -261,6 +261,13 @@ export function ShowIntroScreen() {
         // Check if we're in a limited height scenario (mobile device with limited vertical space)
         const isLimitedHeight = HEIGHT < 450;
         
+        // More robust mobile detection (specifically including mobile viewport width)
+        const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         window.innerWidth < 768 || // Common mobile breakpoint
+                         (('ontouchstart' in window) && window.innerWidth < 1024); // Touch device with smaller screen
+        
+        console.log(`Device detection: isMobile=${isMobile}, viewport=${window.innerWidth}x${window.innerHeight}, userAgent=${navigator.userAgent}`);
+        
         // Draw the background image - different on mobile with limited height
         const back_img = getImage('BACKGROUND');
         if (back_img && back_img.complete) {
@@ -315,13 +322,92 @@ export function ShowIntroScreen() {
         const maxScores = isLimitedHeight ? 3 : 5;
         let y = topPlayersY + 50;
 
-        // Display the top players (only show the first maxScores entries)
+        // Display the top players with different formats based on device type
         let displayCount = 0;
-        for (let i = 0; i < high_scores.length && displayCount < maxScores; i++) {
-            const score = high_scores[i];
-            DrawBitmapTextSmall(`${displayCount+1}. ${score.player_name} - ${score.score}`, 0, y, 0);
-            y += 30;
-            displayCount++;
+
+        // Force mobile display for debugging if needed
+        // const forceMobile = true; // Uncomment for testing
+        
+        if (isMobile) {
+            console.log("Using mobile high score display format");
+            
+            // For mobile, create a simple table layout with just rank, name, and score
+            const tableWidth = WIDTH * 0.8;
+            const tableX = (WIDTH - tableWidth) / 2;
+            const rankWidth = tableWidth * 0.15;
+            const nameWidth = tableWidth * 0.55;
+            const scoreWidth = tableWidth * 0.3;
+            
+            // Draw table headers if there's enough space
+            if (!isLimitedHeight) {
+                ctx.save();
+                ctx.font = '14px "Press Start 2P", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#ffcc00'; // Gold color for headers
+                ctx.fillText("#", tableX + rankWidth/2, y - 20);
+                ctx.fillText("NAME", tableX + rankWidth + nameWidth/2, y - 20);
+                ctx.fillText("SCORE", tableX + rankWidth + nameWidth + scoreWidth/2, y - 20);
+                ctx.restore();
+            }
+            
+            // Draw each row
+            for (let i = 0; i < high_scores.length && displayCount < maxScores; i++) {
+                const score = high_scores[i];
+                displayCount++;
+                
+                ctx.save();
+                const rowColor = displayCount % 2 === 0 ? 'rgba(40, 40, 50, 0.5)' : 'rgba(30, 30, 40, 0.5)';
+                ctx.fillStyle = rowColor;
+                ctx.fillRect(tableX, y - 15, tableWidth, 25);
+                ctx.restore();
+                
+                // Draw rank number (centered)
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#FFFFFF';
+                DrawBitmapTextSmall(`${displayCount}`, tableX + rankWidth/2, y, 0);
+                ctx.restore();
+                
+                // Draw name (left-aligned)
+                ctx.save();
+                ctx.textAlign = 'left';
+                DrawBitmapTextSmall(score.player_name, tableX + rankWidth + 10, y, 0);
+                ctx.restore();
+                
+                // Draw score (right-aligned)
+                ctx.save();
+                ctx.textAlign = 'right';
+                DrawBitmapTextSmall(`${score.score}`, tableX + tableWidth - 10, y, 1);
+                ctx.restore();
+                
+                y += 30;
+            }
+        } else {
+            console.log("Using desktop high score display format");
+            
+            // Desktop format: more detailed display
+            for (let i = 0; i < high_scores.length && displayCount < maxScores; i++) {
+                const score = high_scores[i];
+                displayCount++;
+                
+                // Format detailed display with level, lines, and time if available
+                let displayText = `${displayCount}. ${score.player_name} - ${score.score}`;
+                
+                // Add level and lines if available
+                if (score.level !== undefined && score.cleared_lines !== undefined) {
+                    displayText += ` (Lvl ${score.level}, ${score.cleared_lines} lines`;
+                    
+                    // Add time if available
+                    if (score.time) {
+                        displayText += `, ${score.time}`;
+                    }
+                    
+                    displayText += `)`;
+                }
+                
+                DrawBitmapTextSmall(displayText, 0, y, 0);
+                y += 30;
+            }
         }
 
         // Display "Press space to start" or "Tap to start" message
@@ -335,7 +421,7 @@ export function ShowIntroScreen() {
         
         // Display controls hint at the bottom
         const controlsY = isLimitedHeight ? HEIGHT - 30 : HEIGHT - 70;
-        const controlsText = "ARROWS TO MOVE, SPACE TO DROP, P TO PAUSE";
+        const controlsText = isMobile ? "SWIPE TO MOVE, TAP TO ROTATE" : "ARROWS TO MOVE, SPACE TO DROP, P TO PAUSE";
         DrawBitmapTextSmall(controlsText, 0, controlsY, 0);
         
         // Update counter for animation

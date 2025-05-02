@@ -159,7 +159,11 @@ export const AUDIO = {
     MUSIC_TRACK_4: './music/music004.mp3',
     MUSIC_TRACK_5: './music/music005.mp3',
     MUSIC_TRACK_6: './music/music006.mp3',
-    MUSIC_TRACK_7: './music/music007.mp3'
+    MUSIC_TRACK_7: './music/music007.mp3',
+    MUSIC_TRACK_8: './music/music008.mp3',
+    MUSIC_TRACK_9: './music/music009.mp3',
+    MUSIC_TRACK_10: './music/music010.mp3',
+    MUSIC_TRACK_11: './music/music011.mp3'
 };  
 
 // Point values for actions
