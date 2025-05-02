@@ -2,6 +2,7 @@ import { DrawLine } from '../../utils/functions.js';
 import { BLOCK } from '../../config/config.js'; // Import block configuration
 import { EVENTS, eventDispatcher } from '../../utils/functions.js';
 import { setupFireworks, updateFireworks, createTetrisFireworks, createLevelUpFireworks } from '../effects/fireworks.js';
+import { updateScore } from '../../utils/events.js'; // Import updateScore function
 
 /**
  * GRID MODULE
@@ -477,6 +478,47 @@ export function checkRows() {
     score += addScore;
     addScoreValue = addScore;
 
+    // CRITICAL FIX: Update the score in multiple ways immediately when rows are cleared
+    // This ensures score updates are not delayed or lost during animation
+    try {
+      console.log(`Adding score immediately: ${addScore}, new total: ${score}`);
+      
+      // 1. Update global window.score directly 
+      if (typeof window !== 'undefined') {
+        // Use secure setter if available
+        if (typeof window.setScore === 'function') {
+          window.setScore(score);
+        } else if (typeof window.updateScore === 'function') {
+          window.updateScore(score, addScore);
+        } else {
+          // Last resort - direct assignment
+          window.score = score;
+        }
+      }
+      
+      // 2. Update UI immediately with setScoreData
+      if (typeof window !== 'undefined' && typeof window.setScoreData === 'function') {
+        window.setScoreData({
+          score: score,
+          lines: lines,
+          level: level,
+          showAddScore: true,
+          addScore: addScore
+        });
+      }
+      
+      // 3. Emit score change event
+      if (typeof window !== 'undefined' && typeof window.eventBus !== 'undefined' && 
+          typeof window.eventBus.emit === 'function' && typeof window.GAME_EVENTS !== 'undefined') {
+        window.eventBus.emit(window.GAME_EVENTS.SCORE_CHANGE, { 
+          score: score,
+          added: addScore
+        });
+      }
+    } catch (e) {
+      console.error('Error updating score in checkRows:', e);
+    }
+
     // Check for level up based on starting level rules
     if (startingLevel >= 10) {
       // For starting levels 10+: Stay on starting level until cleared (StartLevel + 1) * 10 lines, then level up every 10 lines
@@ -573,6 +615,17 @@ export function clearRows() {
     } catch (e) {
       console.log("Audio play error:", e);
     }
+  }
+
+  // Ensure score is updated correctly using the same updateScore approach as in hard drop
+  try {
+    // Use the imported updateScore function for consistency
+    if (addScoreValue > 0) {
+      console.log(`Updating score in clearRows: adding ${addScoreValue}, total: ${score}`);
+      updateScore(addScoreValue, true); // Use true to show animation
+    }
+  } catch (e) {
+    console.error("Error updating score after clearing rows:", e);
   }
 }
 

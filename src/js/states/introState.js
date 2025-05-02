@@ -24,6 +24,9 @@ let selectedLevel = 0; // Selected starting level (0-19)
 let showSettingsPopup = false; // Controls visibility of settings popup
 let musicEnabled = true;       // Whether music is enabled
 
+// Level selection popup variable
+let showLevelPopup = false; // Controls visibility of level selection popup
+
 // Tetris block fireworks animation variables
 let tetrisFireworks = [];
 const MAX_FIREWORKS = 6;
@@ -682,36 +685,12 @@ export function handleIntroState(setGameState) {
     y += 55; // Consistent spacing of 55px between all entries
   });
     
-  // Calculate dynamic position based on screen height
-  // Position the text at the bottom of the screen with appropriate padding
+  // Position the buttons at the bottom of the screen with appropriate padding
   const bottomPadding = HEIGHT * 0.09; // 9% of screen height as padding
-  const yPosition = HEIGHT - bottomPadding;
+  const buttonY = HEIGHT - bottomPadding;
   
-  // Determine if we should use larger text on bigger screens
-  let useEnhancedText = WIDTH >= 1280 && HEIGHT >= 800;
-  
-  if (useEnhancedText) {
-    // For larger screens, use the big bitmap font with a subtle effect
-    DrawBitmapText("PRESS SPACE TO START", 0, yPosition - 10, 1, 0, 0);
-  } else {
-    // For standard/smaller screens, use the small bitmap font
-    DrawBitmapTextSmall("PRESS SPACE TO START A NEW GAME", 0, yPosition, 1, 0, 0);
-    
-    // Add a subtle glow effect to make the text stand out
-    ctx.shadowColor = '#ffcc00';
-    ctx.shadowBlur = 5;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    
-    // Re-draw the text with glow effect
-    DrawBitmapTextSmall("PRESS SPACE TO START A NEW GAME", 0, yPosition, 1, 0, 0);
-    
-    // Reset shadow effects
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-  }
+  // Draw Play and Select Level buttons instead of "PRESS SPACE TO START" text
+  drawActionButtons(buttonY);
   
   // Update and render Tetris block fireworks
   updateTetrisFireworks();
@@ -724,7 +703,426 @@ export function handleIntroState(setGameState) {
     drawSettingsPopup();
   }
   
+  // Draw level selection popup if visible
+  if (showLevelPopup) {
+    drawLevelPopup();
+  }
+  
   return true;
+}
+
+/**
+ * Draw Play and Select Level buttons
+ * 
+ * @param {number} y - Y position for the buttons
+ */
+function drawActionButtons(y) {
+  const buttonWidth = 180;
+  const buttonHeight = 50;
+  const buttonSpacing = 20;
+  const totalWidth = (buttonWidth * 2) + buttonSpacing;
+  
+  // Center the buttons horizontally
+  const startX = (WIDTH - totalWidth) / 2;
+  
+  // Play button position
+  const playX = startX;
+  
+  // Select Level button position
+  const levelX = startX + buttonWidth + buttonSpacing;
+  
+  // Button style (Play button)
+  ctx.fillStyle = '#4CAF50'; // Green
+  roundRect(ctx, playX, y - buttonHeight, buttonWidth, buttonHeight, 10);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  roundRect(ctx, playX, y - buttonHeight, buttonWidth, buttonHeight, 10);
+  ctx.stroke();
+  
+  // Button style (Select Level button)
+  ctx.fillStyle = '#2196F3'; // Blue
+  roundRect(ctx, levelX, y - buttonHeight, buttonWidth, buttonHeight, 10);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  roundRect(ctx, levelX, y - buttonHeight, buttonWidth, buttonHeight, 10);
+  ctx.stroke();
+  
+  // Button text with shadow
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 5;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 2;
+  
+  // Button text (Play)
+  DrawBitmapText("PLAY", playX + buttonWidth/2 - 40, y - buttonHeight/2 - 14, 0, 0, 0);
+  
+  // Button text (Select Level)
+  DrawBitmapText("SELECT LEVEL", levelX + buttonWidth/2 - 90, y - buttonHeight/2 - 14, 0, 0, 0);
+  
+  // Reset shadow
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+}
+
+/**
+ * Draw level selection popup
+ */
+function drawLevelPopup() {
+  // Popup dimensions and position
+  const popupWidth = Math.min(WIDTH * 0.8, 500);
+  const popupHeight = 270; // Height only for level selection
+  const popupX = (WIDTH - popupWidth) / 2;
+  const popupY = (HEIGHT - popupHeight) / 2;
+  
+  // Semi-transparent background overlay
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  
+  // Popup background
+  ctx.fillStyle = '#222';
+  ctx.strokeStyle = '#ffcc00';
+  ctx.lineWidth = 3;
+  roundRect(ctx, popupX, popupY, popupWidth, popupHeight, 10);
+  ctx.fill();
+  ctx.stroke();
+  
+  // Popup title
+  DrawBitmapText("SELECT LEVEL", 0, popupY + 40, 1, 0, 0);
+  
+  // Divider line
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(popupX + 20, popupY + 70);
+  ctx.lineTo(popupX + popupWidth - 20, popupY + 70);
+  ctx.stroke();
+  
+  // Draw level buttons (0-19)
+  const buttonSize = 32; // Increased size for better visibility
+  const buttonSpacing = 10;
+  
+  // Reorganize buttons into 2 rows with 10 buttons each
+  const maxButtonsPerRow = 10;
+  const rows = 2;
+  const buttonsPerRow = 10;
+  
+  // Calculate starting position for the grid of buttons
+  const gridWidth = (buttonSize * buttonsPerRow) + (buttonSpacing * (buttonsPerRow - 1));
+  let startX = (WIDTH - gridWidth) / 2;
+  let startY = popupY + 100;
+  
+  for (let i = 0; i < 20; i++) {
+    const row = Math.floor(i / buttonsPerRow);
+    const col = i % buttonsPerRow;
+    const buttonX = startX + (col * (buttonSize + buttonSpacing));
+    const buttonY = startY + (row * (buttonSize + buttonSpacing));
+    
+    // Button background (highlight selected level)
+    if (i === selectedLevel) {
+      // Selected level - gold gradient with glow
+      const gradient = ctx.createRadialGradient(
+        buttonX + buttonSize/2, buttonY + buttonSize/2, 0,
+        buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize
+      );
+      gradient.addColorStop(0, '#ffcc00');
+      gradient.addColorStop(1, '#cc9900');
+      ctx.fillStyle = gradient;
+      ctx.shadowColor = '#ffcc00';
+      ctx.shadowBlur = 10;
+    } else {
+      // Unselected levels - dark gradient
+      const gradient = ctx.createRadialGradient(
+        buttonX + buttonSize/2, buttonY + buttonSize/2, 0,
+        buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize
+      );
+      gradient.addColorStop(0, '#444444');
+      gradient.addColorStop(1, '#222222');
+      ctx.fillStyle = gradient;
+      ctx.shadowBlur = 0;
+    }
+    
+    // Draw button
+    ctx.fillRect(buttonX, buttonY, buttonSize, buttonSize);
+    ctx.shadowBlur = 0;
+    
+    // Button text
+    ctx.fillStyle = i === selectedLevel ? '#000' : '#fff';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i.toString(), buttonX + buttonSize/2, buttonY + buttonSize/2);
+  }
+  
+  // Close button
+  const closeButtonSize = 30;
+  const closeButtonX = popupX + popupWidth - closeButtonSize - 10;
+  const closeButtonY = popupY + 10;
+  
+  // Button circle
+  ctx.fillStyle = '#cc0000';
+  ctx.beginPath();
+  ctx.arc(closeButtonX + closeButtonSize / 2, closeButtonY + closeButtonSize / 2, closeButtonSize / 2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // X mark
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(closeButtonX + closeButtonSize * 0.3, closeButtonY + closeButtonSize * 0.3);
+  ctx.lineTo(closeButtonX + closeButtonSize * 0.7, closeButtonY + closeButtonSize * 0.7);
+  ctx.moveTo(closeButtonX + closeButtonSize * 0.7, closeButtonY + closeButtonSize * 0.3);
+  ctx.lineTo(closeButtonX + closeButtonSize * 0.3, closeButtonY + closeButtonSize * 0.7);
+  ctx.stroke();
+}
+
+/**
+ * Helper function to draw rounded rectangles
+ * 
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - Top-left X position
+ * @param {number} y - Top-left Y position
+ * @param {number} width - Rectangle width
+ * @param {number} height - Rectangle height
+ * @param {number} radius - Corner radius
+ */
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+/**
+ * Export click handler for intro screen
+ * Handles clicks on settings button, settings popup, and level buttons
+ * 
+ * @param {MouseEvent} event - Mouse click event
+ */
+export function handleIntroScreenClick(event) {
+  // Get click position relative to canvas
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+  
+  if (showSettingsPopup) {
+    // Handle clicks within settings popup
+    handleSettingsPopupClick(mouseX, mouseY);
+  } else if (showLevelPopup) {
+    // Handle clicks within level selection popup
+    handleLevelPopupClick(mouseX, mouseY);
+  } else {
+    // Check if settings button was clicked
+    checkSettingsButtonClick(mouseX, mouseY);
+    
+    // Check if action buttons (Play or Select Level) were clicked
+    checkActionButtonsClick(mouseX, mouseY);
+  }
+}
+
+/**
+ * Check if the settings button was clicked
+ * 
+ * @param {number} mouseX - Mouse X position
+ * @param {number} mouseY - Mouse Y position
+ */
+function checkSettingsButtonClick(mouseX, mouseY) {
+  const buttonSize = 40;
+  const margin = 20;
+  const buttonX = WIDTH - buttonSize - margin;
+  const buttonY = margin;
+  
+  // Calculate distance from button center
+  const centerX = buttonX + buttonSize/2;
+  const centerY = buttonY + buttonSize/2;
+  const distance = Math.sqrt(Math.pow(mouseX - centerX, 2) + Math.pow(mouseY - centerY, 2));
+  
+  // Check if click is within button circle
+  if (distance <= buttonSize/2) {
+    console.log("Settings button clicked");
+    showSettingsPopup = true;
+  }
+}
+
+/**
+ * Handle clicks within the settings popup
+ * 
+ * @param {number} mouseX - Mouse X position
+ * @param {number} mouseY - Mouse Y position
+ */
+function handleSettingsPopupClick(mouseX, mouseY) {
+  const popupWidth = Math.min(WIDTH * 0.8, 500);
+  const popupHeight = 350;
+  const popupX = (WIDTH - popupWidth) / 2;
+  const popupY = (HEIGHT - popupHeight) / 2;
+  
+  // Check close button click
+  const closeButtonSize = 30;
+  const closeButtonX = popupX + popupWidth - closeButtonSize - 10;
+  const closeButtonY = popupY + 10;
+  
+  // Calculate distance from close button center
+  const closeCenterX = closeButtonX + closeButtonSize/2;
+  const closeCenterY = closeButtonY + closeButtonSize/2;
+  const closeDistance = Math.sqrt(Math.pow(mouseX - closeCenterX, 2) + Math.pow(mouseY - closeCenterY, 2));
+  
+  if (closeDistance <= closeButtonSize/2) {
+    console.log("Settings popup close button clicked");
+    showSettingsPopup = false;
+    saveSettings(); // Save settings when closing popup
+    return;
+  }
+  
+  // Check music toggle click
+  const toggleWidth = 80;
+  const toggleHeight = 30;
+  const toggleX = (WIDTH - toggleWidth) / 2;
+  const toggleY = popupY + 260;
+  
+  if (mouseX >= toggleX && mouseX <= toggleX + toggleWidth &&
+      mouseY >= toggleY && mouseY <= toggleY + toggleHeight) {
+    console.log("Music toggle clicked");
+    musicEnabled = !musicEnabled;
+    
+    // Apply music setting immediately
+    if (typeof window.music_on !== 'undefined') {
+      window.music_on = musicEnabled;
+    }
+    
+    return;
+  }
+  
+  // Check level button clicks with updated layout
+  const buttonSize = 32;
+  const buttonSpacing = 10;
+  const maxButtonsPerRow = 10; // Match the drawing logic
+  const rows = Math.ceil(20 / maxButtonsPerRow); // Will be 2 for 20 levels
+  const buttonsPerRow = Math.ceil(20 / rows); // Evenly distribute buttons
+  
+  // Calculate grid position using same logic as in drawSettingsPopup
+  const gridWidth = (buttonSize * buttonsPerRow) + (buttonSpacing * (buttonsPerRow - 1));
+  const startX = (WIDTH - gridWidth) / 2;
+  const startY = popupY + 130;
+  
+  for (let i = 0; i < 20; i++) {
+    const row = Math.floor(i / buttonsPerRow);
+    const col = i % buttonsPerRow;
+    const buttonX = startX + (col * (buttonSize + buttonSpacing));
+    const buttonY = startY + (row * (buttonSize + buttonSpacing));
+    
+    if (mouseX >= buttonX && mouseX <= buttonX + buttonSize &&
+        mouseY >= buttonY && mouseY <= buttonY + buttonSize) {
+      console.log(`Level ${i} button clicked`);
+      selectedLevel = i;
+      return;
+    }
+  }
+}
+
+/**
+ * Handle clicks within the level selection popup
+ * 
+ * @param {number} mouseX - Mouse X position
+ * @param {number} mouseY - Mouse Y position
+ */
+function handleLevelPopupClick(mouseX, mouseY) {
+  const popupWidth = Math.min(WIDTH * 0.8, 500);
+  const popupHeight = 270;
+  const popupX = (WIDTH - popupWidth) / 2;
+  const popupY = (HEIGHT - popupHeight) / 2;
+  
+  // Check close button click
+  const closeButtonSize = 30;
+  const closeButtonX = popupX + popupWidth - closeButtonSize - 10;
+  const closeButtonY = popupY + 10;
+  
+  // Calculate distance from close button center
+  const closeCenterX = closeButtonX + closeButtonSize/2;
+  const closeCenterY = closeButtonY + closeButtonSize/2;
+  const closeDistance = Math.sqrt(Math.pow(mouseX - closeCenterX, 2) + Math.pow(mouseY - closeCenterY, 2));
+  
+  if (closeDistance <= closeButtonSize/2) {
+    console.log("Level popup close button clicked");
+    showLevelPopup = false;
+    saveSettings(); // Save settings when closing popup
+    return;
+  }
+  
+  // Check level button clicks
+  const buttonSize = 32;
+  const buttonSpacing = 10;
+  const buttonsPerRow = 10;
+  
+  // Calculate grid position using same logic as in drawLevelPopup
+  const gridWidth = (buttonSize * buttonsPerRow) + (buttonSpacing * (buttonsPerRow - 1));
+  const startX = (WIDTH - gridWidth) / 2;
+  const startY = popupY + 100;
+  
+  for (let i = 0; i < 20; i++) {
+    const row = Math.floor(i / buttonsPerRow);
+    const col = i % buttonsPerRow;
+    const buttonX = startX + (col * (buttonSize + buttonSpacing));
+    const buttonY = startY + (row * (buttonSize + buttonSpacing));
+    
+    if (mouseX >= buttonX && mouseX <= buttonX + buttonSize &&
+        mouseY >= buttonY && mouseY <= buttonY + buttonSize) {
+      console.log(`Level ${i} button clicked`);
+      selectedLevel = i;
+      return;
+    }
+  }
+}
+
+/**
+ * Check if action buttons were clicked
+ * 
+ * @param {number} mouseX - Mouse X position
+ * @param {number} mouseY - Mouse Y position
+ */
+function checkActionButtonsClick(mouseX, mouseY) {
+  const buttonWidth = 180;
+  const buttonHeight = 50;
+  const buttonSpacing = 20;
+  const totalWidth = (buttonWidth * 2) + buttonSpacing;
+  
+  // Calculate bottom position
+  const bottomPadding = HEIGHT * 0.09;
+  const buttonY = HEIGHT - bottomPadding;
+  
+  // Center the buttons horizontally
+  const startX = (WIDTH - totalWidth) / 2;
+  
+  // Play button position
+  const playX = startX;
+  
+  // Select Level button position
+  const levelX = startX + buttonWidth + buttonSpacing;
+  
+  // Check if Play button was clicked
+  if (mouseX >= playX && mouseX <= playX + buttonWidth &&
+      mouseY >= buttonY - buttonHeight && mouseY <= buttonY) {
+    console.log("Play button clicked");
+    startNewGame();
+    return;
+  }
+  
+  // Check if Select Level button was clicked
+  if (mouseX >= levelX && mouseX <= levelX + buttonWidth &&
+      mouseY >= buttonY - buttonHeight && mouseY <= buttonY) {
+    console.log("Select Level button clicked");
+    showLevelPopup = true;
+    return;
+  }
 }
 
 /**
@@ -773,11 +1171,11 @@ function removeAllEventListeners() {
  * Handle key presses on intro screen
  */
 function handleIntroKeyDown(evt) {
-  if (evt.keyCode == 32) { // Space key
-    evt.preventDefault();
-    console.log("Space key pressed on intro screen");
-    startNewGame();
-  }
+  // All space key functionality has been removed
+  // Only other keyboard controls remain (if any)
+  
+  // You could add other keyboard functionality here if needed
+  // For example, 'M' key for music toggle, etc.
 }
 
 /**
@@ -1004,291 +1402,4 @@ function drawGearIcon(x, y, size) {
   ctx.beginPath();
   ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
   ctx.fill();
-}
-
-/**
- * Draw settings popup with level selection and music toggle
- */
-function drawSettingsPopup() {
-  // Popup dimensions and position
-  const popupWidth = Math.min(WIDTH * 0.8, 500);
-  const popupHeight = 350; // Increased height to accommodate level selector
-  const popupX = (WIDTH - popupWidth) / 2;
-  const popupY = (HEIGHT - popupHeight) / 2;
-  
-  // Semi-transparent background overlay
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  
-  // Popup background
-  ctx.fillStyle = '#222';
-  ctx.strokeStyle = '#ffcc00';
-  ctx.lineWidth = 3;
-  roundRect(ctx, popupX, popupY, popupWidth, popupHeight, 10);
-  ctx.fill();
-  ctx.stroke();
-  
-  // Popup title
-  DrawBitmapText("SETTINGS", 0, popupY + 40, 1, 0, 0);
-  
-  // Divider line
-  ctx.strokeStyle = '#555';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(popupX + 20, popupY + 70);
-  ctx.lineTo(popupX + popupWidth - 20, popupY + 70);
-  ctx.stroke();
-  
-  // Level selection section
-  DrawBitmapTextSmall("STARTING LEVEL", 0, popupY + 100, 1, 0, 0);
-  
-  // Draw level buttons (0-19)
-  const buttonSize = 32; // Increased size for better visibility
-  const buttonSpacing = 10;
-  
-  // Reorganize buttons into 2-3 rows instead of 4
-  const maxButtonsPerRow = 10; // Show 10 buttons per row for max of 2 rows
-  const rows = Math.ceil(20 / maxButtonsPerRow); // Will be 2 for 20 levels
-  const buttonsPerRow = Math.ceil(20 / rows); // Evenly distribute buttons
-  
-  // Calculate starting position for the grid of buttons
-  const gridWidth = (buttonSize * buttonsPerRow) + (buttonSpacing * (buttonsPerRow - 1));
-  let startX = (WIDTH - gridWidth) / 2;
-  let startY = popupY + 130;
-  
-  for (let i = 0; i < 20; i++) {
-    const row = Math.floor(i / buttonsPerRow);
-    const col = i % buttonsPerRow;
-    const buttonX = startX + (col * (buttonSize + buttonSpacing));
-    const buttonY = startY + (row * (buttonSize + buttonSpacing));
-    
-    // Button background (highlight selected level)
-    if (i === selectedLevel) {
-      // Selected level - gold gradient with glow
-      const gradient = ctx.createRadialGradient(
-        buttonX + buttonSize/2, buttonY + buttonSize/2, 0,
-        buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize
-      );
-      gradient.addColorStop(0, '#ffcc00');
-      gradient.addColorStop(1, '#cc9900');
-      ctx.fillStyle = gradient;
-      ctx.shadowColor = '#ffcc00';
-      ctx.shadowBlur = 10;
-    } else {
-      // Unselected levels - dark gradient
-      const gradient = ctx.createRadialGradient(
-        buttonX + buttonSize/2, buttonY + buttonSize/2, 0,
-        buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize
-      );
-      gradient.addColorStop(0, '#444444');
-      gradient.addColorStop(1, '#222222');
-      ctx.fillStyle = gradient;
-      ctx.shadowBlur = 0;
-    }
-    
-    // Draw button
-    ctx.fillRect(buttonX, buttonY, buttonSize, buttonSize);
-    ctx.shadowBlur = 0;
-    
-    // Button text
-    ctx.fillStyle = i === selectedLevel ? '#000' : '#fff';
-    ctx.font = 'bold 16px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(i.toString(), buttonX + buttonSize/2, buttonY + buttonSize/2);
-  }
-  
-  // Music toggle section - adjusted Y position to maintain proper spacing
-  DrawBitmapTextSmall("MUSIC", 0, popupY + 230, 1, 0, 0);
-  
-  // Draw toggle button - adjusted Y position
-  const toggleWidth = 80;
-  const toggleHeight = 30;
-  const toggleX = (WIDTH - toggleWidth) / 2;
-  const toggleY = popupY + 260;
-  
-  // Toggle background
-  const toggleColor = musicEnabled ? '#4CAF50' : '#F44336';
-  ctx.fillStyle = toggleColor;
-  roundRect(ctx, toggleX, toggleY, toggleWidth, toggleHeight, toggleHeight / 2);
-  ctx.fill();
-  
-  // Toggle circle
-  const circleX = musicEnabled ? toggleX + toggleWidth - toggleHeight + 5 : toggleX + 5;
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.arc(circleX + (toggleHeight - 10) / 2, toggleY + toggleHeight / 2, (toggleHeight - 10) / 2, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Toggle text
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 14px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(musicEnabled ? "ON" : "OFF", musicEnabled ? toggleX + 25 : toggleX + toggleWidth - 25, toggleY + toggleHeight / 2);
-  
-  // Close button
-  const closeButtonSize = 30;
-  const closeButtonX = popupX + popupWidth - closeButtonSize - 10;
-  const closeButtonY = popupY + 10;
-  
-  // Button circle
-  ctx.fillStyle = '#cc0000';
-  ctx.beginPath();
-  ctx.arc(closeButtonX + closeButtonSize / 2, closeButtonY + closeButtonSize / 2, closeButtonSize / 2, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // X mark
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(closeButtonX + closeButtonSize * 0.3, closeButtonY + closeButtonSize * 0.3);
-  ctx.lineTo(closeButtonX + closeButtonSize * 0.7, closeButtonY + closeButtonSize * 0.7);
-  ctx.moveTo(closeButtonX + closeButtonSize * 0.7, closeButtonY + closeButtonSize * 0.3);
-  ctx.lineTo(closeButtonX + closeButtonSize * 0.3, closeButtonY + closeButtonSize * 0.7);
-  ctx.stroke();
-}
-
-/**
- * Helper function to draw rounded rectangles
- * 
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {number} x - Top-left X position
- * @param {number} y - Top-left Y position
- * @param {number} width - Rectangle width
- * @param {number} height - Rectangle height
- * @param {number} radius - Corner radius
- */
-function roundRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-/**
- * Export click handler for intro screen
- * Handles clicks on settings button, settings popup, and level buttons
- * 
- * @param {MouseEvent} event - Mouse click event
- */
-export function handleIntroScreenClick(event) {
-  // Get click position relative to canvas
-  const rect = canvas.getBoundingClientRect();
-  const mouseX = event.clientX - rect.left;
-  const mouseY = event.clientY - rect.top;
-  
-  if (showSettingsPopup) {
-    // Handle clicks within settings popup
-    handleSettingsPopupClick(mouseX, mouseY);
-  } else {
-    // Check if settings button was clicked
-    checkSettingsButtonClick(mouseX, mouseY);
-  }
-}
-
-/**
- * Check if the settings button was clicked
- * 
- * @param {number} mouseX - Mouse X position
- * @param {number} mouseY - Mouse Y position
- */
-function checkSettingsButtonClick(mouseX, mouseY) {
-  const buttonSize = 40;
-  const margin = 20;
-  const buttonX = WIDTH - buttonSize - margin;
-  const buttonY = margin;
-  
-  // Calculate distance from button center
-  const centerX = buttonX + buttonSize/2;
-  const centerY = buttonY + buttonSize/2;
-  const distance = Math.sqrt(Math.pow(mouseX - centerX, 2) + Math.pow(mouseY - centerY, 2));
-  
-  // Check if click is within button circle
-  if (distance <= buttonSize/2) {
-    console.log("Settings button clicked");
-    showSettingsPopup = true;
-  }
-}
-
-/**
- * Handle clicks within the settings popup
- * 
- * @param {number} mouseX - Mouse X position
- * @param {number} mouseY - Mouse Y position
- */
-function handleSettingsPopupClick(mouseX, mouseY) {
-  const popupWidth = Math.min(WIDTH * 0.8, 500);
-  const popupHeight = 350;
-  const popupX = (WIDTH - popupWidth) / 2;
-  const popupY = (HEIGHT - popupHeight) / 2;
-  
-  // Check close button click
-  const closeButtonSize = 30;
-  const closeButtonX = popupX + popupWidth - closeButtonSize - 10;
-  const closeButtonY = popupY + 10;
-  
-  // Calculate distance from close button center
-  const closeCenterX = closeButtonX + closeButtonSize/2;
-  const closeCenterY = closeButtonY + closeButtonSize/2;
-  const closeDistance = Math.sqrt(Math.pow(mouseX - closeCenterX, 2) + Math.pow(mouseY - closeCenterY, 2));
-  
-  if (closeDistance <= closeButtonSize/2) {
-    console.log("Settings popup close button clicked");
-    showSettingsPopup = false;
-    saveSettings(); // Save settings when closing popup
-    return;
-  }
-  
-  // Check music toggle click
-  const toggleWidth = 80;
-  const toggleHeight = 30;
-  const toggleX = (WIDTH - toggleWidth) / 2;
-  const toggleY = popupY + 260;
-  
-  if (mouseX >= toggleX && mouseX <= toggleX + toggleWidth &&
-      mouseY >= toggleY && mouseY <= toggleY + toggleHeight) {
-    console.log("Music toggle clicked");
-    musicEnabled = !musicEnabled;
-    
-    // Apply music setting immediately
-    if (typeof window.music_on !== 'undefined') {
-      window.music_on = musicEnabled;
-    }
-    
-    return;
-  }
-  
-  // Check level button clicks with updated layout
-  const buttonSize = 32;
-  const buttonSpacing = 10;
-  const maxButtonsPerRow = 10; // Match the drawing logic
-  const rows = Math.ceil(20 / maxButtonsPerRow); // Will be 2 for 20 levels
-  const buttonsPerRow = Math.ceil(20 / rows); // Evenly distribute buttons
-  
-  // Calculate grid position using same logic as in drawSettingsPopup
-  const gridWidth = (buttonSize * buttonsPerRow) + (buttonSpacing * (buttonsPerRow - 1));
-  const startX = (WIDTH - gridWidth) / 2;
-  const startY = popupY + 130;
-  
-  for (let i = 0; i < 20; i++) {
-    const row = Math.floor(i / buttonsPerRow);
-    const col = i % buttonsPerRow;
-    const buttonX = startX + (col * (buttonSize + buttonSpacing));
-    const buttonY = startY + (row * (buttonSize + buttonSpacing));
-    
-    if (mouseX >= buttonX && mouseX <= buttonX + buttonSize &&
-        mouseY >= buttonY && mouseY <= buttonY + buttonSize) {
-      console.log(`Level ${i} button clicked`);
-      selectedLevel = i;
-      return;
-    }
-  }
 }

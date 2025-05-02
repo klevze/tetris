@@ -479,8 +479,8 @@ function handleClick(event) {
             
         case GAME_STATES.GAME_INTRO:
         case GAME_STATES.HIGH_SCORE:
-            // Start the game
-            changeState(GAME_STATES.GAME_START);
+            // DISABLED: Generic clicks no longer start the game on intro screen
+            // Only the PLAY button should start the game now
             break;
             
         case GAME_STATES.PLAY_GAME:
@@ -645,12 +645,8 @@ function handleSpaceAction() {
             
         case GAME_STATES.GAME_INTRO:
         case GAME_STATES.HIGH_SCORE:
-            // On intro/high score screens, space starts the game
-            changeState(GAME_STATES.GAME_START);
-            // Update internal state tracker for compatibility
-            game_state = GAME_STATES.GAME_START;
-            // Ensure the event is propagated to other modules
-            window.game_state = GAME_STATES.GAME_START;
+            // DISABLED: On intro/high score screens, space no longer starts the game
+            // Only the PLAY button should start the game now
             break;
             
         case GAME_STATES.PLAY_GAME:
@@ -678,7 +674,7 @@ function handleRightMove() {
         moveBlockDirection('right');
         eventBus.emit(GAME_EVENTS.BLOCK_MOVE, { direction: 'right' });
     }
-}
+} 
 
 /**
  * Handle left arrow/swipe
@@ -760,7 +756,8 @@ function handleTap() {
             
         case GAME_STATES.GAME_INTRO:
         case GAME_STATES.HIGH_SCORE:
-            changeState(GAME_STATES.GAME_START);
+            // DISABLED: Taps/clicks no longer start the game on intro screen
+            // Only the PLAY button should start the game now
             break;
             
         case GAME_STATES.PLAY_GAME:
