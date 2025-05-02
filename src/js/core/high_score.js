@@ -142,6 +142,12 @@ function startNewGame() {
         // Remove all event listeners
         removeAllEventListeners();
         
+        // Reset the secure score to prevent "Score tampering detected" error
+        if (typeof window.setScore === 'function') {
+            console.log("Resetting secure score to 0 before starting new game");
+            window.setScore(0);
+        }
+        
         // Use the central gameState module to change state
         changeState(GAME_STATES.GAME_START);
         

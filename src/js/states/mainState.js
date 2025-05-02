@@ -157,6 +157,13 @@ export function startMainGame() {
   
   level_goal = INITIAL_LEVEL_GOAL;
   
+  // CRITICAL FIX: Ensure secure score is properly initialized
+  // This must happen BEFORE any other score operations
+  if (typeof window.setScore === 'function') {
+    console.log("Properly initializing secure score to 0");
+    window.setScore(0);
+  }
+  
   // Start playing music if enabled (by calling the global music function)
   if (typeof window.startGameMusic === 'function') {
     window.startGameMusic();
