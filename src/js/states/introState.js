@@ -424,6 +424,15 @@ export function refreshHighScores() {
   
   // Then try to load from Firebase
   loadCloudHighScores();
+  
+  // Make sure event listeners are properly reattached
+  if (!introEventListenersAdded) {
+    removeAllEventListeners();
+    document.addEventListener('keydown', handleIntroKeyDown);
+    canvas.addEventListener('click', handleIntroScreenClick);
+    introEventListenersAdded = true;
+    console.log("Reattached intro screen event listeners during refresh");
+  }
 }
 
 /**
@@ -695,14 +704,6 @@ export function handleIntroState(setGameState) {
   // Update and render Tetris block fireworks
   updateTetrisFireworks();
   
-  // Draw settings button
-  drawSettingsButton();
-  
-  // Draw settings popup if visible
-  if (showSettingsPopup) {
-    drawSettingsPopup();
-  }
-  
   // Draw level selection popup if visible
   if (showLevelPopup) {
     drawLevelPopup();
@@ -717,9 +718,10 @@ export function handleIntroState(setGameState) {
  * @param {number} y - Y position for the buttons
  */
 function drawActionButtons(y) {
-  const buttonWidth = 180;
-  const buttonHeight = 50;
-  const buttonSpacing = 20;
+  // Increase button width and height for better proportions
+  const buttonWidth = 300;  // Increased from 180 to 200
+  const buttonHeight = 70;  // Increased from 50 to 60
+  const buttonSpacing = 30; // Increased from 20 to 30
   const totalWidth = (buttonWidth * 2) + buttonSpacing;
   
   // Center the buttons horizontally
@@ -733,20 +735,20 @@ function drawActionButtons(y) {
   
   // Button style (Play button)
   ctx.fillStyle = '#4CAF50'; // Green
-  roundRect(ctx, playX, y - buttonHeight, buttonWidth, buttonHeight, 10);
+  roundRect(ctx, playX, y - buttonHeight, buttonWidth, buttonHeight, 12); // Increased corner radius
   ctx.fill();
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 2;
-  roundRect(ctx, playX, y - buttonHeight, buttonWidth, buttonHeight, 10);
+  roundRect(ctx, playX, y - buttonHeight, buttonWidth, buttonHeight, 12);
   ctx.stroke();
   
   // Button style (Select Level button)
   ctx.fillStyle = '#2196F3'; // Blue
-  roundRect(ctx, levelX, y - buttonHeight, buttonWidth, buttonHeight, 10);
+  roundRect(ctx, levelX, y - buttonHeight, buttonWidth, buttonHeight, 12); // Increased corner radius
   ctx.fill();
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 2;
-  roundRect(ctx, levelX, y - buttonHeight, buttonWidth, buttonHeight, 10);
+  roundRect(ctx, levelX, y - buttonHeight, buttonWidth, buttonHeight, 12);
   ctx.stroke();
   
   // Button text with shadow
@@ -755,11 +757,17 @@ function drawActionButtons(y) {
   ctx.shadowOffsetX = 2;
   ctx.shadowOffsetY = 2;
   
-  // Button text (Play)
-  DrawBitmapText("PLAY", playX + buttonWidth/2 - 40, y - buttonHeight/2 - 14, 0, 0, 0);
+  // Draw "PLAY" text inside the play button
+  // The text positioning is corrected to be inside the button, not centered on screen
+  const playButtonCenterX = playX + buttonWidth/2-10;
+  const playButtonCenterY = y - buttonHeight/2-10;
+  DrawBitmapText("PLAY", playButtonCenterX - 40, playButtonCenterY, 0, 0, 0);
   
-  // Button text (Select Level)
-  DrawBitmapText("SELECT LEVEL", levelX + buttonWidth/2 - 90, y - buttonHeight/2 - 14, 0, 0, 0);
+  // Draw "LEVEL X" text inside the level button
+  // The text positioning is corrected to be inside the button, not centered on screen
+  const levelButtonCenterX = levelX + buttonWidth/2-30;
+  const levelButtonCenterY = y - buttonHeight/2-10;
+  DrawBitmapText("LEVEL " + selectedLevel, levelButtonCenterX - 70, levelButtonCenterY, 0, 0, 0);
   
   // Reset shadow
   ctx.shadowColor = 'transparent';
@@ -922,35 +930,8 @@ export function handleIntroScreenClick(event) {
     // Handle clicks within level selection popup
     handleLevelPopupClick(mouseX, mouseY);
   } else {
-    // Check if settings button was clicked
-    checkSettingsButtonClick(mouseX, mouseY);
-    
     // Check if action buttons (Play or Select Level) were clicked
     checkActionButtonsClick(mouseX, mouseY);
-  }
-}
-
-/**
- * Check if the settings button was clicked
- * 
- * @param {number} mouseX - Mouse X position
- * @param {number} mouseY - Mouse Y position
- */
-function checkSettingsButtonClick(mouseX, mouseY) {
-  const buttonSize = 40;
-  const margin = 20;
-  const buttonX = WIDTH - buttonSize - margin;
-  const buttonY = margin;
-  
-  // Calculate distance from button center
-  const centerX = buttonX + buttonSize/2;
-  const centerY = buttonY + buttonSize/2;
-  const distance = Math.sqrt(Math.pow(mouseX - centerX, 2) + Math.pow(mouseY - centerY, 2));
-  
-  // Check if click is within button circle
-  if (distance <= buttonSize/2) {
-    console.log("Settings button clicked");
-    showSettingsPopup = true;
   }
 }
 
@@ -1090,9 +1071,9 @@ function handleLevelPopupClick(mouseX, mouseY) {
  * @param {number} mouseY - Mouse Y position
  */
 function checkActionButtonsClick(mouseX, mouseY) {
-  const buttonWidth = 180;
-  const buttonHeight = 50;
-  const buttonSpacing = 20;
+  const buttonWidth = 200;
+  const buttonHeight = 60;
+  const buttonSpacing = 30;
   const totalWidth = (buttonWidth * 2) + buttonSpacing;
   
   // Calculate bottom position
@@ -1342,64 +1323,4 @@ function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes < 10 ? '0' : ''}${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
-}
-
-/**
- * Draw settings button in the top-right corner
- */
-function drawSettingsButton() {
-  const buttonSize = 40;
-  const margin = 20;
-  const buttonX = WIDTH - buttonSize - margin;
-  const buttonY = margin;
-  
-  // Button background
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-  ctx.beginPath();
-  ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Button border
-  ctx.strokeStyle = '#ffcc00';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
-  ctx.stroke();
-  
-  // Settings gear icon
-  drawGearIcon(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize * 0.3);
-}
-
-/**
- * Draw a gear icon for settings button
- * 
- * @param {number} x - Center X position
- * @param {number} y - Center Y position
- * @param {number} size - Size of the gear
- */
-function drawGearIcon(x, y, size) {
-  const outerRadius = size;
-  const innerRadius = size * 0.6;
-  const teethCount = 8;
-  
-  ctx.fillStyle = '#ffcc00';
-  ctx.beginPath();
-  
-  // Draw gear teeth
-  for (let i = 0; i < teethCount; i++) {
-    const angle = (i / teethCount) * Math.PI * 2;
-    const nextAngle = ((i + 0.5) / teethCount) * Math.PI * 2;
-    
-    ctx.lineTo(x + Math.cos(angle) * outerRadius, y + Math.sin(angle) * outerRadius);
-    ctx.lineTo(x + Math.cos(nextAngle) * innerRadius, y + Math.sin(nextAngle) * innerRadius);
-  }
-  
-  ctx.closePath();
-  ctx.fill();
-  
-  // Draw center circle
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
-  ctx.fill();
 }
