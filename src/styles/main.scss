@@ -3,6 +3,9 @@
  * Enhanced with responsive design and better touch device support
  */
 
+// Import PWA styles using modern @use syntax
+@use './pwa';
+
 :root {
   --background-color: #000;
   --border-color: #222;

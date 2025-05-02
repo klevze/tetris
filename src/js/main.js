@@ -26,8 +26,12 @@ import { handleIntroScreenClick } from './states/introState.js';
 // Import touch controls
 import { initTouchControls, initCanvasSwipeDetector } from './utils/touchControls.js';
 
+// Import PWA functionality
+import { initPWA, toggleFullscreen } from './utils/pwa.js';
+
 // Expose toggleGamePause to window for touchControls to use
 window.toggleGamePause = toggleGamePause;
+window.toggleFullscreen = toggleFullscreen; // Add fullscreen toggle for UI controls
 
 /**
  * Initialize the game when the DOM is fully loaded
@@ -44,6 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.innerHTML = '<div style="text-align:center;color:white;padding:20px;">Your browser does not support HTML5 Canvas. Please use a modern browser to play Tetris.</div>';
         return;
     }
+    
+    // Initialize PWA functionality
+    initPWA();
     
     // Set proper canvas size based on device
     setCanvasSize();
