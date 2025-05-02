@@ -421,47 +421,47 @@ export function checkRows() {
     addScore = SCORE_SYSTEM.DOUBLE * (level + 1); // Double
     shouldTriggerFireworks = true; // TEST: Enable fireworks for double line clear
     
-    // Play random sound from double_row_audio array for 2-row clears with 1s delay
+    // Play random sound from double_row_audio array for 2-row clears with 500ms delay
     if (double_row_audio && double_row_audio.length > 0) {
       const randomIndex = Math.floor(Math.random() * double_row_audio.length);
       const sound = double_row_audio[randomIndex];
       sound.currentTime = 0;
       
-      // Add 1 second delay before playing the voice
+      // Add 500ms delay before playing the voice
       setTimeout(() => {
         sound.play().catch(e => console.log('Double row sound play prevented:', e));
         console.log(`Playing 2-row clear sound (delayed): ${randomIndex === 0 ? 'nice_combo.mp3' : 'you_fire.mp3'}`);
-      }, 1000); // 1 second delay
+      }, 500); // 500ms delay
     }
   } else if (completedRows === 3) {
     addScore = SCORE_SYSTEM.TRIPLE * (level + 1); // Triple
     shouldTriggerFireworks = true; // TEST: Enable fireworks for triple line clear
     
-    // Play random sound from triple_row_audio array for 3-row clears with 1s delay
+    // Play random sound from triple_row_audio array for 3-row clears with 500ms delay
     if (triple_row_audio && triple_row_audio.length > 0) {
       const randomIndex = Math.floor(Math.random() * triple_row_audio.length);
       const sound = triple_row_audio[randomIndex];
       sound.currentTime = 0;
       
-      // Add 1 second delay before playing the voice
+      // Add 500ms delay before playing the voice
       setTimeout(() => {
         sound.play().catch(e => console.log('Triple row sound play prevented:', e));
         console.log(`Playing 3-row clear sound (delayed): ${randomIndex === 0 ? 'great_move.mp3' : 'smooth_clear.mp3'}`);
-      }, 1000); // 1 second delay
+      }, 500); // 500ms delay
     }
   } else if (completedRows === 4) {
     addScore = SCORE_SYSTEM.TETRIS * (level + 1); // Tetris!
     shouldTriggerFireworks = true; // Trigger fireworks for Tetris
     
-    // Play the special "amazing" sound for Tetris (4 rows cleared) with 1s delay
+    // Play the special "amazing" sound for Tetris (4 rows cleared) with 500ms delay
     if (tetris_audio) {
       tetris_audio.currentTime = 0;
       
-      // Add 1 second delay before playing the voice
+      // Add 500ms delay before playing the voice
       setTimeout(() => {
         tetris_audio.play().catch(e => console.log('Tetris sound play prevented:', e));
         console.log('Playing Tetris special sound (delayed): amazing.mp3');
-      }, 1000); // 1 second delay
+      }, 500); // 500ms delay
     }
   }
   
