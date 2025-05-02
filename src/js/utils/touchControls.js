@@ -36,30 +36,41 @@ let joystickTimers = {
 let longPressTimer = null;
 const LONG_PRESS_DELAY = 500; // ms to trigger long press
 
-// Elements references
+// Cached DOM references
 let joystickContainer;
 let joystick;
+let touchControlsElem;
+let controlRows;
+let orientationWarningElem;
 
 /**
  * Initialize touch controls for mobile devices
  */
 export function initTouchControls() {
+  // Cache DOM references - only query the DOM once
   joystickContainer = document.getElementById('joystick-container');
   joystick = document.getElementById('joystick');
+  touchControlsElem = document.querySelector('.touch-controls');
+  orientationWarningElem = document.querySelector('.orientation-warning');
   
   if (!joystickContainer || !joystick) {
     console.warn('Joystick elements not found in the DOM');
     return;
   }
 
-  // Get button references
-  const rotateBtn = document.getElementById('rotate-btn');
-  const leftBtn = document.getElementById('left-btn');
-  const rightBtn = document.getElementById('right-btn');
-  const downBtn = document.getElementById('down-btn');
-  const dropBtn = document.getElementById('drop-btn');
-  const holdBtn = document.getElementById('hold-btn');
-  const pauseBtn = document.getElementById('pause-btn');
+  // Cache the control rows for toggling between joystick/buttons
+  controlRows = document.querySelectorAll('.movement-controls .controls-row');
+
+  // Get button references (cache these too)
+  const buttons = {
+    rotate: document.getElementById('rotate-btn'),
+    left: document.getElementById('left-btn'),
+    right: document.getElementById('right-btn'),
+    down: document.getElementById('down-btn'),
+    drop: document.getElementById('drop-btn'),
+    hold: document.getElementById('hold-btn'),
+    pause: document.getElementById('pause-btn')
+  };
 
   // Helper function to prevent default behavior and add events
   function addButtonListeners(button, handler, options = {}) {
@@ -100,22 +111,22 @@ export function initTouchControls() {
     }
   }
 
-  // Add touch events to buttons
-  addButtonListeners(rotateBtn, () => rotateBlock());
-  addButtonListeners(leftBtn, () => moveBlockDirection('left'));
-  addButtonListeners(rightBtn, () => moveBlockDirection('right'));
-  addButtonListeners(downBtn, () => moveBlockDirection('down'));
-  addButtonListeners(dropBtn, () => moveBlockDirection('drop'));
-  addButtonListeners(holdBtn, () => HoldBlock());
+  // Add touch events to buttons using our cached references
+  addButtonListeners(buttons.rotate, () => rotateBlock());
+  addButtonListeners(buttons.left, () => moveBlockDirection('left'));
+  addButtonListeners(buttons.right, () => moveBlockDirection('right'));
+  addButtonListeners(buttons.down, () => moveBlockDirection('down'));
+  addButtonListeners(buttons.drop, () => moveBlockDirection('drop'));
+  addButtonListeners(buttons.hold, () => HoldBlock());
   
   // Pause button with special handling
-  if (pauseBtn) {
-    pauseBtn.addEventListener('touchstart', (e) => {
+  if (buttons.pause) {
+    buttons.pause.addEventListener('touchstart', (e) => {
       e.preventDefault();
       togglePause();
     }, { passive: false });
     
-    pauseBtn.addEventListener('click', togglePause);
+    buttons.pause.addEventListener('click', togglePause);
   }
 
   // Initialize virtual joystick
@@ -130,9 +141,7 @@ export function initTouchControls() {
     showTouchControls();
     
     // Add event listener to update visibility when game state changes
-    eventBus.on(GAME_EVENTS.STATE_CHANGED, (data) => {
-      showTouchControls();
-    });
+    eventBus.on(GAME_EVENTS.STATE_CHANGED, showTouchControls);
   }
 
   // Listen for orientation changes
@@ -186,9 +195,9 @@ function handleJoystickStart(e) {
  * @param {Event} e - Touch or mouse event
  */
 function handleJoystickMove(e) {
-  e.preventDefault();
-  
   if (!joystickActive) return;
+  
+  e.preventDefault();
   
   // Handle touch or mouse
   const clientX = e.clientX || (e.touches && e.touches[0].clientX);
@@ -203,9 +212,9 @@ function handleJoystickMove(e) {
  * @param {Event} e - Touch or mouse event
  */
 function handleJoystickEnd(e) {
-  e.preventDefault();
-  
   if (!joystickActive) return;
+  
+  e.preventDefault();
   
   joystickActive = false;
   updateJoystickPos(0, 0);
@@ -213,7 +222,7 @@ function handleJoystickEnd(e) {
   // Clear all joystick timers
   Object.keys(joystickTimers).forEach(key => {
     if (joystickTimers[key]) {
-      clearTimeout(joystickTimers[key]);
+      clearInterval(joystickTimers[key]); // Clear both timeouts and intervals
       joystickTimers[key] = null;
     }
   });
@@ -262,7 +271,7 @@ function processJoystickInput() {
   // Clear existing timers
   Object.keys(joystickTimers).forEach(key => {
     if (joystickTimers[key]) {
-      clearTimeout(joystickTimers[key]);
+      clearInterval(joystickTimers[key]); // Clear both timeouts and intervals
       joystickTimers[key] = null;
     }
   });
@@ -307,6 +316,7 @@ function processJoystickInput() {
 function updateJoystickPos(x, y) {
   if (!joystick) return;
   
+  // Use transform for better performance (avoids layout recalculation)
   joystick.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
 }
 
@@ -320,20 +330,22 @@ export function toggleControlType() {
     // Show joystick, hide directional buttons
     if (joystickContainer) joystickContainer.style.display = 'block';
     
-    const buttons = document.querySelectorAll('.movement-controls .controls-row');
-    buttons.forEach(row => {
-      row.style.display = 'none';
-    });
+    if (controlRows) {
+      controlRows.forEach(row => {
+        row.style.display = 'none';
+      });
+    }
   } else {
     CONFIG.controlType = 'buttons';
     
     // Hide joystick, show directional buttons
     if (joystickContainer) joystickContainer.style.display = 'none';
     
-    const buttons = document.querySelectorAll('.movement-controls .controls-row');
-    buttons.forEach(row => {
-      row.style.display = 'flex';
-    });
+    if (controlRows) {
+      controlRows.forEach(row => {
+        row.style.display = 'flex';
+      });
+    }
   }
   
   // Save preference
@@ -344,7 +356,6 @@ export function toggleControlType() {
  * Show touch controls only during actual gameplay
  */
 function showTouchControls() {
-  const touchControlsElem = document.querySelector('.touch-controls');
   if (!touchControlsElem) return;
   
   const state = getState();
@@ -362,7 +373,6 @@ function showTouchControls() {
  * Hide touch controls
  */
 export function hideTouchControls() {
-  const touchControlsElem = document.querySelector('.touch-controls');
   if (touchControlsElem) {
     touchControlsElem.style.display = 'none';
   }
@@ -390,14 +400,13 @@ function togglePause() {
  * Handle device orientation changes
  */
 function handleOrientationChange() {
-  const orientationWarning = document.querySelector('.orientation-warning');
-  if (!orientationWarning) return;
+  if (!orientationWarningElem) return;
   
   // Check if we're on a mobile device with landscape orientation and limited height
   if (window.innerHeight < 450 && window.innerWidth > window.innerHeight) {
-    orientationWarning.style.display = 'flex';
+    orientationWarningElem.style.display = 'flex';
   } else {
-    orientationWarning.style.display = 'none';
+    orientationWarningElem.style.display = 'none';
   }
 }
 
@@ -440,10 +449,11 @@ function loadControlPreferences() {
         if (CONFIG.controlType === 'joystick') {
           if (joystickContainer) joystickContainer.style.display = 'block';
           
-          const buttons = document.querySelectorAll('.movement-controls .controls-row');
-          buttons.forEach(row => {
-            row.style.display = 'none';
-          });
+          if (controlRows) {
+            controlRows.forEach(row => {
+              row.style.display = 'none';
+            });
+          }
         }
       }
     }
@@ -454,6 +464,7 @@ function loadControlPreferences() {
 
 // Add a swipe detector for the canvas to handle game-wide swipe gestures
 export function initCanvasSwipeDetector() {
+  // Cache canvas reference
   const canvas = document.getElementById('mainCanvas');
   if (!canvas) return;
   

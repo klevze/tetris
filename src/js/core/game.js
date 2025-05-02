@@ -172,9 +172,10 @@ function gameLoop(timestamp) {
   // This ensures the pause screen is drawn
   draw();
   
-  // Performance monitoring
+  // Performance monitoring - only log every second to avoid console overhead
   frameCounter++;
   if (elapsed > 1000) {
+    // Store FPS in a variable instead of logging every frame
     const actualFPS = Math.round(frameCounter * 1000 / elapsed);
     if (actualFPS < FPS - 5) {
       console.log(`Performance warning: ${actualFPS}fps (target: ${FPS}fps)`);

@@ -102,13 +102,19 @@ export function setCanvasSize() {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     
-    // Get container dimensions if it exists
-    const container = document.getElementById('main');
+    // Cache DOM element references to avoid repeated lookups
+    if (!setCanvasSize.container) {
+        setCanvasSize.container = document.getElementById('main');
+        setCanvasSize.orientationWarning = document.querySelector('.orientation-warning');
+    }
+    
+    // Get container dimensions using cached reference
+    const container = setCanvasSize.container;
     const containerWidth = container ? container.clientWidth : viewportWidth;
     const containerHeight = container ? container.clientHeight : viewportHeight;
     
-    // Check for mobile orientation warning
-    const orientationWarning = document.querySelector('.orientation-warning');
+    // Check for mobile orientation warning using cached reference
+    const orientationWarning = setCanvasSize.orientationWarning;
     const isOrientationWarningVisible = orientationWarning && 
         window.getComputedStyle(orientationWarning).display !== 'none';
     
@@ -164,7 +170,12 @@ export function setCanvasSize() {
  * Handle device orientation changes
  */
 function handleOrientationChange() {
-    const orientationWarning = document.querySelector('.orientation-warning');
+    // Cache DOM reference for better performance
+    if (!handleOrientationChange.warning) {
+        handleOrientationChange.warning = document.querySelector('.orientation-warning');
+    }
+    
+    const orientationWarning = handleOrientationChange.warning;
     if (!orientationWarning) return;
     
     // Check if we're on a mobile device with landscape orientation and limited height
