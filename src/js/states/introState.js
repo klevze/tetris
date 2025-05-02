@@ -631,62 +631,68 @@ export function handleIntroState(setGameState) {
     if (p % 2 == 0) {
       p = 0;
     }
-      
-    if (ps < 12) {
-      // Apply sine wave effect for score listings (reduced)
-      const m = Math.sin((k+ps*20) / 180 * 3.14) * 10;
-        
-      // Draw score entry with shadow effect - using larger bitmap font
-      const isTopScore = ps == 1;
-      const textColor = isTopScore ? '#faa' : (cloudScoresLoaded ? '#b3e5fc' : '#eee');
-      const shadowColor = '#111';
-      
-      // Determine the max score length from the first (highest) score
-      const maxScoreLength = index === 0 ? 
-        val.score.toString().length : 
-        high_scores[0].score.toString().length;
-      
-      // Format score with leading zeros to match the length of the highest score
-      const formattedScore = val.score.toString().padStart(maxScoreLength, '0');
-      
-      // Format lines and level with leading zeros
-      const formattedLines = val.cleared_lines.toString().padStart(3, '0');
-      const formattedLevel = val.level.toString().padStart(2, '0');
-        
-      // Draw shadows
-      ctx.fillStyle = shadowColor;
-      
-      // Draw rank number for all entries (including first place)
-      DrawBitmapText(ps + ".", rankX + m + 2, y + 2, 0, 0, 0);
-      
-      // Draw player name with shadow
-      DrawBitmapText(val.player_name, nameX + m + 2, y + 2, 0, 0, 0);
-      
-      // Draw score with shadow (with matching leading zeros)
-      DrawBitmapText(formattedScore, scoreX + m + 2, y + 2, 0, 0, 0);
-      
-      // Draw stats with shadow
-      DrawBitmapText(formattedLines, linesX + m + 2, y + 2, 0, 0, 0);
-      DrawBitmapText(formattedLevel, levelX + m + 2, y + 2, 0, 0, 0);
-      DrawBitmapText(val.time, timeX + m + 2, y + 2, 0, 0, 0);
-      
-      // Draw the text with proper color
-      ctx.fillStyle = textColor;
-      
-      // Draw rank number for all entries (including first place)
-      DrawBitmapText(ps + ".", rankX + m, y, 0, 0, 0);
-      
-      // Draw player name
-      DrawBitmapText(val.player_name, nameX + m, y, 0, 0, 0);
-      
-      // Draw score (with matching leading zeros)
-      DrawBitmapText(formattedScore, scoreX + m, y, 0, 0, 0);
-      
-      // Draw stats
-      DrawBitmapText(formattedLines, linesX + m, y, 0, 0, 0);
-      DrawBitmapText(formattedLevel, levelX + m, y, 0, 0, 0);
-      DrawBitmapText(val.time, timeX + m, y, 0, 0, 0);
+    
+    // Calculate the maximum y position (80% of screen height)
+    const maxYPosition = HEIGHT * 0.8;
+    
+    // If we're going to exceed the maximum height, stop rendering more scores
+    if (y + 55 > maxYPosition) {
+      return; // Exit the forEach loop early
     }
+    
+    // Apply sine wave effect for score listings (reduced)
+    const m = Math.sin((k+ps*20) / 180 * 3.14) * 10;
+      
+    // Draw score entry with shadow effect - using larger bitmap font
+    const isTopScore = ps == 1;
+    const textColor = isTopScore ? '#faa' : (cloudScoresLoaded ? '#b3e5fc' : '#eee');
+    const shadowColor = '#111';
+    
+    // Determine the max score length from the first (highest) score
+    const maxScoreLength = index === 0 ? 
+      val.score.toString().length : 
+      high_scores[0].score.toString().length;
+    
+    // Format score with leading zeros to match the length of the highest score
+    const formattedScore = val.score.toString().padStart(maxScoreLength, '0');
+    
+    // Format lines and level with leading zeros
+    const formattedLines = val.cleared_lines.toString().padStart(3, '0');
+    const formattedLevel = val.level.toString().padStart(2, '0');
+      
+    // Draw shadows
+    ctx.fillStyle = shadowColor;
+    
+    // Draw rank number for all entries (including first place)
+    DrawBitmapText(ps + ".", rankX + m + 2, y + 2, 0, 0, 0);
+    
+    // Draw player name with shadow
+    DrawBitmapText(val.player_name, nameX + m + 2, y + 2, 0, 0, 0);
+    
+    // Draw score with shadow (with matching leading zeros)
+    DrawBitmapText(formattedScore, scoreX + m + 2, y + 2, 0, 0, 0);
+    
+    // Draw stats with shadow
+    DrawBitmapText(formattedLines, linesX + m + 2, y + 2, 0, 0, 0);
+    DrawBitmapText(formattedLevel, levelX + m + 2, y + 2, 0, 0, 0);
+    DrawBitmapText(val.time, timeX + m + 2, y + 2, 0, 0, 0);
+    
+    // Draw the text with proper color
+    ctx.fillStyle = textColor;
+    
+    // Draw rank number for all entries (including first place)
+    DrawBitmapText(ps + ".", rankX + m, y, 0, 0, 0);
+    
+    // Draw player name
+    DrawBitmapText(val.player_name, nameX + m, y, 0, 0, 0);
+    
+    // Draw score (with matching leading zeros)
+    DrawBitmapText(formattedScore, scoreX + m, y, 0, 0, 0);
+    
+    // Draw stats
+    DrawBitmapText(formattedLines, linesX + m, y, 0, 0, 0);
+    DrawBitmapText(formattedLevel, levelX + m, y, 0, 0, 0);
+    DrawBitmapText(val.time, timeX + m, y, 0, 0, 0);
       
     sc += 1;
     
@@ -695,7 +701,7 @@ export function handleIntroState(setGameState) {
   });
     
   // Position the buttons at the bottom of the screen with appropriate padding
-  const bottomPadding = HEIGHT * 0.09; // 9% of screen height as padding
+  const bottomPadding = HEIGHT * 0.05; // 5% of screen height as padding
   const buttonY = HEIGHT - bottomPadding;
   
   // Draw Play and Select Level buttons instead of "PRESS SPACE TO START" text
