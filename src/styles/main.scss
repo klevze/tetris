@@ -37,20 +37,9 @@ body {
 
 #main {
   position: relative;
-  width: 100%;
-  height: auto;
+  width: 100vw;
+  height: 100vh;
   margin: 0 auto;
-  border: solid 5px var(--border-color);
-  border-radius: 10px;
-  box-shadow: 1px 1px 20px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-  
-  // Maintain aspect ratio
-  &::before {
-    content: '';
-    display: block;
-    padding-top: 75%; // 4:3 aspect ratio (600/800)
-  }
 }
 
 canvas {
@@ -74,6 +63,7 @@ canvas {
   padding: 10px;
   background: rgba(0, 0, 0, 0.7);
   z-index: 100;
+  flex-direction: column;
   
   button {
     background: rgba(255, 255, 255, 0.2);
@@ -88,9 +78,13 @@ canvas {
     align-items: center;
     justify-content: center;
     outline: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
     
     &:active {
       background: rgba(255, 255, 255, 0.4);
+      animation: buttonPress 0.2s ease;
     }
   }
   
@@ -102,6 +96,34 @@ canvas {
     &:last-child {
       margin-bottom: 0;
     }
+  }
+  
+  .joystick-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    margin: 0 auto;
+    
+    .joystick {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: var(--highlight-color);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+  }
+  
+  .action-buttons {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 15px;
   }
 }
 
@@ -126,7 +148,7 @@ canvas {
 @media (max-width: 820px) {
   #main {
     width: 95%;
-    max-height: 80vh;
+    height: 100vh; // Use full viewport height
   }
 }
 
@@ -139,6 +161,19 @@ canvas {
   
   body {
     padding-bottom: 70px; // Make room for touch controls
+  }
+}
+
+// Portrait mode specific adjustments
+@media (orientation: portrait) {
+  #main {
+    width: 100vw;
+    height: 100vh;
+  }
+  
+  canvas {
+    width: 100%;
+    height: 100%;
   }
 }
 

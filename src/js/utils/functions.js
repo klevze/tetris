@@ -107,9 +107,35 @@ export function setCanvasSize() {
     const containerWidth = container ? container.clientWidth : viewportWidth;
     const containerHeight = container ? container.clientHeight : viewportHeight;
     
+    // Check for mobile orientation warning
+    const orientationWarning = document.querySelector('.orientation-warning');
+    const isOrientationWarningVisible = orientationWarning && 
+        window.getComputedStyle(orientationWarning).display !== 'none';
+    
+    // If the orientation warning is visible, we don't want to resize yet
+    if (isOrientationWarningVisible) {
+        console.log('Orientation warning visible, skipping canvas resize');
+        return { width: WIDTH, height: HEIGHT };
+    }
+    
+    // Detect if we're in portrait mode
+    const isPortrait = viewportHeight > viewportWidth;
+    
     // Set canvas logical size to match container (100% of container)
     canvas.style.width = `100%`;
     canvas.style.height = `100%`;
+    
+    // Check for mobile devices
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // For mobile portrait mode, ensure we use the full available screen height
+    if (isMobile && isPortrait) {
+        console.log('Mobile device in portrait mode, using full screen height');
+        // No need for special adjustments since we're now using 100vh in CSS
+    } else if (isMobile && viewportHeight < 500) {
+        console.log('Mobile device in landscape with limited height detected');
+        // Landscape mode with limited height - handled by orientation warning
+    }
     
     // Handle high DPI displays for sharper rendering
     devicePixelRatio = window.devicePixelRatio || 1;
@@ -124,10 +150,11 @@ export function setCanvasSize() {
     
     // Scale the context to handle high DPI displays
     if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset the transform
         ctx.scale(devicePixelRatio, devicePixelRatio);
     }
     
-    console.log(`Canvas resized: ${WIDTH}x${HEIGHT}, pixel ratio: ${devicePixelRatio}`);
+    console.log(`Canvas resized: ${WIDTH}x${HEIGHT}, pixel ratio: ${devicePixelRatio}, isPortrait: ${isPortrait}`);
     
     // Trigger redraw if needed
     return { width: WIDTH, height: HEIGHT };
@@ -251,16 +278,25 @@ export function showBackgroundCover(image) {
             let drawWidth, drawHeight, x, y;
             
             if (screenRatio > imageRatio) {
-                // Screen is wider than image
+                // Screen is wider than image - fill width and overflow height
                 drawWidth = WIDTH;
                 drawHeight = WIDTH / imageRatio;
                 x = 0;
                 y = (HEIGHT - drawHeight) / 2;
             } else {
-                // Screen is taller than image
+                // Screen is taller than image - fill height and overflow width
                 drawWidth = HEIGHT * imageRatio;
                 drawHeight = HEIGHT;
                 x = (WIDTH - drawWidth) / 2;
+                y = 0;
+            }
+            
+            // For portrait mode on mobile, always fill the whole screen
+            if (HEIGHT > WIDTH && navigator.userAgent.match(/Android|iPhone|iPad|iPod/i)) {
+                // In portrait mode on mobile, prioritize filling the screen completely
+                drawWidth = WIDTH;
+                drawHeight = HEIGHT;
+                x = 0;
                 y = 0;
             }
             

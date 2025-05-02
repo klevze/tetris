@@ -452,6 +452,7 @@ export function handleIntroState(setGameState) {
     document.addEventListener('keydown', handleIntroKeyDown);
     canvas.addEventListener('click', handleIntroScreenClick);
     canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('touchstart', handleIntroScreenClick); // Added touch event listener
     introEventListenersAdded = true;
   }
 
@@ -929,13 +930,30 @@ function roundRect(ctx, x, y, width, height, radius) {
  * Export click handler for intro screen
  * Handles clicks on settings button, settings popup, and level buttons
  * 
- * @param {MouseEvent} event - Mouse click event
+ * @param {MouseEvent|TouchEvent} event - Mouse click or touch event
  */
 export function handleIntroScreenClick(event) {
-  // Get click position relative to canvas
+  // Get click/touch position relative to canvas
   const rect = canvas.getBoundingClientRect();
-  const mouseX = event.clientX - rect.left;
-  const mouseY = event.clientY - rect.top;
+  
+  // Handle both mouse clicks and touch events
+  let clientX, clientY;
+  
+  if (event.type === 'touchstart') {
+    // Prevent default behavior for touch events (scrolling/zooming)
+    event.preventDefault();
+    // Get the first touch point
+    const touch = event.touches[0] || event.changedTouches[0];
+    clientX = touch.clientX;
+    clientY = touch.clientY;
+  } else {
+    // Regular mouse event
+    clientX = event.clientX;
+    clientY = event.clientY;
+  }
+  
+  const mouseX = clientX - rect.left;
+  const mouseY = clientY - rect.top;
   
   if (showSettingsPopup) {
     // Handle clicks within settings popup
@@ -1219,6 +1237,7 @@ function removeAllEventListeners() {
     document.removeEventListener('keydown', handleIntroKeyDown);
     canvas.removeEventListener('click', handleIntroScreenClick);
     canvas.removeEventListener('mousemove', handleMouseMove);
+    canvas.removeEventListener('touchstart', handleIntroScreenClick); // Remove touch event listener
     introEventListenersAdded = false;
   }
 }

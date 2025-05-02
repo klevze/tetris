@@ -5,21 +5,24 @@ import { GAME_STATES, IMAGES } from '../config/config.js';
 import { saveHighScore, loadHighScores } from '../config/firebase.js';
 
 // Variables that will be initialized
-let ctx, WIDTH;
+let ctx, WIDTH, HEIGHT;
 let high_scores = [];
 let sc = 0;
 let k = 0;
 let lines = 0, level = 1, TotalSeconds = 0;
 let introEventListenersAdded = false;
+let frontCounter = 0;
 
 /**
  * Initialize the high score module
  * @param {CanvasRenderingContext2D} context - Canvas context
  * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
  */
-export function initHighScore(context, width) {
+export function initHighScore(context, width, height) {
     ctx = context;
     WIDTH = width;
+    HEIGHT = height;
     
     // Load high scores from Firebase
     LoadHighScoreData();
@@ -236,32 +239,43 @@ function handleIntroMouseDown(evt) {
 }
 
 /**
- * Show the intro screen
+ * Set up intro screen event listeners
  */
-export function ShowIntroScreen() {
-    // Set up intro screen event handlers if not already set
+function setupIntroEventListeners() {
     if (!introEventListenersAdded) {
-        // Remove any existing listeners first
         removeAllEventListeners();
-        
-        // Add intro-specific event listeners
         document.addEventListener('keydown', handleIntroKeyDown);
         document.addEventListener('mousedown', handleIntroMouseDown);
         introEventListenersAdded = true;
-        console.log("Added intro screen event listeners");
     }
+}
 
-    k += .8;
-    
-    // Use direct image access to make sure we get the logo
-    const logo_img = getImage('LOGO');
+/**
+ * Show the intro screen
+ */
+export function ShowIntroScreen() {
+    // Set up event listeners for intro screen
+    setupIntroEventListeners();
     
     try {
-        // Check if logo_img is valid before drawing
-        if (logo_img && logo_img.complete && logo_img.naturalWidth !== 0) {
-            // Draw the logo with sine wave animation, moving it 20px higher (from 60 to 40)
-            for (let l = 0; l < 100; l++) {
-                const n = (k + l) * 2;
+        // Check if we're in a limited height scenario (mobile device with limited vertical space)
+        const isLimitedHeight = HEIGHT < 450;
+        
+        // Draw the background image - different on mobile with limited height
+        const back_img = getImage('BACKGROUND');
+        if (back_img && back_img.complete) {
+            showBackgroundCover(back_img);
+        }
+        
+        const logo_img = getImage('LOGO');
+        // Show the game logo with animated slicing effect
+        if (logo_img && logo_img.complete) {
+            // Adjust logo position to be higher when on limited height screens
+            const logoYPosition = isLimitedHeight ? 30 : 40;
+            
+            // Animate each slice of the logo with sine wave
+            for (let l = 0; l < 200; l++) {
+                let n = l + frontCounter;
                 let m = Math.sin(n/180*3.14) * 30;
                 let height = m + 15;
                 
@@ -272,8 +286,8 @@ export function ShowIntroScreen() {
                     height = 30;
                 }
 
-                // Draw each horizontal slice of the logo (changed y-position from l+60 to l+40)
-                ctx.drawImage(logo_img, 0, l, 321, 1, m + 240, l+40, 321, height);
+                // Draw each horizontal slice of the logo at adjusted height
+                ctx.drawImage(logo_img, 0, l, 321, 1, m + 240, l + logoYPosition, 321, height);
             }
         } else {
             // Fallback if the image isn't loaded yet
@@ -281,85 +295,57 @@ export function ShowIntroScreen() {
             ctx.font = 'bold 40px Arial';
             ctx.fillStyle = '#ffcc00';
             ctx.textAlign = 'center';
-            ctx.fillText("TETRIS", WIDTH/2, 40); // Also moved higher (from 50 to 40)
+            ctx.fillText("TETRIS", WIDTH/2, isLimitedHeight ? 30 : 40);
+        }
+        
+        // Add a cloud high scores badge
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillRect(WIDTH - 180, 10, 170, 30);
+        ctx.fillStyle = '#4285F4'; // Google blue color
+        ctx.fillText("CLOUD HIGH SCORES", WIDTH - 20, 30);
+
+        // Move "TOP PLAYERS" text further up when on limited height screens
+        const topPlayersY = isLimitedHeight ? 230 : 290;
+        DrawBitmapText("TOP PLAYERS", 0, topPlayersY, 1);
+
+        // Calculate the maximum number of high scores based on available space
+        // Show fewer high scores when on limited height screens
+        const maxScores = isLimitedHeight ? 3 : 5;
+        let y = topPlayersY + 50;
+
+        // Display the top players (only show the first maxScores entries)
+        let displayCount = 0;
+        for (let i = 0; i < high_scores.length && displayCount < maxScores; i++) {
+            const score = high_scores[i];
+            DrawBitmapTextSmall(`${displayCount+1}. ${score.player_name} - ${score.score}`, 0, y, 0);
+            y += 30;
+            displayCount++;
+        }
+
+        // Display "Press space to start" or "Tap to start" message
+        const ctaY = isLimitedHeight ? HEIGHT - 50 : HEIGHT - 100;
+        
+        // Check if this is a touch device
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        
+        const ctaText = isTouchDevice ? "TAP TO START" : "PRESS SPACE TO START";
+        DrawBitmapText(ctaText, 0, ctaY, 1, 1);
+        
+        // Display controls hint at the bottom
+        const controlsY = isLimitedHeight ? HEIGHT - 30 : HEIGHT - 70;
+        const controlsText = "ARROWS TO MOVE, SPACE TO DROP, P TO PAUSE";
+        DrawBitmapTextSmall(controlsText, 0, controlsY, 0);
+        
+        // Update counter for animation
+        frontCounter += 2;
+        if (frontCounter > 180) {
+            frontCounter = 0;
         }
     } catch (e) {
-        console.error("Error drawing logo:", e);
-        // Fallback text in case of error
-        ctx.font = 'bold 40px Arial';
-        ctx.fillStyle = '#ffcc00';
-        ctx.textAlign = 'center';
-        ctx.fillText("TETRIS", WIDTH/2, 40); // Also moved higher (from 50 to 40)
+        console.error("Error drawing intro screen:", e);
     }
-
-    // Add a cloud high scores badge
-    ctx.font = 'bold 16px Arial';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.fillRect(WIDTH - 180, 10, 170, 30);
-    ctx.fillStyle = '#4285F4'; // Google blue color
-    ctx.fillText("CLOUD HIGH SCORES", WIDTH - 20, 30);
-
-    // Move "TOP PLAYERS" text further down to avoid overlap with the logo
-    // Changed from y=130 to y=170
-    DrawBitmapTextSmall("TOP PLAYERS", 0, 170, 1, 0, 0);
-    
-    let y = 200; // Changed initial y position from 150 to 200
-    let p = 0;
-    let ps = 0;
-    
-    high_scores.forEach((val) => {
-        p++;
-        ps++;
-        
-        if(p % 2 == 0) {
-            p = 0;
-        }
-        
-        if(ps < 12) {
-            // Reduce sine wave effect for score listings by dividing by 2
-            const m = Math.sin((k+ps*20) / 180 * 3.14) * 15; // Reduced from 30 to 15
-            
-            ctx.font = "15px Arial";
-            ctx.textAlign = "left";
-            ctx.fillStyle = '#111';
-            ctx.textAlign = "right";
-            
-            if (ps > 1) {
-                ctx.fillText(ps-1 + ".", 122+m, y+2);
-            }
-            
-            ctx.fillText(val.score, 372+m, y+2);
-            ctx.textAlign = "center";
-            ctx.fillText(val.cleared_lines, 452+m, y+2);
-            ctx.fillText(val.level, 552+m, y+2);
-            ctx.fillText(val.time, 652+m, y+2);
-            ctx.textAlign = "left";
-            ctx.fillText(val.player_name, 152+m, y+2);
-
-            ctx.fillStyle = ps == 1 ? '#faa' : '#eee';
-
-            ctx.textAlign = "right";
-            if (ps > 1) {
-                ctx.fillText(ps-1 + ".", 120+m, y);
-            }
-            
-            ctx.fillText(val.score, 370+m, y);
-            ctx.textAlign = "center";
-            ctx.fillText(val.cleared_lines, 450+m, y);
-            ctx.fillText(val.level, 550+m, y);
-            ctx.fillText(val.time, 650+m, y);
-
-            ctx.textAlign = "left";
-            ctx.fillText(val.player_name, 150+m, y);
-        }
-        
-        sc += 1;
-        y += 25;
-    });
-    
-    // Fix the jumping bottom text by removing the sine effect (changed 1,1,1 to 1,0,0)
-    DrawBitmapTextSmall("PRESS SPACE OR CLICK TO START A NEW GAME", 0, 525, 1, 0, 0);
 }
 
 /**
@@ -383,4 +369,12 @@ function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+/**
+ * Show background cover image
+ * @param {HTMLImageElement} image - Background image
+ */
+function showBackgroundCover(image) {
+    ctx.drawImage(image, 0, 0, WIDTH, HEIGHT);
 }

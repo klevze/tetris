@@ -360,6 +360,32 @@ function handleTouchStart(event) {
         originalEvent: event
     });
     
+    // Handle loading state touch
+    const state = getState();
+    if (state.currentState === GAME_STATES.LOADING) {
+        // Import and call loading touch handler
+        import('../states/loadingState.js').then(module => {
+            if (module.handleLoadingTouch && module.handleLoadingTouch()) {
+                console.log("Touch event detected, transitioning from loading to intro");
+                
+                // Set the global game state objects
+                updateGameState(GAME_STATES.GAME_INTRO);
+                
+                // Force window.game_state to update
+                window.game_state = GAME_STATES.GAME_INTRO;
+                
+                // Call game state change function if available
+                if (typeof window.onGameStateChange === 'function') {
+                    window.onGameStateChange(GAME_STATES.GAME_INTRO);
+                }
+                
+                // Also hide the press space prompt
+                module.hidePressSpace();
+            }
+        });
+        return;
+    }
+    
     // Detect double tap
     const currentTime = new Date().getTime();
     const tapLength = currentTime - lastTapTime;
@@ -422,6 +448,16 @@ function handleTouchEnd(event) {
         diffY: diffY,
         originalEvent: event
     });
+    
+    // Handle touch events for game over screen
+    const state = getState();
+    if (state.currentState === GAME_STATES.GAME_OVER) {
+        import('../states/gameOverState.js').then(module => {
+            if (module.handleGameOverTouch) {
+                module.handleGameOverTouch(event);
+            }
+        });
+    }
     
     // If significant movement, handle as a swipe
     if (Math.abs(diffX) > TOUCH_THRESHOLD || Math.abs(diffY) > TOUCH_THRESHOLD) {

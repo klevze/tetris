@@ -78,14 +78,17 @@ export function drawLoadingScreen() {
     // Draw 3D stars in background
     Draw3DStars();
     
+    // Check if we're in a limited height scenario (mobile device with limited vertical space)
+    const isLimitedHeight = HEIGHT < 450;
+    
     // Calculate dimensions and sizes of all elements to properly center them
-    const logoHeight = logo_img && logo_img.complete ? calculateLogoHeight() : 0;
+    const logoHeight = logo_img && logo_img.complete ? calculateLogoHeight(isLimitedHeight) : 0;
     const loadingTextHeight = 20; // Approximate height of "LOADING" text
     const barHeight = UI.LOADING_BAR_HEIGHT;
-    const barPaddingVertical = 35; // Space between loading text and bar
+    const barPaddingVertical = isLimitedHeight ? 15 : 35; // Reduced spacing on small screens
     const percentTextHeight = 20; // Approximate height of percentage text
     const pressSpaceHeight = showPressSpace ? 20 : 0; // Height of "PRESS SPACE" text if shown
-    const spacingBetweenElements = 15; // Vertical spacing between elements
+    const spacingBetweenElements = isLimitedHeight ? 5 : 15; // Reduced spacing on small screens
     
     // Calculate total height of all elements combined
     const totalContentHeight = logoHeight
@@ -99,7 +102,10 @@ export function drawLoadingScreen() {
         + pressSpaceHeight;
     
     // Calculate starting Y position to center everything vertically
-    const startY = (HEIGHT - totalContentHeight) / 2;
+    // For limited height, start higher up to ensure the UI fits
+    const startY = isLimitedHeight 
+        ? Math.max(10, (HEIGHT - totalContentHeight) / 3) // Start higher, using 1/3 instead of 1/2
+        : (HEIGHT - totalContentHeight) / 2;
     
     let currentY = startY;
     
@@ -111,8 +117,9 @@ export function drawLoadingScreen() {
         
         // Calculate available space with respect to MAX_LOGO_WIDTH setting
         const maxLogoWidth = UI.MAX_LOGO_WIDTH;
+        // Use a smaller percentage of screen height on limited height devices
+        const availableHeight = isLimitedHeight ? HEIGHT * 0.25 : HEIGHT * 0.4;
         const availableWidth = Math.min(WIDTH * 0.9, maxLogoWidth);
-        const availableHeight = HEIGHT * 0.4; // Use up to 40% of screen height for logo
         
         // Calculate the scaling factors for both dimensions
         const scaleFactorWidth = availableWidth / logoWidth;
@@ -162,7 +169,7 @@ export function drawLoadingScreen() {
     const percentText = `${Math.floor(loadingProgress * 100)}%`;
     DrawBitmapTextSmall(percentText, 0, currentY, 1, 0, 0);
     
-    // Show "PRESS SPACE TO START" when loading is done, with smooth blinking effect
+    // Show "PRESS SPACE TO START" or "TAP TO CONTINUE" when loading is done, with smooth blinking effect
     if (showPressSpace) {
         spaceBlinkCounter++;
         if (spaceBlinkCounter > 90) spaceBlinkCounter = 0;
@@ -174,7 +181,17 @@ export function drawLoadingScreen() {
             // Apply the same bitmap text with alpha for blinking effect - using small text
             currentY += spacingBetweenElements + 20;
             ctx.globalAlpha = alpha;
-            DrawBitmapTextSmall("PRESS SPACE TO START", 0, currentY, 1, 0, 0);
+            
+            // Check if this is a touch device
+            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+            
+            // Show appropriate prompt based on device type
+            if (isTouchDevice) {
+                DrawBitmapTextSmall("TAP TO CONTINUE", 0, currentY, 1, 0, 0);
+            } else {
+                DrawBitmapTextSmall("PRESS SPACE TO START", 0, currentY, 1, 0, 0);
+            }
+            
             ctx.globalAlpha = 1.0;
         }
     }
@@ -182,9 +199,10 @@ export function drawLoadingScreen() {
 
 /**
  * Calculate the actual display height of the logo based on scaling
+ * @param {boolean} isLimitedHeight - Whether the device has limited height
  * @returns {number} The height of the logo in pixels
  */
-function calculateLogoHeight() {
+function calculateLogoHeight(isLimitedHeight = false) {
     if (!logo_img || !logo_img.complete) return 0;
     
     const logoWidth = 872;
@@ -192,7 +210,7 @@ function calculateLogoHeight() {
     
     const maxLogoWidth = UI.MAX_LOGO_WIDTH;
     const availableWidth = Math.min(WIDTH * 0.9, maxLogoWidth);
-    const availableHeight = HEIGHT * 0.4;
+    const availableHeight = isLimitedHeight ? HEIGHT * 0.25 : HEIGHT * 0.4;
     
     const scaleFactorWidth = availableWidth / logoWidth;
     const scaleFactorHeight = availableHeight / logoHeight;
@@ -250,4 +268,19 @@ export function handleLoadingState(eventSpace, setGameState) {
     
     // Still in loading state
     return true;
+}
+
+/**
+ * Handle loading state touch events
+ * Allows transitioning from loading screen with touch
+ * 
+ * @param {TouchEvent} event - Touch event
+ * @returns {boolean} True if touch was handled
+ */
+export function handleLoadingTouch() {
+  if (isLoaded) {
+    // If loading is complete, simulate a space press to continue
+    return true;
+  }
+  return false;
 }

@@ -24,18 +24,29 @@
   
   <!-- Touch controls for mobile devices -->
   <div class="touch-controls">
-    <div class="controls-row">
-      <button id="rotate-btn">↻</button>
+    <!-- Left side: Movement controls -->
+    <div class="controls-section movement-controls">
+      <!-- Option 1: D-pad Style -->
+      <div class="controls-row">
+        <button id="rotate-btn" aria-label="Rotate">↻</button>
+      </div>
+      <div class="controls-row">
+        <button id="left-btn" aria-label="Move Left">←</button>
+        <button id="down-btn" aria-label="Move Down">↓</button>
+        <button id="right-btn" aria-label="Move Right">→</button>
+      </div>
+      
+      <!-- Option 2: Virtual Joystick (initially hidden, can be enabled via settings) -->
+      <div class="joystick-container" id="joystick-container" style="display: none;">
+        <div class="joystick" id="joystick"></div>
+      </div>
     </div>
-    <div class="controls-row">
-      <button id="left-btn">←</button>
-      <button id="down-btn">↓</button>
-      <button id="right-btn">→</button>
-    </div>
-    <div class="controls-row">
-      <button id="hold-btn">H</button>
-      <button id="drop-btn">⤓</button>
-      <button id="pause-btn">‖</button>
+    
+    <!-- Right side: Action buttons -->
+    <div class="action-buttons">
+      <button id="hold-btn" aria-label="Hold Piece">H</button>
+      <button id="drop-btn" aria-label="Hard Drop">⤓</button>
+      <button id="pause-btn" aria-label="Pause Game">‖</button>
     </div>
   </div>
   

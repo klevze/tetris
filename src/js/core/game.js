@@ -93,6 +93,13 @@ export async function init() {
   // Initialize necessary game variables and set up event listeners
   initEventHandlers(Block, null, { game_state }, { grid_width: GRID_WIDTH, grid_height: GRID_HEIGHT });
   
+  // Add a global game state change handler for touch events
+  window.onGameStateChange = function(newState) {
+    game_state = newState;
+    window.game_state = newState;
+    console.log("Game state changed via global handler:", newState);
+  };
+  
   // Load high scores and preferences first (doesn't require graphics loaded)
   LoadHighScoreData();
   
