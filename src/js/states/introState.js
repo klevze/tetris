@@ -590,20 +590,29 @@ export function handleIntroState(setGameState) {
   
   // Calculate center position for the scores list
   const centerX = WIDTH / 2;
+  
+  // Define column widths
   const rankWidth = 70;    
   const nameWidth = 240;   
   const scoreWidth = 170;  
-  const statsWidth = 110;  // Increased from 100 to 110
+  const statsWidth = 110; 
   
-  // Define column positions from center with even more spacing
-  const totalWidth = rankWidth + nameWidth + scoreWidth + (statsWidth * 3) + 260; // Increased spacing from 220 to 260
+  // Use consistent spacing between columns
+  const spacing = 30;
+  
+  // Calculate total width including all columns and spacing
+  const totalWidth = rankWidth + nameWidth + scoreWidth + (statsWidth * 3) + (spacing * 5);
+  
+  // Calculate starting X position to ensure perfect centering 
   const startX = centerX - (totalWidth / 2);
-  const rankX = startX + 50;        // Increased from 40 to 50
-  const nameX = rankX + rankWidth + 60;     // Increased from 50 to 60
-  const scoreX = nameX + nameWidth + 70;    // Increased from 60 to 70
-  const linesX = scoreX + scoreWidth + 75;  // Increased from 65 to 75
-  const levelX = linesX + statsWidth + 55;  // Increased from 45 to 55
-  const timeX = levelX + statsWidth + 55;   // Increased from 45 to 55
+  
+  // Define column positions with precise spacing
+  const rankX = startX;
+  const nameX = rankX + rankWidth + spacing;
+  const scoreX = nameX + nameWidth + spacing;
+  const linesX = scoreX + scoreWidth + spacing;
+  const levelX = linesX + statsWidth + spacing;
+  const timeX = levelX + statsWidth + spacing;
   
   // Add score column headers with shadows
   const headerY = y - 30; // Position headers above the scores
