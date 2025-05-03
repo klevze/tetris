@@ -96,7 +96,8 @@ export const ANIMATION = {
     TEXT_FLOAT_SPEED: 2,      // Speed for floating text animations
     SINE_WAVE_SPEED: 0.8,     // Speed for sine wave animations
     TITLE_ANIMATION_SPEED: 0.5, // Speed for title animations
-    SCORE_DISPLAY_FRAMES: 60  // Number of frames to display score animation
+    SCORE_DISPLAY_FRAMES: 60,  // Number of frames to display score animation
+    VOICE_FEEDBACK_DELAY: 500  // Delay in ms before playing voice feedback
 };
 
 // Local storage keys
@@ -152,6 +153,12 @@ export const IMAGES = {
 export const AUDIO = {
     CLEAR_LINE: './music/clear_line.wav',
     TETRIS: './music/amazing.mp3',  // New sound for Tetris (4-row clear)
+    // Voice feedback audio files
+    VOICE_NICE_COMBO: './music/nice_combo.mp3',
+    VOICE_YOU_FIRE: './music/you_fire.mp3',
+    VOICE_GREAT_MOVE: './music/great_move.mp3',
+    VOICE_SMOOTH_CLEAR: './music/smooth_clear.mp3',
+    VOICE_AMAZING: './music/amazing.mp3',
     // Music tracks
     MUSIC_TRACK_1: './music/music001.mp3',
     MUSIC_TRACK_2: './music/music002.mp3',
@@ -165,6 +172,28 @@ export const AUDIO = {
     MUSIC_TRACK_10: './music/music010.mp3',
     MUSIC_TRACK_11: './music/music011.mp3'
 };  
+
+// Voice line configuration for different line clears
+export const VOICE_LINES = {
+    // Single line clear (currently no specific voices but structure exists for future addition)
+    SINGLE: [
+        // No voice lines for single line clear yet, but you can add files here
+    ],
+    // Double line clear voices
+    DOUBLE: [
+        './music/nice_combo.mp3', // "Nice combo"
+        './music/you_fire.mp3',   // "You're on fire"
+    ],
+    // Triple line clear voices
+    TRIPLE: [
+        './music/great_move.mp3',  // "Great move"
+        './music/smooth_clear.mp3' // "Smooth clear"
+    ],
+    // Tetris (4-line) clear voices
+    TETRIS: [
+        './music/amazing.mp3'      // "Amazing"
+    ]
+};
 
 // Point values for actions
 export const POINTS = {

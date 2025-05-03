@@ -1,5 +1,5 @@
 import { DrawLine } from '../../utils/functions.js';
-import { BLOCK } from '../../config/config.js'; // Import block configuration
+import { BLOCK, AUDIO, ANIMATION, VOICE_LINES } from '../../config/config.js'; // Import VOICE_LINES structure
 import { EVENTS, eventDispatcher } from '../../utils/functions.js';
 import { setupFireworks, updateFireworks, createTetrisFireworks, createLevelUpFireworks } from '../effects/fireworks.js';
 import { updateScore } from '../../utils/events.js'; // Import updateScore function
@@ -26,6 +26,9 @@ const ANIMATION_FRAMES = {
   DROP_BLOCKS: 20           // Time for blocks to drop down
 };
 
+// Voice feedback delay in milliseconds - easy to adjust
+const VOICE_FEEDBACK_DELAY = ANIMATION.VOICE_FEEDBACK_DELAY;
+
 // Grid properties
 let grid_width, grid_height, block_width;
 let gridData = {}; // Grid storage - switched to object-based grid for memory efficiency
@@ -37,6 +40,13 @@ let origin = { x: 0, y: 0 };
 let ctx, clear_line_audio, tetris_audio;
 let double_row_audio = []; // Array to hold audio files for 2-row clears
 let triple_row_audio = []; // Array to hold audio files for 3-row clears
+
+// Preload all voice audio files
+let nice_combo_audio = null;
+let you_fire_audio = null;
+let great_move_audio = null; 
+let smooth_clear_audio = null;
+let amazing_audio = null;
 
 // Remember parameters for grid recalculation on resize
 let canvasWidth, canvasHeight, verticalOffsetFactor;
@@ -412,56 +422,37 @@ export function checkRows() {
   }
 
   // Now determine score and play voice based on the TOTAL completed rows
-  // Only one voice will play, appropriate to the exact number of rows cleared
   if (completedRows === 1) {
     addScore = SCORE_SYSTEM.SINGLE * (level + 1); // Single
-    shouldTriggerFireworks = true; // TEST: Enable fireworks for single line clear
-    // No special voice for 1 row
+    shouldTriggerFireworks = true; 
+    
+    // Check if we have voice lines for single line clears
+    if (VOICE_LINES.SINGLE && VOICE_LINES.SINGLE.length > 0) {
+      playRandomVoiceLine(VOICE_LINES.SINGLE, "single line");
+    }
   } else if (completedRows === 2) {
     addScore = SCORE_SYSTEM.DOUBLE * (level + 1); // Double
-    shouldTriggerFireworks = true; // TEST: Enable fireworks for double line clear
+    shouldTriggerFireworks = true; 
     
-    // Play random sound from double_row_audio array for 2-row clears with 500ms delay
-    if (double_row_audio && double_row_audio.length > 0) {
-      const randomIndex = Math.floor(Math.random() * double_row_audio.length);
-      const sound = double_row_audio[randomIndex];
-      sound.currentTime = 0;
-      
-      // Add 500ms delay before playing the voice
-      setTimeout(() => {
-        sound.play().catch(e => console.log('Double row sound play prevented:', e));
-        console.log(`Playing 2-row clear sound (delayed): ${randomIndex === 0 ? 'nice_combo.mp3' : 'you_fire.mp3'}`);
-      }, 500); // 500ms delay
+    // Play random voice from the DOUBLE lines
+    if (VOICE_LINES.DOUBLE && VOICE_LINES.DOUBLE.length > 0) {
+      playRandomVoiceLine(VOICE_LINES.DOUBLE, "double line");
     }
   } else if (completedRows === 3) {
     addScore = SCORE_SYSTEM.TRIPLE * (level + 1); // Triple
-    shouldTriggerFireworks = true; // TEST: Enable fireworks for triple line clear
+    shouldTriggerFireworks = true;
     
-    // Play random sound from triple_row_audio array for 3-row clears with 500ms delay
-    if (triple_row_audio && triple_row_audio.length > 0) {
-      const randomIndex = Math.floor(Math.random() * triple_row_audio.length);
-      const sound = triple_row_audio[randomIndex];
-      sound.currentTime = 0;
-      
-      // Add 500ms delay before playing the voice
-      setTimeout(() => {
-        sound.play().catch(e => console.log('Triple row sound play prevented:', e));
-        console.log(`Playing 3-row clear sound (delayed): ${randomIndex === 0 ? 'great_move.mp3' : 'smooth_clear.mp3'}`);
-      }, 500); // 500ms delay
+    // Play random voice from the TRIPLE lines
+    if (VOICE_LINES.TRIPLE && VOICE_LINES.TRIPLE.length > 0) {
+      playRandomVoiceLine(VOICE_LINES.TRIPLE, "triple line");
     }
   } else if (completedRows === 4) {
     addScore = SCORE_SYSTEM.TETRIS * (level + 1); // Tetris!
     shouldTriggerFireworks = true; // Trigger fireworks for Tetris
     
-    // Play the special "amazing" sound for Tetris (4 rows cleared) with 500ms delay
-    if (tetris_audio) {
-      tetris_audio.currentTime = 0;
-      
-      // Add 500ms delay before playing the voice
-      setTimeout(() => {
-        tetris_audio.play().catch(e => console.log('Tetris sound play prevented:', e));
-        console.log('Playing Tetris special sound (delayed): amazing.mp3');
-      }, 500); // 500ms delay
+    // Play random voice from the TETRIS lines
+    if (VOICE_LINES.TETRIS && VOICE_LINES.TETRIS.length > 0) {
+      playRandomVoiceLine(VOICE_LINES.TETRIS, "tetris");
     }
   }
   
@@ -971,6 +962,34 @@ export function initGrid() {
 }
 
 /**
+ * Preload all audio files to ensure they're ready when needed
+ */
+function preloadAudioFiles() {
+  // Preload all voice feedback audio files
+  nice_combo_audio = new Audio(AUDIO.NICE_COMBO);
+  you_fire_audio = new Audio(AUDIO.YOU_FIRE);
+  great_move_audio = new Audio(AUDIO.GREAT_MOVE);
+  smooth_clear_audio = new Audio(AUDIO.SMOOTH_CLEAR);
+  amazing_audio = new Audio(AUDIO.AMAZING);
+  
+  // Set volume for all audio files
+  [nice_combo_audio, you_fire_audio, great_move_audio, smooth_clear_audio, amazing_audio].forEach(audio => {
+    if (audio) {
+      audio.volume = 1.0;
+      // Preload the audio by loading it
+      audio.load();
+    }
+  });
+  
+  // Store in the audio arrays for easier random selection
+  double_row_audio = [nice_combo_audio, you_fire_audio];
+  triple_row_audio = [great_move_audio, smooth_clear_audio];
+  tetris_audio = amazing_audio;
+  
+  console.log('All voice feedback audio files preloaded');
+}
+
+/**
  * Set up the grid module with required parameters
  * @param {CanvasRenderingContext2D} context - Canvas context
  * @param {Object} params - Grid parameters
@@ -1012,28 +1031,8 @@ export function setupGrid(context, params, audio, gridImage, blocksImage) {
   // Store audio and reset game state
   clear_line_audio = audio;
   
-  // Load tetris audio sound from AUDIO.TETRIS config
-  import('../../config/config.js').then(config => {
-    tetris_audio = new Audio(config.AUDIO.TETRIS);
-    tetris_audio.volume = 1.0; // Set maximum volume for the amazing.mp3 sound
-    console.log('Loaded Tetris special sound:', config.AUDIO.TETRIS);
-    
-    // Load audio for 2-row clears
-    const nice_combo = new Audio('./music/nice_combo.mp3');
-    const you_fire = new Audio('./music/you_fire.mp3');
-    nice_combo.volume = 1.0;
-    you_fire.volume = 1.0;
-    double_row_audio = [nice_combo, you_fire];
-    console.log('Loaded 2-row clear sounds');
-    
-    // Load audio for 3-row clears
-    const great_move = new Audio('./music/great_move.mp3');
-    const smooth_clear = new Audio('./music/smooth_clear.mp3');
-    great_move.volume = 1.0;
-    smooth_clear.volume = 1.0;
-    triple_row_audio = [great_move, smooth_clear];
-    console.log('Loaded 3-row clear sounds');
-  });
+  // Preload all audio files
+  preloadAudioFiles();
   
   // Reset game state, but preserve selected level if available
   lines = 0;
@@ -1209,4 +1208,20 @@ export function setDrawBlockFunction(drawBlockFn) {
  */
 export function isAnimationInProgress() {
   return isRowClearingInProgress || rowsToBeCleared.length > 0;
+}
+
+/**
+ * Play a random voice line from the provided array
+ * @param {Array} voiceLines - Array of voice lines
+ * @param {string} context - Context for logging
+ */
+function playRandomVoiceLine(voiceLines, context) {
+  const randomIndex = Math.floor(Math.random() * voiceLines.length);
+  const voiceLine = voiceLines[randomIndex];
+  voiceLine.currentTime = 0;
+
+  setTimeout(() => {
+    voiceLine.play().catch(e => console.log(`${context} voice line play prevented:`, e));
+    console.log(`Playing ${context} voice line: ${voiceLine.src}`);
+  }, VOICE_FEEDBACK_DELAY);
 }
