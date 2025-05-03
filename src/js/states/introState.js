@@ -463,6 +463,11 @@ export function handleIntroState(setGameState) {
   clearScreen('#000');
   showBackground(back_intro_img, 0, 0, WIDTH, HEIGHT);
   
+  // Check if we need to use a smaller font size based on screen width
+  const isSmallScreen = window.innerWidth < 1100;
+  const isVerySmallScreen = window.innerWidth < 800;
+  const isTinyScreen = window.innerWidth < 600; // Even smaller screens show fewer columns
+  
   // Use direct image access to make sure we get the logo
   try {
     // Check if logo_img is valid before drawing
@@ -591,17 +596,49 @@ export function handleIntroState(setGameState) {
   // Calculate center position for the scores list
   const centerX = WIDTH / 2;
   
-  // Define column widths
-  const rankWidth = 70;    
-  const nameWidth = 240;   
-  const scoreWidth = 170;  
-  const statsWidth = 110; 
+  // Define column widths with responsive sizing
+  let rankWidth, nameWidth, scoreWidth, statsWidth;
   
-  // Use consistent spacing between columns
-  const spacing = 30;
+  if (isTinyScreen) {
+    // Tiny screens (<600px) - show only essential columns
+    rankWidth = 45;
+    nameWidth = 160;
+    scoreWidth = 110;
+    statsWidth = 0; // Hide stats columns
+  } else if (isVerySmallScreen) {
+    // Very small screens (<800px) - make columns much smaller
+    rankWidth = 45;
+    nameWidth = 160;  
+    scoreWidth = 110; 
+    statsWidth = 70;
+  } else if (isSmallScreen) {
+    // Small screens (<1100px) - make columns smaller
+    rankWidth = 60;
+    nameWidth = 200;
+    scoreWidth = 140; 
+    statsWidth = 95;
+  } else {
+    // Normal screens - use original sizes
+    rankWidth = 70;
+    nameWidth = 240;  
+    scoreWidth = 170; 
+    statsWidth = 110;
+  }
+  
+  // Use responsive spacing between columns based on screen width
+  const spacing = isTinyScreen ? 8 : isVerySmallScreen ? 8 : isSmallScreen ? 15 : 25;
   
   // Calculate total width including all columns and spacing
-  const totalWidth = rankWidth + nameWidth + scoreWidth + (statsWidth * 3) + (spacing * 5);
+  let totalWidth;
+  
+  if (isTinyScreen) {
+    // For tiny screens, we show rank, name, score, and lines only
+    const linesColumnWidth = 65; // Smaller lines column width for tiny screens
+    totalWidth = rankWidth + nameWidth + scoreWidth + linesColumnWidth + (spacing * 3);
+  } else {
+    // Normal calculation for other screen sizes
+    totalWidth = rankWidth + nameWidth + scoreWidth + (statsWidth * 3) + (spacing * 5);
+  }
   
   // Calculate starting X position to ensure perfect centering 
   const startX = centerX - (totalWidth / 2);
@@ -622,18 +659,22 @@ export function handleIntroState(setGameState) {
   DrawBitmapTextSmall("RANK", rankX + 2, headerY + 2, 0, 0, 0);
   DrawBitmapTextSmall("PLAYER", nameX + 2, headerY + 2, 0, 0, 0);
   DrawBitmapTextSmall("SCORE", scoreX + 2, headerY + 2, 0, 0, 0);
-  DrawBitmapTextSmall("LINES", linesX + 2, headerY + 2, 0, 0, 0);
-  DrawBitmapTextSmall("LEVEL", levelX + 2, headerY + 2, 0, 0, 0);
-  DrawBitmapTextSmall("TIME", timeX + 2, headerY + 2, 0, 0, 0);
+  if (!isTinyScreen) {
+    DrawBitmapTextSmall("LINES", linesX + 2, headerY + 2, 0, 0, 0);
+    DrawBitmapTextSmall("LEVEL", levelX + 2, headerY + 2, 0, 0, 0);
+    DrawBitmapTextSmall("TIME", timeX + 2, headerY + 2, 0, 0, 0);
+  }
   
   // Draw column headers
   ctx.fillStyle = '#ffcc00'; // Gold color for headers
   DrawBitmapTextSmall("RANK", rankX, headerY, 0, 0, 0);
   DrawBitmapTextSmall("PLAYER", nameX, headerY, 0, 0, 0);
   DrawBitmapTextSmall("SCORE", scoreX, headerY, 0, 0, 0);
-  DrawBitmapTextSmall("LINES", linesX, headerY, 0, 0, 0);
-  DrawBitmapTextSmall("LEVEL", levelX, headerY, 0, 0, 0);
-  DrawBitmapTextSmall("TIME", timeX, headerY, 0, 0, 0);
+  if (!isTinyScreen) {
+    DrawBitmapTextSmall("LINES", linesX, headerY, 0, 0, 0);
+    DrawBitmapTextSmall("LEVEL", levelX, headerY, 0, 0, 0);
+    DrawBitmapTextSmall("TIME", timeX, headerY, 0, 0, 0);
+  }
     
   high_scores.forEach((val, index) => {
     p++;
@@ -674,41 +715,84 @@ export function handleIntroState(setGameState) {
     // Draw shadows
     ctx.fillStyle = shadowColor;
     
-    // Draw rank number for all entries (including first place)
-    DrawBitmapText(ps + ".", rankX + m + 2, y + 2, 0, 0, 0);
-    
-    // Draw player name with shadow
-    DrawBitmapText(val.player_name, nameX + m + 2, y + 2, 0, 0, 0);
-    
-    // Draw score with shadow (with matching leading zeros)
-    DrawBitmapText(formattedScore, scoreX + m + 2, y + 2, 0, 0, 0);
-    
-    // Draw stats with shadow
-    DrawBitmapText(formattedLines, linesX + m + 2, y + 2, 0, 0, 0);
-    DrawBitmapText(formattedLevel, levelX + m + 2, y + 2, 0, 0, 0);
-    DrawBitmapText(val.time, timeX + m + 2, y + 2, 0, 0, 0);
-    
-    // Draw the text with proper color
-    ctx.fillStyle = textColor;
-    
-    // Draw rank number for all entries (including first place)
-    DrawBitmapText(ps + ".", rankX + m, y, 0, 0, 0);
-    
-    // Draw player name
-    DrawBitmapText(val.player_name, nameX + m, y, 0, 0, 0);
-    
-    // Draw score (with matching leading zeros)
-    DrawBitmapText(formattedScore, scoreX + m, y, 0, 0, 0);
-    
-    // Draw stats
-    DrawBitmapText(formattedLines, linesX + m, y, 0, 0, 0);
-    DrawBitmapText(formattedLevel, levelX + m, y, 0, 0, 0);
-    DrawBitmapText(val.time, timeX + m, y, 0, 0, 0);
+    if (isSmallScreen) {
+      // Draw with smaller bitmap text for smaller screens
+      // Draw rank number with shadow
+      DrawBitmapTextSmall(ps + ".", rankX + m + 2, y + 2, 0, 0, 0);
+      
+      // Draw player name with shadow
+      DrawBitmapTextSmall(val.player_name, nameX + m + 2, y + 2, 0, 0, 0);
+      
+      // Draw score with shadow (with matching leading zeros)
+      DrawBitmapTextSmall(formattedScore, scoreX + m + 2, y + 2, 0, 0, 0);
+      
+      if (!isTinyScreen) {
+        // Draw stats with shadow
+        DrawBitmapTextSmall(formattedLines, linesX + m + 2, y + 2, 0, 0, 0);
+        DrawBitmapTextSmall(formattedLevel, levelX + m + 2, y + 2, 0, 0, 0);
+        DrawBitmapTextSmall(val.time, timeX + m + 2, y + 2, 0, 0, 0);
+      }
+      
+      // Draw the text with proper color
+      ctx.fillStyle = textColor;
+      
+      // Draw rank number
+      DrawBitmapTextSmall(ps + ".", rankX + m, y, 0, 0, 0);
+      
+      // Draw player name
+      DrawBitmapTextSmall(val.player_name, nameX + m, y, 0, 0, 0);
+      
+      // Draw score (with matching leading zeros)
+      DrawBitmapTextSmall(formattedScore, scoreX + m, y, 0, 0, 0);
+      
+      if (!isTinyScreen) {
+        // Draw stats
+        DrawBitmapTextSmall(formattedLines, linesX + m, y, 0, 0, 0);
+        DrawBitmapTextSmall(formattedLevel, levelX + m, y, 0, 0, 0);
+        DrawBitmapTextSmall(val.time, timeX + m, y, 0, 0, 0);
+      }
+    } else {
+      // Draw with regular larger bitmap font for normal screens
+      // Draw rank number with shadow
+      DrawBitmapText(ps + ".", rankX + m + 2, y + 2, 0, 0, 0);
+      
+      // Draw player name with shadow
+      DrawBitmapText(val.player_name, nameX + m + 2, y + 2, 0, 0, 0);
+      
+      // Draw score with shadow (with matching leading zeros)
+      DrawBitmapText(formattedScore, scoreX + m + 2, y + 2, 0, 0, 0);
+      
+      if (!isTinyScreen) {
+        // Draw stats with shadow
+        DrawBitmapText(formattedLines, linesX + m + 2, y + 2, 0, 0, 0);
+        DrawBitmapText(formattedLevel, levelX + m + 2, y + 2, 0, 0, 0);
+        DrawBitmapText(val.time, timeX + m + 2, y + 2, 0, 0, 0);
+      }
+      
+      // Draw the text with proper color
+      ctx.fillStyle = textColor;
+      
+      // Draw rank number
+      DrawBitmapText(ps + ".", rankX + m, y, 0, 0, 0);
+      
+      // Draw player name
+      DrawBitmapText(val.player_name, nameX + m, y, 0, 0, 0);
+      
+      // Draw score (with matching leading zeros)
+      DrawBitmapText(formattedScore, scoreX + m, y, 0, 0, 0);
+      
+      if (!isTinyScreen) {
+        // Draw stats
+        DrawBitmapText(formattedLines, linesX + m, y, 0, 0, 0);
+        DrawBitmapText(formattedLevel, levelX + m, y, 0, 0, 0);
+        DrawBitmapText(val.time, timeX + m, y, 0, 0, 0);
+      }
+    }
       
     sc += 1;
     
     // Same line height for all entries
-    y += 55; // Consistent spacing of 55px between all entries
+    y += isSmallScreen ? 35 : 55; // Smaller spacing between entries on small screens
   });
     
   // Position the buttons at the bottom of the screen with appropriate padding
@@ -1030,8 +1114,6 @@ function handleSettingsPopupClick(mouseX, mouseY) {
   const maxButtonsPerRow = 10; // Match the drawing logic
   const rows = Math.ceil(20 / maxButtonsPerRow); // Will be 2 for 20 levels
   const buttonsPerRow = Math.ceil(20 / rows); // Evenly distribute buttons
-  
-  // Calculate grid position using same logic as in drawSettingsPopup
   const gridWidth = (buttonSize * buttonsPerRow) + (buttonSpacing * (buttonsPerRow - 1));
   const startX = (WIDTH - gridWidth) / 2;
   const startY = popupY + 130;
@@ -1084,8 +1166,6 @@ function handleLevelPopupClick(mouseX, mouseY) {
   const buttonSize = 32;
   const buttonSpacing = 10;
   const buttonsPerRow = 10;
-  
-  // Calculate grid position using same logic as in drawLevelPopup
   const gridWidth = (buttonSize * buttonsPerRow) + (buttonSpacing * (buttonsPerRow - 1));
   const startX = (WIDTH - gridWidth) / 2;
   const startY = popupY + 100;
@@ -1112,26 +1192,16 @@ function handleLevelPopupClick(mouseX, mouseY) {
  * @param {number} mouseY - Mouse Y position
  */
 function checkActionButtonsClick(mouseX, mouseY) {
-  // Use the same dimensions as in drawActionButtons for consistency
   const buttonWidth = 300;  // Updated from 200 to match drawing logic
   const buttonHeight = 70;  // Updated from 60 to match drawing logic
   const buttonSpacing = 30;
   const totalWidth = (buttonWidth * 2) + buttonSpacing;
-  
-  // Calculate bottom position
   const bottomPadding = HEIGHT * 0.05;  // Update to 0.05 to match drawActionButtons
   const buttonY = HEIGHT - bottomPadding;
-  
-  // Center the buttons horizontally
   const startX = (WIDTH - totalWidth) / 2;
-  
-  // Play button position
   const playX = startX;
-  
-  // Select Level button position
   const levelX = startX + buttonWidth + buttonSpacing;
   
-  // Check if Play button was clicked
   if (mouseX >= playX && mouseX <= playX + buttonWidth &&
       mouseY >= buttonY - buttonHeight && mouseY <= buttonY) {
     console.log("Play button clicked");
@@ -1139,7 +1209,6 @@ function checkActionButtonsClick(mouseX, mouseY) {
     return;
   }
   
-  // Check if Select Level button was clicked
   if (mouseX >= levelX && mouseX <= levelX + buttonWidth &&
       mouseY >= buttonY - buttonHeight && mouseY <= buttonY) {
     console.log("Select Level button clicked");
@@ -1157,40 +1226,28 @@ function checkActionButtonsClick(mouseX, mouseY) {
  * @returns {boolean} True if mouse is over a button
  */
 function checkButtonHover(mouseX, mouseY) {
-  // Use the same button dimensions as in checkActionButtonsClick
   const buttonWidth = 300;
   const buttonHeight = 70;
   const buttonSpacing = 30;
   const totalWidth = (buttonWidth * 2) + buttonSpacing;
-  
-  // Calculate bottom position
   const bottomPadding = HEIGHT * 0.05;
   const buttonY = HEIGHT - bottomPadding;
-  
-  // Center the buttons horizontally
   const startX = (WIDTH - totalWidth) / 2;
-  
-  // Play button position
   const playX = startX;
-  
-  // Select Level button position
   const levelX = startX + buttonWidth + buttonSpacing;
   
-  // Check if mouse is over Play button
   if (mouseX >= playX && mouseX <= playX + buttonWidth &&
       mouseY >= buttonY - buttonHeight && mouseY <= buttonY) {
     canvas.style.cursor = 'pointer';
     return true;
   }
   
-  // Check if mouse is over Select Level button
   if (mouseX >= levelX && mouseX <= levelX + buttonWidth &&
       mouseY >= buttonY - buttonHeight && mouseY <= buttonY) {
     canvas.style.cursor = 'pointer';
     return true;
   }
   
-  // Not hovering over any button
   canvas.style.cursor = 'default';
   return false;
 }
@@ -1212,26 +1269,19 @@ function handleMouseMove(event) {
  */
 export function startNewGame() {
   try {
-    // Remove all event listeners
     removeAllEventListeners();
-    
-    // Store selected level in multiple places to ensure it persists
     window.selected_game_level = selectedLevel;
     console.log(`Starting game with level: ${selectedLevel}, stored in global variable as: ${window.selected_game_level}`);
     
-    // Start playing music if enabled (only when starting actual gameplay)
     if (typeof window.startGameMusic === 'function') {
       window.startGameMusic();
     }
     
-    // Call the callback to update game state
     if (gameStateCallback) {
       gameStateCallback(GAME_STATES.GAME_START);
     }
     
-    // Update global game state variable
     window.game_state = GAME_STATES.GAME_START;
-    
     console.log("Starting new game from intro screen - state set to: game_start");
   } catch(e) {
     console.error("Error starting new game from intro screen:", e);
@@ -1257,9 +1307,6 @@ function removeAllEventListeners() {
 function handleIntroKeyDown(evt) {
   // All space key functionality has been removed
   // Only other keyboard controls remain (if any)
-  
-  // You could add other keyboard functionality here if needed
-  // For example, 'M' key for music toggle, etc.
 }
 
 /**
@@ -1273,7 +1320,6 @@ function loadHighScoreData() {
         high_scores = JSON.parse(storedHighScores);
         console.log("Loaded high scores from local storage:", high_scores.length);
       } else {
-        // Initialize with empty array if no high scores exist
         high_scores = [];
       }
     }
@@ -1287,22 +1333,18 @@ function loadHighScoreData() {
  * Load high scores from Firebase cloud
  */
 function loadCloudHighScores() {
-  // Don't start a new load if we're already loading
   if (isLoadingScores) return;
   
   isLoadingScores = true;
   loadStartTime = Date.now();
   cloudLoadError = false;
   
-  // Load high scores from Firebase
   loadHighScores()
     .then(scores => {
       if (scores && scores.length > 0) {
         high_scores = scores;
         cloudScoresLoaded = true;
       } else {
-        // If no scores returned, keep using localStorage scores
-        // or default sample scores
         if (high_scores.length === 0) {
           high_scores = createSampleHighScores();
         }
@@ -1315,10 +1357,9 @@ function loadCloudHighScores() {
       cloudLoadError = true;
       isLoadingScores = false;
       
-      // Retry a few times if needed
       if (scoreLoadRetries < MAX_RETRIES) {
         scoreLoadRetries++;
-        setTimeout(loadCloudHighScores, 3000); // Retry after 3 seconds
+        setTimeout(loadCloudHighScores, 3000);
       }
     });
 }

@@ -59,7 +59,7 @@ export async function saveHighScore(playerName, score, level, clearedLines, time
 export async function loadHighScores() {
   try {
     // Create a query to get the top 10 scores, ordered by score descending
-    const q = query(highScoresRef, orderBy('score', 'desc'), limit(10));
+    const q = query(highScoresRef, orderBy('score', 'desc'), limit(20));
     
     // Get the documents
     const querySnapshot = await getDocs(q);

@@ -1212,16 +1212,40 @@ export function isAnimationInProgress() {
 
 /**
  * Play a random voice line from the provided array
- * @param {Array} voiceLines - Array of voice lines
+ * @param {Array} voiceLines - Array of voice lines (either Audio objects or file paths)
  * @param {string} context - Context for logging
  */
 function playRandomVoiceLine(voiceLines, context) {
-  const randomIndex = Math.floor(Math.random() * voiceLines.length);
-  const voiceLine = voiceLines[randomIndex];
-  voiceLine.currentTime = 0;
+  // Exit early if the array is empty or undefined
+  if (!voiceLines || voiceLines.length === 0) {
+    console.log(`No voice lines available for ${context}`);
+    return;
+  }
 
-  setTimeout(() => {
-    voiceLine.play().catch(e => console.log(`${context} voice line play prevented:`, e));
-    console.log(`Playing ${context} voice line: ${voiceLine.src}`);
-  }, VOICE_FEEDBACK_DELAY);
+  try {
+    const randomIndex = Math.floor(Math.random() * voiceLines.length);
+    let voiceLine = voiceLines[randomIndex];
+    
+    // Check if the voice line is a string path instead of an Audio object
+    if (typeof voiceLine === 'string') {
+      // Create a new Audio object from the path
+      voiceLine = new Audio(voiceLine);
+      // Replace the string in the array with the Audio object for future use
+      voiceLines[randomIndex] = voiceLine;
+    }
+    
+    // Now we can safely use Audio properties and methods
+    if (voiceLine instanceof Audio) {
+      voiceLine.currentTime = 0;
+      
+      setTimeout(() => {
+        voiceLine.play().catch(e => console.log(`${context} voice line play prevented:`, e));
+        console.log(`Playing ${context} voice line: ${voiceLine.src}`);
+      }, VOICE_FEEDBACK_DELAY);
+    } else {
+      console.error(`Invalid voice line type for ${context}:`, typeof voiceLine);
+    }
+  } catch (e) {
+    console.error(`Error playing ${context} voice line:`, e);
+  }
 }
