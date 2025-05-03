@@ -14,6 +14,12 @@ const urlsToCache = [
   './music/music002.mp3',
   './music/music003.mp3',
   './music/clear_line.wav',
+  // Voice feedback files
+  './music/nice_combo.mp3',
+  './music/you_fire.mp3',
+  './music/great_move.mp3',
+  './music/smooth_clear.mp3',
+  './music/amazing.mp3',
   // Add favicon files
   './favicon/android-chrome-192x192.png',
   './favicon/android-chrome-512x512.png',
