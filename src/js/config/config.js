@@ -183,15 +183,23 @@ export const VOICE_LINES = {
     DOUBLE: [
         './music/nice_combo.mp3', // "Nice combo"
         './music/you_fire.mp3',   // "You're on fire"
+        './music/keep_that_rythm.mp3', // "Keep that rhythm"
+        './music/awesome.mp3',     // "Awesome"
+        './music/well_played.mp3' // "Well played"
     ],
     // Triple line clear voices
     TRIPLE: [
         './music/great_move.mp3',  // "Great move"
-        './music/smooth_clear.mp3' // "Smooth clear"
+        './music/smooth_clear.mp3', // "Smooth clear"
+        './music/impressive.mp3',      // "Impressive"
+        './music/triple_strike.mp3' // "Triple strike"
     ],
     // Tetris (4-line) clear voices
     TETRIS: [
-        './music/amazing.mp3'      // "Amazing"
+        './music/amazing.mp3',      // "Amazing",
+        './music/you_re_unstoppable.mp3', // "You're unstoppable"
+        './music/boom_tetris.mp3', // "Boom! Tetris!"
+        './music/wonderful.mp3' // "Wonderful"
     ]
 };
 

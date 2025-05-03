@@ -819,10 +819,18 @@ export function handleIntroState(setGameState) {
  * @param {number} y - Y position for the buttons
  */
 function drawActionButtons(y) {
-  // Increase button width and height for better proportions
-  const buttonWidth = 300;  // Increased from 180 to 200
-  const buttonHeight = 70;  // Increased from 50 to 60
-  const buttonSpacing = 30; // Increased from 20 to 30
+  // Check for small screen (less than 700px width)
+  const isSmallScreen = window.innerWidth < 700;
+  const isTinyScreen = window.innerWidth < 600; // Special handling for very small screens
+  
+  // Calculate button sizes - on small screens, limit to 40% of screen width
+  const buttonWidth = isSmallScreen 
+    ? Math.floor(window.innerWidth * 0.4) // 40% of screen width
+    : 300; // Default width on larger screens
+  
+  const buttonHeight = isSmallScreen ? 60 : 70; // Slightly smaller height on small screens
+  const buttonSpacing = isSmallScreen ? 20 : 30; // Less spacing on small screens
+  
   const totalWidth = (buttonWidth * 2) + buttonSpacing;
   
   // Center the buttons horizontally
@@ -858,30 +866,86 @@ function drawActionButtons(y) {
   ctx.shadowOffsetX = 2;
   ctx.shadowOffsetY = 2;
   
-  // Draw "PLAY" text inside the play button
-  // The text positioning is corrected to be inside the button, not centered on screen
-  const playButtonCenterX = playX + buttonWidth/2-10;
-  const playButtonCenterY = y - buttonHeight/2-10;
-  DrawBitmapText("PLAY", playButtonCenterX - 40, playButtonCenterY, 0, 0, 0);
-  
-  // Draw "LEVEL X" text inside the level button
-  // The text positioning is corrected to be inside the button, not centered on screen
-  const levelButtonCenterX = levelX + buttonWidth/2-30;
-  const levelButtonCenterY = y - buttonHeight/2-10;
-  DrawBitmapText("LEVEL " + selectedLevel, levelButtonCenterX - 70, levelButtonCenterY, 0, 0, 0);
+  // Draw PLAY and LEVEL buttons with centered text
+  if (isSmallScreen) {
+    // Small screen text rendering - use DrawBitmapTextSmall for better fit
+    
+    // Measure text width for PLAY button - approximate for bitmap text
+    const playTextWidth = "PLAY".length * 10; // Approximate bitmap text width
+    const playButtonCenterX = playX + (buttonWidth / 2);
+    const playButtonCenterY = y - (buttonHeight / 2);
+    
+    // Calculate vertical adjustment to move text upwards for better centering
+    // On tiny screens move up more (10px), on small screens move up less (5px)
+    const verticalOffset = isTinyScreen ? -10 : -5;
+    
+    // Center PLAY text horizontally and vertically within the button
+    DrawBitmapTextSmall(
+      "PLAY", 
+      playButtonCenterX - (playTextWidth / 2), 
+      playButtonCenterY + verticalOffset, 
+      0, 0, 0
+    );
+    
+    // Measure text width for LEVEL button - approximate for bitmap text
+    const levelText = "LEVEL " + selectedLevel;
+    const levelTextWidth = levelText.length * 10; // Approximate bitmap text width
+    const levelButtonCenterX = levelX + (buttonWidth / 2);
+    const levelButtonCenterY = y - (buttonHeight / 2);
+    
+    // Center LEVEL text horizontally and vertically within the button
+    DrawBitmapTextSmall(
+      levelText, 
+      levelButtonCenterX - (levelTextWidth / 2), 
+      levelButtonCenterY + verticalOffset, 
+      0, 0, 0
+    );
+  } else {
+    // Regular size screen - use DrawBitmapText for larger buttons
+    
+    // Measure text width for PLAY button - approximate for bitmap text
+    const playTextWidth = "PLAY".length * 20; // Approximate bitmap text width
+    const playButtonCenterX = playX + (buttonWidth / 2);
+    const playButtonCenterY = y - (buttonHeight / 2);
+    
+    // Center PLAY text horizontally within the button - move up by 15px for better vertical centering
+    DrawBitmapText(
+      "PLAY", 
+      playButtonCenterX - (playTextWidth / 2), 
+      playButtonCenterY - 15, 
+      0, 0, 0
+    );
+    
+    // Calculate text width for LEVEL button with improved digit handling
+    const levelText = "LEVEL " + selectedLevel;
+    
+    // Adjust character width based on whether the level is 1 or 2 digits
+    // For numbers > 9, we need extra space for the wider text
+    const digitWidth = selectedLevel > 9 ? 22 : 20; // Wider for 2+ digits
+    
+    // Calculate total width - "LEVEL " has 6 characters at 20px, plus the digits
+    const levelTextWidth = "LEVEL ".length * 20 + String(selectedLevel).length * digitWidth;
+    
+    const levelButtonCenterX = levelX + (buttonWidth / 2);
+    const levelButtonCenterY = y - (buttonHeight / 2);
+    
+    // Apply horizontal offset of -10px when level has 2 digits
+    const horizontalOffset = selectedLevel > 9 ? -10 : 0;
+    
+    // Center LEVEL text horizontally within the button with improved alignment
+    DrawBitmapText(
+      levelText, 
+      levelButtonCenterX - (levelTextWidth / 2) + horizontalOffset, 
+      levelButtonCenterY - 15, 
+      0, 0, 0
+    );
+  }
   
   // Reset shadow
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
-  
-  /*// DEBUG: Draw red borders around the button hitboxes
-  ctx.strokeStyle = 'red';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(playX, y - buttonHeight, buttonWidth, buttonHeight);
-  ctx.strokeRect(levelX, y - buttonHeight, buttonWidth, buttonHeight);
-  */
 }
 
 /**

@@ -3,7 +3,7 @@ const CACHE_NAME = 'tetris-pwa-v1';
 const urlsToCache = [
   './',
   './index.html',
-  './assets/index-B3UUcT5M.js',
+  './assets/index-B36bgirl.js',
   './assets/index-Bws2x3JZ.css',
   './manifest.json',
   // Add your image assets, music files, etc.
@@ -14,12 +14,6 @@ const urlsToCache = [
   './music/music002.mp3',
   './music/music003.mp3',
   './music/clear_line.wav',
-  // Voice feedback files
-  './music/nice_combo.mp3',
-  './music/you_fire.mp3',
-  './music/great_move.mp3',
-  './music/smooth_clear.mp3',
-  './music/amazing.mp3',
   // Add favicon files
   './favicon/android-chrome-192x192.png',
   './favicon/android-chrome-512x512.png',
