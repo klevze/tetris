@@ -14,6 +14,9 @@ A modern implementation of the classic Tetris game built with JavaScript and Vit
 - Level progression system with unique backgrounds per level
 - Fullscreen support
 
+
+![Tetris Gameplay](public/images/gameplay1.jpp)
+
 ## 🚀 Getting Started
 
 ### Prerequisites
