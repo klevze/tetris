@@ -1,9 +1,9 @@
 // Service Worker for Tetris PWA
-const CACHE_NAME = 'tetris-pwa-v1';
+const CACHE_NAME = 'tetris-pwa-v1746640249693';
 const urlsToCache = [
   './',
   './index.html',
-  './assets/index-C-JMPetM.js',
+  './assets/index-BRKDfj1s.js',
   './assets/index-Bws2x3JZ.css',
   './manifest.json',
   // Add your image assets, music files, etc.

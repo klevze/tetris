@@ -1,5 +1,5 @@
 // Service Worker for Tetris PWA
-const CACHE_NAME = 'tetris-pwa-v1';
+const CACHE_NAME = 'tetris-pwa-v__VERSION_PLACEHOLDER__';
 const urlsToCache = [
   './',
   './index.html',

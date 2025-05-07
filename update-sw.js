@@ -41,8 +41,12 @@ const cssAssets = assetFiles.filter(file => file.endsWith('.css')).map(file => `
 // Combine JS and CSS asset paths
 const assetPaths = [...jsAssets, ...cssAssets].join('\n');
 
-// Replace the placeholder in the template with the actual asset paths
-const updatedServiceWorker = swTemplate.replace('  // INJECT_ASSETS_HERE - DO NOT REMOVE THIS COMMENT', assetPaths);
+// Generate a version number based on current timestamp
+const versionTimestamp = Date.now();
+
+// Replace the placeholder in the template with the actual asset paths and version
+let updatedServiceWorker = swTemplate.replace('  // INJECT_ASSETS_HERE - DO NOT REMOVE THIS COMMENT', assetPaths);
+updatedServiceWorker = updatedServiceWorker.replace('__VERSION_PLACEHOLDER__', versionTimestamp);
 
 // Ensure the output directory exists
 const outputDir = dirname(outputPath);
