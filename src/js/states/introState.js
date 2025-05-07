@@ -1334,6 +1334,27 @@ function handleMouseMove(event) {
 export function startNewGame() {
   try {
     removeAllEventListeners();
+    
+    // IMPORTANT: Reset score to 0 when starting a new game
+    // This ensures we start with a fresh score every time
+    
+    // Reset local score in mainState.js 
+    // (This will be imported by other modules)
+    if (typeof window.setScoreData === 'function') {
+      window.setScoreData({ score: 0 });
+      console.log("Score reset to 0 via setScoreData");
+    }
+    
+    // Reset the secure score system
+    if (typeof window.setScore === 'function') {
+      window.setScore(0);
+      console.log("Secure score reset to 0 before starting new game");
+    }
+    
+    // Also reset window.score directly as a fallback
+    window.score = 0;
+    
+    // Set the selected level in the global variable
     window.selected_game_level = selectedLevel;
     console.log(`Starting game with level: ${selectedLevel}, stored in global variable as: ${window.selected_game_level}`);
     

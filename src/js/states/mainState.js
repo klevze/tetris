@@ -142,8 +142,8 @@ export function startGameTimer() {
  * Start a new game, initializing all necessary components
  */
 export function startMainGame() {
-  // Start a new game
-  score = INITIAL_SCORE;
+  // Start a new game with EXPLICITLY reset score
+  score = 0; // CRITICAL: Always reset to 0 instead of INITIAL_SCORE
   lines = INITIAL_LINES;
   
   // Get starting level directly from global variable (most reliable source)
@@ -185,8 +185,10 @@ export function startMainGame() {
   // Expose the setScoreData function globally so block.js can access it directly
   window.setScoreData = setScoreData;
   
-  // IMPORTANT: Expose the score variable globally so hard drop can directly update it
-  window.score = score;
+  // IMPORTANT: Explicitly reset the global score variable
+  score = 0;
+  window.score = 0;
+  console.log("Score explicitly reset to 0 in both local and global variables");
   
   // Register to listen for score changes from block movements (soft drop, hard drop)
   eventBus.on(GAME_EVENTS.SCORE_CHANGE, (data) => {
@@ -250,6 +252,15 @@ export function startMainGame() {
   
   // Reset game variables
   block_finish = true;
+  
+  // Reset the counter for clearing rows
+  crs = 0;
+  
+  // Reset animation state
+  showAddScore = false;
+  sac = 0;
+  
+  // Reset timer
   TotalSeconds = 0;
   
   return GAME_STATES.PLAY_GAME;

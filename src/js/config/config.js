@@ -110,7 +110,7 @@ export const STORAGE_KEYS = {
 // Image assets with their paths
 export const IMAGES = {
     BLOCKS: './images/blocks90px_001.png', // Using the new 90px block image
-    GRID: './images/grid5.png',
+    GRID: './images/background.webp', // Changed from grid5.png to background.webp since grid5.png doesn't exist
     BACKGROUND_LEVEL0: './images/tetris_main_level_0.webp',
     BACKGROUND_LEVEL1: './images/tetris_main_back_level1.jpg',
     BACKGROUND_LEVEL2: './images/tetris_main_back_level2.jpg',

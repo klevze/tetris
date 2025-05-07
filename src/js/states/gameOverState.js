@@ -182,6 +182,19 @@ function handleGameOverKeyDown(evt) {
     document.removeEventListener('keydown', handleGameOverKeyDown, true);
     gameOverEventListenersAdded = false;
     
+    // CRITICAL: Reset score to 0 immediately after saving high score
+    // This ensures we don't carry the old score into the next game
+    if (typeof window.score !== 'undefined') {
+      window.score = 0;
+      console.log("Reset window.score to 0 after submitting high score");
+    }
+
+    // Reset secure score system too
+    if (typeof window.setScore === 'function') {
+      window.setScore(0);
+      console.log("Reset secure score to 0 after submitting high score");
+    }
+    
     // Import the refreshHighScores function to update high scores in the intro state
     import('../states/introState.js').then(introModule => {
       // Refresh high scores before transitioning to intro screen
@@ -227,6 +240,18 @@ function handleZeroScoreKeyDown(evt) {
   // Any key press goes back to intro screen
   document.removeEventListener('keydown', handleZeroScoreKeyDown, true);
   gameOverEventListenersAdded = false;
+  
+  // CRITICAL: Reset score to 0 before returning to intro screen
+  if (typeof window.score !== 'undefined') {
+    window.score = 0;
+    console.log("Reset window.score to 0 when returning to intro with zero score");
+  }
+
+  // Reset secure score system too
+  if (typeof window.setScore === 'function') {
+    window.setScore(0);
+    console.log("Reset secure score to 0 when returning to intro with zero score");
+  }
   
   // Import the refreshHighScores function to update high scores in the intro state
   import('../states/introState.js').then(introModule => {
