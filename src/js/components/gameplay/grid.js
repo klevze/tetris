@@ -519,7 +519,7 @@ export function checkRows() {
         // Once we've cleared the threshold lines, we follow the standard "every 10 lines" rule
         // Calculate how many levels to add after passing threshold
         const linesAfterThreshold = lines - threshold;
-        if (linesAfterThreshold % 10 === 0 && linesAfterThreshold > 0) {
+        if (linesAfterThreshold === 0 || linesAfterThreshold % 10 === 0) {
           level++;
           console.log(`Leveled up to ${level} after clearing ${lines} lines (threshold was ${threshold})`);
           shouldTriggerLevelUpFireworks = true;
