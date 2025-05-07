@@ -74,6 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the game (this will handle loading screen and assets)
     initGame();
     
+    // Expose secure score setter to window object
+    window.setScore = setScore;
+    
     // Create secure score getter/setter with Object.defineProperty
     // This prevents direct manipulation via console while maintaining compatibility
     Object.defineProperty(window, 'score', {
@@ -81,8 +84,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return getScore(); // Get the secure score value
         },
         set: function(value) {
+            // Special case: Allow setting to 0 for game restart
+            if (value === 0) {
+                console.log("Score reset to 0 via window.score property");
+                setScore(0);
+                return 0;
+            }
+            
+            // For any other value, prevent direct manipulation
             console.warn('Direct score manipulation is not allowed!');
-            // Score is not actually changed, we just log a warning
             return getScore(); // Return the real score value
         },
         configurable: false,

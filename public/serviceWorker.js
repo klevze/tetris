@@ -3,7 +3,7 @@ const CACHE_NAME = 'tetris-pwa-v1';
 const urlsToCache = [
   './',
   './index.html',
-  './assets/index-B36bgirl.js',
+  './assets/index-C-JMPetM.js',
   './assets/index-Bws2x3JZ.css',
   './manifest.json',
   // Add your image assets, music files, etc.

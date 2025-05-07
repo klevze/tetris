@@ -164,6 +164,16 @@ export function startMainGame() {
     window.setScore(0);
   }
   
+  // Reset block statistics to zero - ADDED FIX
+  import('../components/gameplay/block.js').then(blockModule => {
+    if (typeof blockModule.resetBlockStatistics === 'function') {
+      blockModule.resetBlockStatistics();
+      console.log("Block statistics reset during game start");
+    }
+  }).catch(error => {
+    console.error("Error importing block module:", error);
+  });
+  
   // Start playing music if enabled (by calling the global music function)
   if (typeof window.startGameMusic === 'function') {
     window.startGameMusic();
@@ -1197,10 +1207,46 @@ function handleGameIconsClick(event) {
   
   // Check if restart icon was clicked
   if (isPointInCircle(mouseX, mouseY, restartX + iconSize/2, topY + iconSize/2, iconSize/2)) {
-    console.log("Restart button clicked");
+    console.log("===== RESTART BUTTON CLICKED =====");
+    console.log("Before reset - window.score:", window.score);
+    console.log("Before reset - score variable:", score);
+    
+    // Reset the secure score system using window.setScore to update checksum
+    if (typeof window.setScore === 'function') {
+      window.setScore(0);
+      console.log("After window.setScore(0) - window.score:", window.score);
+    } else {
+      console.error("window.setScore is not defined!");
+    }
+    
+    // Update global score - make sure this happens AFTER using setScore
+    window.score = 0; // This likely triggers the warning due to Object.defineProperty
+    score = 0;
+    
+    console.log("After all resets - window.score:", window.score);
+    console.log("After all resets - score variable:", score);
+    
+    // Reset any score animation
+    showAddScore = false;
+    sac = 0;
+    addScore = 0;
+    
+    // Import the block module to reset block statistics
+    import('../components/gameplay/block.js').then(blockModule => {
+      if (typeof blockModule.resetBlockStatistics === 'function') {
+        blockModule.resetBlockStatistics();
+        console.log("Block statistics reset");
+      } else {
+        console.error("resetBlockStatistics function not found");
+      }
+    }).catch(error => {
+      console.error("Error importing block module:", error);
+    });
+    
     // Send to game start state to restart
     if (typeof window.game_state !== 'undefined') {
       window.game_state = GAME_STATES.GAME_START;
+      console.log("Game state set to GAME_START");
     }
     return;
   }

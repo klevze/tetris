@@ -275,6 +275,16 @@ export function getScore() {
  * @returns {number} The updated score value
  */
 export function setScore(newScore) {
+    // Special case: Always allow resetting the score to 0
+    if (newScore === 0) {
+        console.log("Score reset to 0");
+        // Directly reset the secureScore's internal values
+        secureScore.set(0);
+        score = 0; // For compatibility
+        return 0;
+    }
+    
+    // Normal case: Apply validation through secureScore.set()
     const updatedScore = secureScore.set(newScore);
     score = updatedScore; // For compatibility
     return updatedScore;

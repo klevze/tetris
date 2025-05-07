@@ -937,3 +937,15 @@ export function showBlocksStatistics(x, y) {
         currentY += blockSpacing;
     }
 }
+
+/**
+ * Reset block statistics counters to zero
+ * Call this when restarting the game
+ */
+export function resetBlockStatistics() {
+    console.log("Resetting block statistics");
+    // Reset all block counts to zero
+    for (let type = 0; type < 7; type++) {
+        blockCounts[type] = 0;
+    }
+}
