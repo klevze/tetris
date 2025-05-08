@@ -646,7 +646,6 @@ function markRow(y) {
 
 /**
  * Draw the custom grid background and lines
- * This replaces the grid5.png image with a programmatically generated grid
  */
 export function drawCustomGrid() {
   if (!ctx) return;

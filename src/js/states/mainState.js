@@ -163,6 +163,7 @@ export function startMainGame() {
     console.log("Properly initializing secure score to 0");
     window.setScore(0);
   }
+
   
   // Reset block statistics to zero - ADDED FIX
   import('../components/gameplay/block.js').then(blockModule => {
@@ -1022,36 +1023,53 @@ function drawMuteIcon(x, y, size, enabled) {
   ctx.fillStyle = '#ffcc00';
   ctx.lineWidth = 2;
   
-  // Draw speaker shape
+  // Draw speaker shape with nicer design
   ctx.beginPath();
   ctx.moveTo(x - s/2, y);
   ctx.lineTo(x - s/4, y - s/3);
-  ctx.lineTo(x, y - s/3);
-  ctx.lineTo(x, y + s/3);
+  ctx.lineTo(x - s/8, y - s/3);
+  ctx.lineTo(x, y - s/2);
+  ctx.lineTo(x, y + s/2);
+  ctx.lineTo(x - s/8, y + s/3);
   ctx.lineTo(x - s/4, y + s/3);
   ctx.lineTo(x - s/2, y);
   ctx.fill();
   
-  // Draw sound waves if enabled
+  // Draw sound waves with more elegant curves if enabled
   if (enabled) {
+    // Draw first wave
     ctx.beginPath();
-    ctx.arc(x + s/8, y, s/3, -Math.PI/3, Math.PI/3);
+    ctx.moveTo(x + s/6, y);
+    ctx.quadraticCurveTo(x + s/3, y - s/4, x + s/6, y - s/2);
+    ctx.quadraticCurveTo(x + s/3, y - s/4, x + s/6, y);
     ctx.stroke();
     
+    // Draw second wave
     ctx.beginPath();
-    ctx.arc(x + s/4, y, s/2, -Math.PI/3, Math.PI/3);
+    ctx.moveTo(x + s/3, y);
+    ctx.quadraticCurveTo(x + s/1.8, y - s/3, x + s/3, y - s/1.5);
+    ctx.quadraticCurveTo(x + s/1.8, y - s/3, x + s/3, y);
+    ctx.stroke();
+    
+    // Draw third wave (outer)
+    ctx.beginPath();
+    ctx.moveTo(x + s/2, y);
+    ctx.quadraticCurveTo(x + s/1.2, y - s/2.5, x + s/2, y - s/1.2);
+    ctx.quadraticCurveTo(x + s/1.2, y - s/2.5, x + s/2, y);
     ctx.stroke();
   } else {
-    // Draw X if muted
+    // Draw X with smoother lines if muted
     ctx.lineWidth = 2.5;
+    
+    // Curved X shape
     ctx.beginPath();
-    ctx.moveTo(x, y - s/3);
-    ctx.lineTo(x + s/2, y + s/3);
+    ctx.moveTo(x + s/6, y - s/3);
+    ctx.quadraticCurveTo(x + s/4, y, x + s/2, y + s/3);
     ctx.stroke();
     
     ctx.beginPath();
-    ctx.moveTo(x + s/2, y - s/3);
-    ctx.lineTo(x, y + s/3);
+    ctx.moveTo(x + s/6, y + s/3);
+    ctx.quadraticCurveTo(x + s/4, y, x + s/2, y - s/3);
     ctx.stroke();
   }
   
@@ -1073,20 +1091,74 @@ function drawPauseIcon(x, y, size, paused) {
   ctx.strokeStyle = '#ffcc00';
   
   if (paused) {
-    // Draw play triangle when paused
+    // Draw play triangle when paused with rounded corners
     ctx.beginPath();
-    ctx.moveTo(x - s/4, y - s/2);
-    ctx.lineTo(x - s/4, y + s/2);
-    ctx.lineTo(x + s/2, y);
+    const triangleHeight = s;
+    const triangleWidth = s * 0.8;
+    
+    // Create path for rounded triangle
+    const radius = s/8; // Corner radius
+    
+    // Move to top point with slight rounding
+    ctx.moveTo(x - triangleWidth/3 + radius*0.5, y - triangleHeight/2);
+    
+    // Line to bottom-left with rounded corner
+    ctx.lineTo(x - triangleWidth/3, y + triangleHeight/2 - radius);
+    ctx.arcTo(
+      x - triangleWidth/3, y + triangleHeight/2,
+      x - triangleWidth/3 + radius, y + triangleHeight/2,
+      radius
+    );
+    
+    // Line to bottom-right with rounded corner
+    ctx.lineTo(x + triangleWidth/2 - radius, y);
+    ctx.arcTo(
+      x + triangleWidth/2, y,
+      x + triangleWidth/2 - radius, y - radius,
+      radius
+    );
+    
+    // Close path back to top
     ctx.closePath();
     ctx.fill();
   } else {
-    // Draw pause symbol when playing
-    ctx.fillRect(x - s/2, y - s/2, s/3, s);
-    ctx.fillRect(x + s/6, y - s/2, s/3, s);
+    // Draw pause bars with rounded corners
+    const barWidth = s/3;
+    const barHeight = s;
+    const radius = s/8;
+    
+    // First bar (left)
+    ctx.beginPath();
+    roundedRect(ctx, x - s/2, y - s/2, barWidth, barHeight, radius);
+    ctx.fill();
+    
+    // Second bar (right)
+    ctx.beginPath();
+    roundedRect(ctx, x + s/6, y - s/2, barWidth, barHeight, radius);
+    ctx.fill();
   }
   
   ctx.restore();
+}
+
+/**
+ * Helper function to draw a rounded rectangle
+ * 
+ * @param {CanvasRenderingContext2D} context - Canvas context
+ * @param {number} x - Top-left X position
+ * @param {number} y - Top-left Y position
+ * @param {number} width - Rectangle width
+ * @param {number} height - Rectangle height
+ * @param {number} radius - Corner radius
+ */
+function roundedRect(context, x, y, width, height, radius) {
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.arcTo(x + width, y, x + width, y + radius, radius);
+  context.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+  context.arcTo(x, y + height, x, y + height - radius, radius);
+  context.arcTo(x, y, x + radius, y, radius);
+  context.closePath();
 }
 
 /**
@@ -1100,23 +1172,31 @@ function drawRestartIcon(x, y, size) {
   const s = size; // Full size for restart icon
   ctx.save();
   ctx.strokeStyle = '#ffcc00';
-  ctx.lineWidth = 2;
+  ctx.fillStyle = '#ffcc00';
+  ctx.lineWidth = 2.5;
   
-  // Draw circular arrow
+  // Draw circular arrow with smoother curve
+  // Use an arc with a larger sweep
   ctx.beginPath();
-  ctx.arc(x, y, s/2, Math.PI * 0.1, Math.PI * 1.9, false);
+  ctx.arc(x, y, s/2, Math.PI * 0.15, Math.PI * 1.85, false);
   ctx.stroke();
   
-  // Draw arrowhead
-  const arrowX = x + Math.cos(Math.PI * 0.1) * s/2;
-  const arrowY = y + Math.sin(Math.PI * 0.1) * s/2;
+  // Add small gap before arrow head for cleaner look
+  const arrowAngle = Math.PI * 0.1;
+  const arrowX = x + Math.cos(arrowAngle) * s/2;
+  const arrowY = y + Math.sin(arrowAngle) * s/2;
   
+  // Draw arrow head with slight curve
   ctx.beginPath();
   ctx.moveTo(arrowX, arrowY);
-  ctx.lineTo(arrowX + s/4, arrowY - s/8);
-  ctx.lineTo(arrowX + s/6, arrowY + s/8);
+  ctx.lineTo(arrowX + s/5, arrowY - s/7);
+  ctx.quadraticCurveTo(arrowX + s/10, arrowY, arrowX + s/7, arrowY + s/7);
   ctx.closePath();
-  ctx.fillStyle = '#ffcc00';
+  ctx.fill();
+  
+  // Add a small decorative dot in the center for style
+  ctx.beginPath();
+  ctx.arc(x, y, s/10, 0, Math.PI * 2);
   ctx.fill();
   
   ctx.restore();
@@ -1133,27 +1213,32 @@ function drawMenuIcon(x, y, size) {
   const s = size * 0.8; // Slightly smaller for better fit
   ctx.save();
   ctx.strokeStyle = '#ffcc00';
-  ctx.lineWidth = 3;
+  ctx.fillStyle = '#ffcc00';
+  ctx.lineWidth = 2;
   
-  // Draw three horizontal lines
-  const top = y - s/2;
-  const middle = y;
-  const bottom = y + s/2;
+  // Draw three rounded horizontal bars with better spacing
+  const barWidth = s;
+  const barHeight = s/6;
+  const barSpacing = s/4;
+  const radius = barHeight/2;
   
+  // Top bar
+  const topY = y - barSpacing;
   ctx.beginPath();
-  ctx.moveTo(x - s/2, top);
-  ctx.lineTo(x + s/2, top);
-  ctx.stroke();
+  roundedRect(ctx, x - barWidth/2, topY - barHeight/2, barWidth, barHeight, radius);
+  ctx.fill();
   
+  // Middle bar (slightly wider for visual interest)
+  const midWidth = s * 0.9;
   ctx.beginPath();
-  ctx.moveTo(x - s/2, middle);
-  ctx.lineTo(x + s/2, middle);
-  ctx.stroke();
+  roundedRect(ctx, x - midWidth/2, y - barHeight/2, midWidth, barHeight, radius);
+  ctx.fill();
   
+  // Bottom bar
+  const bottomY = y + barSpacing;
   ctx.beginPath();
-  ctx.moveTo(x - s/2, bottom);
-  ctx.lineTo(x + s/2, bottom);
-  ctx.stroke();
+  roundedRect(ctx, x - barWidth/2, bottomY - barHeight/2, barWidth, barHeight, radius);
+  ctx.fill();
   
   ctx.restore();
 }
