@@ -125,6 +125,19 @@ export function initMainState(images, audio, updateGameStateCallback) {
   level_goal = INITIAL_LEVEL_GOAL;
   block_finish = true;
   TotalSeconds = 0;
+  
+  // Initialize touch controls if available
+  if (typeof window.isMobileDevice === 'function' && window.isMobileDevice()) {
+    // Import dynamically to avoid circular dependencies
+    import('../utils/touchControls.js').then(touchModule => {
+      if (typeof touchModule.initTouchControls === 'function') {
+        touchModule.initTouchControls();
+        console.log('Touch controls initialized for mobile device');
+      }
+    }).catch(error => {
+      console.error('Error initializing touch controls:', error);
+    });
+  }
 }
 
 /**
@@ -957,33 +970,44 @@ function calculateUIPositions() {
  * Draw icon buttons for game controls (Mute, Pause, Restart, Menu)
  */
 function drawGameIcons() {
+  // Only show game control icons during active gameplay
+  if (typeof window.game_state !== 'undefined' && window.game_state !== GAME_STATES.PLAY_GAME) {
+    return; // Don't render icons if not in active gameplay
+  }
+
   // Sync music state with global setting
   if (typeof window.music_on === 'boolean') {
     isMusicEnabled = window.music_on;
   }
 
+  // Use a percentage-based position for the icons to place them at the bottom
+  // This takes much less height on the screen, especially on mobile
   const iconSize = 35;
   const margin = 15;
   const spacing = 10;
-  const topY = margin;
+  
+  // Position at bottom of the screen with margin
+  const bottomY = HEIGHT - iconSize - margin;
 
-  // Calculate positions for each icon, aligned at the top of the screen
-  const muteX = margin;
-  const pauseX = muteX + iconSize + spacing;
-  const restartX = pauseX + iconSize + spacing;
-  const menuX = restartX + iconSize + spacing;
+  // Calculate positions for each icon, aligned at the bottom-right corner of the screen
+  // This makes them less intrusive on the gameplay area
+  const rightEdge = WIDTH - margin;
+  const menuX = rightEdge - iconSize;
+  const restartX = menuX - iconSize - spacing;
+  const pauseX = restartX - iconSize - spacing;
+  const muteX = pauseX - iconSize - spacing;
 
   // Draw background circles for each icon
-  drawIconBackground(muteX, topY, iconSize);
-  drawIconBackground(pauseX, topY, iconSize);
-  drawIconBackground(restartX, topY, iconSize);
-  drawIconBackground(menuX, topY, iconSize);
+  drawIconBackground(muteX, bottomY, iconSize);
+  drawIconBackground(pauseX, bottomY, iconSize);
+  drawIconBackground(restartX, bottomY, iconSize);
+  drawIconBackground(menuX, bottomY, iconSize);
 
   // Draw specific icons
-  drawMuteIcon(muteX + iconSize/2, topY + iconSize/2, iconSize * 0.5, isMusicEnabled);
-  drawPauseIcon(pauseX + iconSize/2, topY + iconSize/2, iconSize * 0.5, game_pause);
-  drawRestartIcon(restartX + iconSize/2, topY + iconSize/2, iconSize * 0.5);
-  drawMenuIcon(menuX + iconSize/2, topY + iconSize/2, iconSize * 0.5);
+  drawMuteIcon(muteX + iconSize/2, bottomY + iconSize/2, iconSize * 0.5, isMusicEnabled);
+  drawPauseIcon(pauseX + iconSize/2, bottomY + iconSize/2, iconSize * 0.5, game_pause);
+  drawRestartIcon(restartX + iconSize/2, bottomY + iconSize/2, iconSize * 0.5);
+  drawMenuIcon(menuX + iconSize/2, bottomY + iconSize/2, iconSize * 0.5);
 }
 
 /**
@@ -1023,53 +1047,36 @@ function drawMuteIcon(x, y, size, enabled) {
   ctx.fillStyle = '#ffcc00';
   ctx.lineWidth = 2;
   
-  // Draw speaker shape with nicer design
+  // Draw speaker shape
   ctx.beginPath();
   ctx.moveTo(x - s/2, y);
   ctx.lineTo(x - s/4, y - s/3);
-  ctx.lineTo(x - s/8, y - s/3);
-  ctx.lineTo(x, y - s/2);
-  ctx.lineTo(x, y + s/2);
-  ctx.lineTo(x - s/8, y + s/3);
+  ctx.lineTo(x, y - s/3);
+  ctx.lineTo(x, y + s/3);
   ctx.lineTo(x - s/4, y + s/3);
   ctx.lineTo(x - s/2, y);
   ctx.fill();
   
-  // Draw sound waves with more elegant curves if enabled
+  // Draw sound waves if enabled
   if (enabled) {
-    // Draw first wave
     ctx.beginPath();
-    ctx.moveTo(x + s/6, y);
-    ctx.quadraticCurveTo(x + s/3, y - s/4, x + s/6, y - s/2);
-    ctx.quadraticCurveTo(x + s/3, y - s/4, x + s/6, y);
+    ctx.arc(x + s/8, y, s/3, -Math.PI/3, Math.PI/3);
     ctx.stroke();
     
-    // Draw second wave
     ctx.beginPath();
-    ctx.moveTo(x + s/3, y);
-    ctx.quadraticCurveTo(x + s/1.8, y - s/3, x + s/3, y - s/1.5);
-    ctx.quadraticCurveTo(x + s/1.8, y - s/3, x + s/3, y);
-    ctx.stroke();
-    
-    // Draw third wave (outer)
-    ctx.beginPath();
-    ctx.moveTo(x + s/2, y);
-    ctx.quadraticCurveTo(x + s/1.2, y - s/2.5, x + s/2, y - s/1.2);
-    ctx.quadraticCurveTo(x + s/1.2, y - s/2.5, x + s/2, y);
+    ctx.arc(x + s/4, y, s/2, -Math.PI/3, Math.PI/3);
     ctx.stroke();
   } else {
-    // Draw X with smoother lines if muted
+    // Draw X if muted
     ctx.lineWidth = 2.5;
-    
-    // Curved X shape
     ctx.beginPath();
-    ctx.moveTo(x + s/6, y - s/3);
-    ctx.quadraticCurveTo(x + s/4, y, x + s/2, y + s/3);
+    ctx.moveTo(x, y - s/3);
+    ctx.lineTo(x + s/2, y + s/3);
     ctx.stroke();
     
     ctx.beginPath();
-    ctx.moveTo(x + s/6, y + s/3);
-    ctx.quadraticCurveTo(x + s/4, y, x + s/2, y - s/3);
+    ctx.moveTo(x + s/2, y - s/3);
+    ctx.lineTo(x, y + s/3);
     ctx.stroke();
   }
   
@@ -1091,74 +1098,20 @@ function drawPauseIcon(x, y, size, paused) {
   ctx.strokeStyle = '#ffcc00';
   
   if (paused) {
-    // Draw play triangle when paused with rounded corners
+    // Draw play triangle when paused
     ctx.beginPath();
-    const triangleHeight = s;
-    const triangleWidth = s * 0.8;
-    
-    // Create path for rounded triangle
-    const radius = s/8; // Corner radius
-    
-    // Move to top point with slight rounding
-    ctx.moveTo(x - triangleWidth/3 + radius*0.5, y - triangleHeight/2);
-    
-    // Line to bottom-left with rounded corner
-    ctx.lineTo(x - triangleWidth/3, y + triangleHeight/2 - radius);
-    ctx.arcTo(
-      x - triangleWidth/3, y + triangleHeight/2,
-      x - triangleWidth/3 + radius, y + triangleHeight/2,
-      radius
-    );
-    
-    // Line to bottom-right with rounded corner
-    ctx.lineTo(x + triangleWidth/2 - radius, y);
-    ctx.arcTo(
-      x + triangleWidth/2, y,
-      x + triangleWidth/2 - radius, y - radius,
-      radius
-    );
-    
-    // Close path back to top
+    ctx.moveTo(x - s/4, y - s/2);
+    ctx.lineTo(x - s/4, y + s/2);
+    ctx.lineTo(x + s/2, y);
     ctx.closePath();
     ctx.fill();
   } else {
-    // Draw pause bars with rounded corners
-    const barWidth = s/3;
-    const barHeight = s;
-    const radius = s/8;
-    
-    // First bar (left)
-    ctx.beginPath();
-    roundedRect(ctx, x - s/2, y - s/2, barWidth, barHeight, radius);
-    ctx.fill();
-    
-    // Second bar (right)
-    ctx.beginPath();
-    roundedRect(ctx, x + s/6, y - s/2, barWidth, barHeight, radius);
-    ctx.fill();
+    // Draw pause symbol when playing
+    ctx.fillRect(x - s/2, y - s/2, s/3, s);
+    ctx.fillRect(x + s/6, y - s/2, s/3, s);
   }
   
   ctx.restore();
-}
-
-/**
- * Helper function to draw a rounded rectangle
- * 
- * @param {CanvasRenderingContext2D} context - Canvas context
- * @param {number} x - Top-left X position
- * @param {number} y - Top-left Y position
- * @param {number} width - Rectangle width
- * @param {number} height - Rectangle height
- * @param {number} radius - Corner radius
- */
-function roundedRect(context, x, y, width, height, radius) {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.arcTo(x + width, y, x + width, y + radius, radius);
-  context.arcTo(x + width, y + height, x + width - radius, y + height, radius);
-  context.arcTo(x, y + height, x, y + height - radius, radius);
-  context.arcTo(x, y, x + radius, y, radius);
-  context.closePath();
 }
 
 /**
@@ -1172,31 +1125,23 @@ function drawRestartIcon(x, y, size) {
   const s = size; // Full size for restart icon
   ctx.save();
   ctx.strokeStyle = '#ffcc00';
-  ctx.fillStyle = '#ffcc00';
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 2;
   
-  // Draw circular arrow with smoother curve
-  // Use an arc with a larger sweep
+  // Draw circular arrow
   ctx.beginPath();
-  ctx.arc(x, y, s/2, Math.PI * 0.15, Math.PI * 1.85, false);
+  ctx.arc(x, y, s/2, Math.PI * 0.1, Math.PI * 1.9, false);
   ctx.stroke();
   
-  // Add small gap before arrow head for cleaner look
-  const arrowAngle = Math.PI * 0.1;
-  const arrowX = x + Math.cos(arrowAngle) * s/2;
-  const arrowY = y + Math.sin(arrowAngle) * s/2;
+  // Draw arrowhead
+  const arrowX = x + Math.cos(Math.PI * 0.1) * s/2;
+  const arrowY = y + Math.sin(Math.PI * 0.1) * s/2;
   
-  // Draw arrow head with slight curve
   ctx.beginPath();
   ctx.moveTo(arrowX, arrowY);
-  ctx.lineTo(arrowX + s/5, arrowY - s/7);
-  ctx.quadraticCurveTo(arrowX + s/10, arrowY, arrowX + s/7, arrowY + s/7);
+  ctx.lineTo(arrowX + s/4, arrowY - s/8);
+  ctx.lineTo(arrowX + s/6, arrowY + s/8);
   ctx.closePath();
-  ctx.fill();
-  
-  // Add a small decorative dot in the center for style
-  ctx.beginPath();
-  ctx.arc(x, y, s/10, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffcc00';
   ctx.fill();
   
   ctx.restore();
@@ -1213,32 +1158,27 @@ function drawMenuIcon(x, y, size) {
   const s = size * 0.8; // Slightly smaller for better fit
   ctx.save();
   ctx.strokeStyle = '#ffcc00';
-  ctx.fillStyle = '#ffcc00';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 3;
   
-  // Draw three rounded horizontal bars with better spacing
-  const barWidth = s;
-  const barHeight = s/6;
-  const barSpacing = s/4;
-  const radius = barHeight/2;
+  // Draw three horizontal lines
+  const top = y - s/2;
+  const middle = y;
+  const bottom = y + s/2;
   
-  // Top bar
-  const topY = y - barSpacing;
   ctx.beginPath();
-  roundedRect(ctx, x - barWidth/2, topY - barHeight/2, barWidth, barHeight, radius);
-  ctx.fill();
+  ctx.moveTo(x - s/2, top);
+  ctx.lineTo(x + s/2, top);
+  ctx.stroke();
   
-  // Middle bar (slightly wider for visual interest)
-  const midWidth = s * 0.9;
   ctx.beginPath();
-  roundedRect(ctx, x - midWidth/2, y - barHeight/2, midWidth, barHeight, radius);
-  ctx.fill();
+  ctx.moveTo(x - s/2, middle);
+  ctx.lineTo(x + s/2, middle);
+  ctx.stroke();
   
-  // Bottom bar
-  const bottomY = y + barSpacing;
   ctx.beginPath();
-  roundedRect(ctx, x - barWidth/2, bottomY - barHeight/2, barWidth, barHeight, radius);
-  ctx.fill();
+  ctx.moveTo(x - s/2, bottom);
+  ctx.lineTo(x + s/2, bottom);
+  ctx.stroke();
   
   ctx.restore();
 }
@@ -1249,6 +1189,11 @@ function drawMenuIcon(x, y, size) {
  * @param {MouseEvent} event - Mouse click event
  */
 function handleGameIconsClick(event) {
+  // Return early if not in gameplay state
+  if (typeof window.game_state !== 'undefined' && window.game_state !== GAME_STATES.PLAY_GAME) {
+    return;
+  }
+
   // Get click position relative to canvas
   const rect = canvas.getBoundingClientRect();
   const mouseX = event.clientX - rect.left;
@@ -1257,16 +1202,17 @@ function handleGameIconsClick(event) {
   const iconSize = 35;
   const margin = 15;
   const spacing = 10;
-  const topY = margin;
   
-  // Calculate positions for each icon
-  const muteX = margin;
-  const pauseX = muteX + iconSize + spacing;
-  const restartX = pauseX + iconSize + spacing;
-  const menuX = restartX + iconSize + spacing;
+  // Calculate positions with the new bottom positioning
+  const bottomY = HEIGHT - iconSize - margin;
+  const rightEdge = WIDTH - margin;
+  const menuX = rightEdge - iconSize;
+  const restartX = menuX - iconSize - spacing;
+  const pauseX = restartX - iconSize - spacing;
+  const muteX = pauseX - iconSize - spacing;
   
   // Check if mute icon was clicked
-  if (isPointInCircle(mouseX, mouseY, muteX + iconSize/2, topY + iconSize/2, iconSize/2)) {
+  if (isPointInCircle(mouseX, mouseY, muteX + iconSize/2, bottomY + iconSize/2, iconSize/2)) {
     console.log("Mute button clicked");
     // Toggle music
     isMusicEnabled = !isMusicEnabled;
@@ -1284,14 +1230,14 @@ function handleGameIconsClick(event) {
   }
   
   // Check if pause icon was clicked
-  if (isPointInCircle(mouseX, mouseY, pauseX + iconSize/2, topY + iconSize/2, iconSize/2)) {
+  if (isPointInCircle(mouseX, mouseY, pauseX + iconSize/2, bottomY + iconSize/2, iconSize/2)) {
     console.log("Pause button clicked");
     togglePause();
     return;
   }
   
   // Check if restart icon was clicked
-  if (isPointInCircle(mouseX, mouseY, restartX + iconSize/2, topY + iconSize/2, iconSize/2)) {
+  if (isPointInCircle(mouseX, mouseY, restartX + iconSize/2, bottomY + iconSize/2, iconSize/2)) {
     console.log("===== RESTART BUTTON CLICKED =====");
     console.log("Before reset - window.score:", window.score);
     console.log("Before reset - score variable:", score);
@@ -1337,7 +1283,7 @@ function handleGameIconsClick(event) {
   }
   
   // Check if menu icon was clicked
-  if (isPointInCircle(mouseX, mouseY, menuX + iconSize/2, topY + iconSize/2, iconSize/2)) {
+  if (isPointInCircle(mouseX, mouseY, menuX + iconSize/2, bottomY + iconSize/2, iconSize/2)) {
     console.log("Menu button clicked");
     // Return to intro screen
     if (typeof window.game_state !== 'undefined') {

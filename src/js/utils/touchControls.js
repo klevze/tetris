@@ -16,6 +16,7 @@ const CONFIG = {
     repeatDelay: 150, // Time in ms between action repeats when joystick held
   },
   controlType: 'buttons', // 'buttons' or 'joystick'
+  buttonsLayout: 'double', // 'single' or 'double' row layout
 };
 
 // State variables for touch controls
@@ -36,6 +37,17 @@ let joystickTimers = {
 let longPressTimer = null;
 const LONG_PRESS_DELAY = 500; // ms to trigger long press
 
+// Add button timers for continuous movement
+let buttonTimers = {
+  left: null,
+  right: null,
+  down: null
+};
+
+// Configuration for button repeat
+const BUTTON_REPEAT_DELAY = 150; // Time in ms before continuous movement starts
+const BUTTON_REPEAT_INTERVAL = 100; // Interval for continuous movement
+
 // Cached DOM references
 let joystickContainer;
 let joystick;
@@ -53,9 +65,13 @@ export function initTouchControls() {
   touchControlsElem = document.querySelector('.touch-controls');
   orientationWarningElem = document.querySelector('.orientation-warning');
   
+  if (!touchControlsElem) {
+    console.warn('Touch controls element not found in the DOM');
+    return;
+  }
+  
   if (!joystickContainer || !joystick) {
     console.warn('Joystick elements not found in the DOM');
-    return;
   }
 
   // Cache the control rows for toggling between joystick/buttons
@@ -63,6 +79,8 @@ export function initTouchControls() {
 
   // Get button references (cache these too)
   const buttons = {
+    toggle: document.getElementById('toggle-controls'),
+    layoutToggle: document.querySelector('.layout-toggle-icon'), // Updated to use the icon
     rotate: document.getElementById('rotate-btn'),
     left: document.getElementById('left-btn'),
     right: document.getElementById('right-btn'),
@@ -71,6 +89,32 @@ export function initTouchControls() {
     hold: document.getElementById('hold-btn'),
     pause: document.getElementById('pause-btn')
   };
+
+  // Initialize draggable functionality
+  initDraggableControls();
+  
+  // Initialize layout toggle icon
+  if (buttons.layoutToggle) {
+    buttons.layoutToggle.addEventListener('click', toggleButtonsLayout);
+    buttons.layoutToggle.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // Prevent dragging when clicking the toggle icon
+      toggleButtonsLayout();
+    }, { passive: false });
+  }
+  
+  // Initialize minimize/maximize functionality
+  if (buttons.toggle) {
+    buttons.toggle.addEventListener('click', toggleControlsSize);
+    buttons.toggle.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // Prevent dragging when clicking the toggle button
+      toggleControlsSize();
+    }, { passive: false });
+  }
+
+  // Apply initial layout based on preferences
+  applyButtonsLayout();
 
   // Helper function to prevent default behavior and add events
   function addButtonListeners(button, handler, options = {}) {
@@ -87,14 +131,43 @@ export function initTouchControls() {
         }, LONG_PRESS_DELAY);
       }
       
+      // Perform initial action immediately
       handler();
+      
+      // For movement buttons (left, right, down) add continuous movement
+      if (options.continuous) {
+        const direction = options.direction;
+        
+        // Clear any existing timer for this direction
+        if (buttonTimers[direction]) {
+          clearInterval(buttonTimers[direction]);
+          buttonTimers[direction] = null;
+        }
+        
+        // Set up continuous movement after a short delay
+        buttonTimers[direction] = setTimeout(() => {
+          // First repeat after delay
+          handler();
+          
+          // Then set up interval for continuous movement
+          buttonTimers[direction] = setInterval(handler, BUTTON_REPEAT_INTERVAL);
+        }, BUTTON_REPEAT_DELAY);
+      }
     };
     
     const touchEndHandler = (e) => {
       e.preventDefault();
+      
+      // Clear long press timer
       if (longPressTimer) {
         clearTimeout(longPressTimer);
         longPressTimer = null;
+      }
+      
+      // Clear continuous movement timer if exists
+      if (options.continuous && buttonTimers[options.direction]) {
+        clearInterval(buttonTimers[options.direction]);
+        buttonTimers[options.direction] = null;
       }
       
       if (options.touchEnd) {
@@ -104,18 +177,58 @@ export function initTouchControls() {
     
     button.addEventListener('touchstart', touchStartHandler, { passive: false });
     button.addEventListener('touchend', touchEndHandler, { passive: false });
-    button.addEventListener('mousedown', handler); // For desktop testing
+    button.addEventListener('mousedown', (e) => {
+      handler();
+      
+      // For movement buttons (left, right, down) add continuous movement for desktop testing
+      if (options.continuous) {
+        const direction = options.direction;
+        
+        // Clear any existing timer for this direction
+        if (buttonTimers[direction]) {
+          clearInterval(buttonTimers[direction]);
+          buttonTimers[direction] = null;
+        }
+        
+        // Set up continuous movement after a short delay
+        buttonTimers[direction] = setTimeout(() => {
+          // First repeat after delay
+          handler();
+          
+          // Then set up interval for continuous movement
+          buttonTimers[direction] = setInterval(handler, BUTTON_REPEAT_INTERVAL);
+        }, BUTTON_REPEAT_DELAY);
+      }
+    });
     
-    if (options.touchEnd) {
-      button.addEventListener('mouseup', options.touchEnd);
+    if (options.touchEnd || options.continuous) {
+      button.addEventListener('mouseup', (e) => {
+        // Clear continuous movement timer if exists
+        if (options.continuous && buttonTimers[options.direction]) {
+          clearInterval(buttonTimers[options.direction]);
+          buttonTimers[options.direction] = null;
+        }
+        
+        if (options.touchEnd) {
+          options.touchEnd();
+        }
+      });
+      
+      // Also stop continuous movement when mouse leaves the button
+      button.addEventListener('mouseleave', (e) => {
+        if (options.continuous && buttonTimers[options.direction]) {
+          clearInterval(buttonTimers[options.direction]);
+          buttonTimers[options.direction] = null;
+        }
+      });
     }
   }
 
   // Add touch events to buttons using our cached references
   addButtonListeners(buttons.rotate, () => rotateBlock());
-  addButtonListeners(buttons.left, () => moveBlockDirection('left'));
-  addButtonListeners(buttons.right, () => moveBlockDirection('right'));
-  addButtonListeners(buttons.down, () => moveBlockDirection('down'));
+  addButtonListeners(buttons.left, () => moveBlockDirection('left'), { continuous: true, direction: 'left' });
+  addButtonListeners(buttons.right, () => moveBlockDirection('right'), { continuous: true, direction: 'right' });
+  addButtonListeners(buttons.down, () => moveBlockDirection('down'), { continuous: true, direction: 'down' });
   addButtonListeners(buttons.drop, () => moveBlockDirection('drop'));
   addButtonListeners(buttons.hold, () => HoldBlock());
   
@@ -147,6 +260,9 @@ export function initTouchControls() {
   // Listen for orientation changes
   window.addEventListener('orientationchange', handleOrientationChange);
   handleOrientationChange(); // Check initial orientation
+  
+  // Load position from localStorage if available
+  loadControlPosition();
 }
 
 /**
@@ -353,6 +469,82 @@ export function toggleControlType() {
 }
 
 /**
+ * Toggle between single and double row button layouts
+ */
+function toggleButtonsLayout() {
+  CONFIG.buttonsLayout = CONFIG.buttonsLayout === 'single' ? 'double' : 'single';
+  applyButtonsLayout();
+  saveControlPreferences();
+}
+
+/**
+ * Apply the current button layout
+ */
+function applyButtonsLayout() {
+  if (!touchControlsElem) return;
+  
+  const movementControls = touchControlsElem.querySelector('.movement-controls');
+  const firstRow = touchControlsElem.querySelector('.controls-row:first-child');
+  const actionRow = touchControlsElem.querySelector('.action-row');
+  
+  if (!movementControls || !firstRow || !actionRow) return;
+
+  // Get all the buttons from both rows
+  const leftBtn = document.getElementById('left-btn');
+  const rotateBtn = document.getElementById('rotate-btn');
+  const rightBtn = document.getElementById('right-btn');
+  const holdBtn = document.getElementById('hold-btn');
+  const downBtn = document.getElementById('down-btn');
+  const dropBtn = document.getElementById('drop-btn');
+  
+  if (CONFIG.buttonsLayout === 'single') {
+    // Apply single-line layout
+    touchControlsElem.classList.add('controls-layout-single');
+    
+    // Move all buttons to the first row
+    while (actionRow.firstChild) {
+      firstRow.appendChild(actionRow.firstChild);
+    }
+    
+    // Hide the second row
+    actionRow.style.display = 'none';
+    
+    // Update button order in the single row for better usability
+    if (leftBtn && rotateBtn && rightBtn && holdBtn && downBtn && dropBtn) {
+      firstRow.innerHTML = ''; // Clear first
+      firstRow.appendChild(leftBtn);
+      firstRow.appendChild(downBtn);
+      firstRow.appendChild(rotateBtn);
+      firstRow.appendChild(rightBtn);
+      firstRow.appendChild(holdBtn);
+      firstRow.appendChild(dropBtn);
+    }
+  } else {
+    // Apply double-line layout
+    touchControlsElem.classList.remove('controls-layout-single');
+    
+    // Make sure the action row is visible
+    actionRow.style.display = 'flex';
+    
+    // Restore original button positions
+    if (leftBtn && rotateBtn && rightBtn && holdBtn && downBtn && dropBtn) {
+      firstRow.innerHTML = ''; // Clear first
+      actionRow.innerHTML = ''; // Clear second
+      
+      // First row: direction controls
+      firstRow.appendChild(leftBtn);
+      firstRow.appendChild(rotateBtn);
+      firstRow.appendChild(rightBtn);
+      
+      // Second row: action buttons
+      actionRow.appendChild(holdBtn);
+      actionRow.appendChild(downBtn);
+      actionRow.appendChild(dropBtn);
+    }
+  }
+}
+
+/**
  * Show touch controls only during actual gameplay
  */
 function showTouchControls() {
@@ -429,6 +621,7 @@ function saveControlPreferences() {
   try {
     if (typeof(Storage) !== "undefined") {
       localStorage.setItem('tetris_control_type', CONFIG.controlType);
+      localStorage.setItem('tetris_buttons_layout', CONFIG.buttonsLayout);
     }
   } catch (e) {
     console.error("Could not save control preferences:", e);
@@ -442,6 +635,7 @@ function loadControlPreferences() {
   try {
     if (typeof(Storage) !== "undefined") {
       const savedControlType = localStorage.getItem('tetris_control_type');
+      const savedButtonsLayout = localStorage.getItem('tetris_buttons_layout');
       if (savedControlType) {
         CONFIG.controlType = savedControlType;
         
@@ -456,9 +650,190 @@ function loadControlPreferences() {
           }
         }
       }
+      if (savedButtonsLayout) {
+        CONFIG.buttonsLayout = savedButtonsLayout;
+        applyButtonsLayout();
+      }
     }
   } catch (e) {
     console.error("Could not load control preferences:", e);
+  }
+}
+
+/**
+ * Load control position from localStorage
+ */
+function loadControlPosition() {
+  try {
+    if (typeof(Storage) !== "undefined") {
+      const savedPosition = localStorage.getItem('tetris_control_position');
+      if (savedPosition) {
+        const position = JSON.parse(savedPosition);
+        if (touchControlsElem) {
+          touchControlsElem.style.left = `${position.x}px`;
+          touchControlsElem.style.top = `${position.y}px`;
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Could not load control position:", e);
+  }
+}
+
+/**
+ * Save control position to localStorage
+ */
+function saveControlPosition(x, y) {
+  try {
+    if (typeof(Storage) !== "undefined") {
+      const position = { x, y };
+      localStorage.setItem('tetris_control_position', JSON.stringify(position));
+    }
+  } catch (e) {
+    console.error("Could not save control position:", e);
+  }
+}
+
+/**
+ * Initialize draggable functionality for touch controls
+ */
+function initDraggableControls() {
+  if (!touchControlsElem) return;
+
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let initialLeft = 0;
+  let initialTop = 0;
+  
+  // Create drag handle if it doesn't exist
+  let dragHandle = document.getElementById('controls-drag-handle');
+  if (!dragHandle) {
+    dragHandle = document.createElement('div');
+    dragHandle.id = 'controls-drag-handle';
+    dragHandle.className = 'controls-drag-handle';
+    dragHandle.innerHTML = '⋮⋮'; // Drag icon
+    
+    // Style the drag handle
+    dragHandle.style.position = 'absolute';
+    dragHandle.style.top = '0';
+    dragHandle.style.left = '50%';
+    dragHandle.style.transform = 'translateX(-50%)';
+    dragHandle.style.background = 'rgba(0, 0, 0, 0.6)';
+    dragHandle.style.color = '#ffcc00';
+    dragHandle.style.padding = '5px 10px';
+    dragHandle.style.borderRadius = '0 0 10px 10px';
+    dragHandle.style.fontSize = '16px';
+    dragHandle.style.cursor = 'move';
+    dragHandle.style.userSelect = 'none';
+    dragHandle.style.touchAction = 'none';
+    dragHandle.style.zIndex = '1000';
+    
+    // Append the drag handle to the touch controls
+    touchControlsElem.appendChild(dragHandle);
+  }
+
+  // Touch event listeners specifically for the drag handle
+  dragHandle.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    isDragging = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    const rect = touchControlsElem.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+    
+    // Visual feedback when dragging starts
+    dragHandle.style.background = 'rgba(255, 204, 0, 0.6)';
+    dragHandle.style.color = '#000';
+  }, { passive: false });
+
+  // Add the touchmove event to the document instead of the handle
+  // This allows dragging to continue even if the finger moves off the handle
+  document.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const deltaX = e.touches[0].clientX - startX;
+    const deltaY = e.touches[0].clientY - startY;
+    
+    // Calculate new position with boundary constraints
+    const newLeft = Math.max(0, Math.min(window.innerWidth - touchControlsElem.offsetWidth, initialLeft + deltaX));
+    const newTop = Math.max(0, Math.min(window.innerHeight - touchControlsElem.offsetHeight, initialTop + deltaY));
+    
+    // Apply the new position
+    touchControlsElem.style.left = `${newLeft}px`;
+    touchControlsElem.style.top = `${newTop}px`;
+  }, { passive: false });
+
+  // Add the touchend event to the document
+  document.addEventListener('touchend', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    
+    // Reset visual feedback
+    dragHandle.style.background = 'rgba(0, 0, 0, 0.6)';
+    dragHandle.style.color = '#ffcc00';
+    
+    // Save the final position
+    const rect = touchControlsElem.getBoundingClientRect();
+    saveControlPosition(rect.left, rect.top);
+  }, { passive: false });
+  
+  // Mouse events for testing on desktop
+  dragHandle.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = touchControlsElem.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+    
+    // Visual feedback
+    dragHandle.style.background = 'rgba(255, 204, 0, 0.6)';
+    dragHandle.style.color = '#000';
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+    
+    // Calculate new position with boundary constraints
+    const newLeft = Math.max(0, Math.min(window.innerWidth - touchControlsElem.offsetWidth, initialLeft + deltaX));
+    const newTop = Math.max(0, Math.min(window.innerHeight - touchControlsElem.offsetHeight, initialTop + deltaY));
+    
+    touchControlsElem.style.left = `${newLeft}px`;
+    touchControlsElem.style.top = `${newTop}px`;
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    
+    // Reset visual feedback
+    dragHandle.style.background = 'rgba(0, 0, 0, 0.6)';
+    dragHandle.style.color = '#ffcc00';
+    
+    // Save position
+    const rect = touchControlsElem.getBoundingClientRect();
+    saveControlPosition(rect.left, rect.top);
+  });
+}
+
+/**
+ * Toggle the size of touch controls between minimized and maximized
+ */
+function toggleControlsSize() {
+  if (!touchControlsElem) return;
+
+  if (touchControlsElem.classList.contains('minimized')) {
+    touchControlsElem.classList.remove('minimized');
+    touchControlsElem.classList.add('maximized');
+  } else {
+    touchControlsElem.classList.remove('maximized');
+    touchControlsElem.classList.add('minimized');
   }
 }
 

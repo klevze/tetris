@@ -60,30 +60,321 @@
   </div>
   
   <!-- Touch controls for mobile devices -->
+  <style>
+    /* Touch controls styles */
+    .touch-controls {
+      position: fixed;
+      bottom: auto;
+      right: auto;
+      left: 20px;
+      top: 20px;
+      width: auto;
+      display: none;
+      flex-direction: column;
+      pointer-events: all;
+      padding: 10px 33px 15px 10px; /* Increased right padding to 33px (added 15px more) */
+      z-index: 1000;
+      background-color: rgba(0, 0, 0, 0.5);
+      border: 2px solid #ffcc00;
+      border-radius: 15px;
+      touch-action: none;
+      cursor: move;
+      max-width: 350px; /* Increased max-width to accommodate buttons */
+      /* Add raised border effect on right side but avoid overlap */
+      border-right: 4px solid #ffcc00;
+      box-shadow: 3px 0 6px rgba(255, 204, 0, 0.7), 0 0 10px rgba(255, 204, 0, 0.5);
+    }
+    
+    /* Controls container for better arrangement */
+    .controls-container {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100%;
+      margin-top: 25px; /* Add spacing at the top before first row of buttons */
+    }
+    
+    /* Drag handle for the control panel */
+    .touch-controls-handle {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 50px;
+      height: 6px;
+      background-color: #ffcc00;
+      border-radius: 3px;
+      margin-top: 5px;
+      cursor: move;
+    }
+    
+    /* Movement controls (D-pad) */
+    .movement-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* Center controls horizontally */
+      justify-content: flex-end;
+      margin: 0 auto; /* Center in container */
+      pointer-events: auto;
+      width: 100%;
+    }
+    
+    .controls-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 3px; /* Reduced spacing between rows */
+      width: 100%;
+    }
+    
+    /* Action buttons */
+    .action-buttons {
+      display: flex;
+      justify-content: center; /* Center buttons */
+      gap: 5px; /* Smaller gap between buttons */
+      margin: 5px auto 0; /* Add some space between controls and action buttons */
+      pointer-events: auto;
+      width: 100%;
+    }
+    
+    /* Base button style */
+    .touch-controls button {
+      width: 45px; /* Slightly smaller buttons */
+      height: 45px; /* Slightly smaller buttons */
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
+      color: #ffcc00;
+      font-size: 18px;
+      border: 2px solid #ffcc00;
+      margin: 2px; /* Smaller margins */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+    }
+    
+    /* Layout toggle icon */
+    .layout-toggle-icon {
+      position: absolute;
+      top: 3px;
+      right: 5px;
+      width: 16px;
+      height: 16px;
+      background: transparent;
+      color: #ffcc00;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 1001;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+      opacity: 0.8;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    
+    .layout-toggle-icon:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    
+    /* One-line layout specific styles */
+    .controls-layout-single .controls-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .controls-layout-single .action-row {
+      display: none; /* Hide second row in single-line layout */
+    }
+    
+    .controls-layout-single .controls-row:first-child {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      justify-content: center;
+      gap: 5px;
+    }
+    
+    /* Maintain circular button shape in single-line layout */
+    .controls-layout-single button {
+      min-width: 45px;
+      min-height: 45px;
+      width: 45px;
+      height: 45px;
+      aspect-ratio: 1/1;
+      flex: 0 0 45px; /* Don't allow buttons to flex/stretch */
+    }
+    
+    /* Adjust container width in single-line mode */
+    .controls-layout-single .movement-controls {
+      width: auto;
+      padding: 0 5px;
+    }
+    
+    /* Custom colors for specific buttons */
+    #rotate-btn {
+      background: rgba(41, 121, 255, 0.6);
+      border-color: #29b6f6;
+      color: #e3f2fd;
+    }
+    
+    #down-btn {
+      background: rgba(76, 175, 80, 0.6);
+      border-color: #4caf50;
+      color: #e8f5e9;
+    }
+    
+    #drop-btn {
+      background: rgba(244, 67, 54, 0.6);
+      border-color: #f44336;
+      color: #ffebee;
+    }
+    
+    /* Temporarily hide the Hold button */
+    #hold-btn {
+      display: none;
+    }
+    
+    /* Active button state */
+    .touch-controls button:active {
+      background: rgba(255, 204, 0, 0.3);
+      transform: scale(0.95);
+    }
+    
+    /* Custom active states for specific buttons */
+    #rotate-btn:active {
+      background: rgba(41, 121, 255, 0.4);
+    }
+    
+    #down-btn:active {
+      background: rgba(76, 175, 80, 0.4);
+    }
+    
+    #drop-btn:active {
+      background: rgba(244, 67, 54, 0.4);
+    }
+    
+    /* Virtual joystick container */
+    .joystick-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      margin: 10px;
+      pointer-events: auto;
+      border: 1px solid rgba(255, 204, 0, 0.3);
+      display: none;
+    }
+    
+    /* Virtual joystick handle */
+    .joystick {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid #ffcc00;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    /* Minimize/maximize button */
+    .toggle-controls-size {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 20px;
+      height: 20px;
+      background: transparent;
+      border: none;
+      color: #ffcc00;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1001;
+    }
+    
+    /* Orientation warning for landscape mode */
+    .orientation-warning {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: #fff;
+    }
+    
+    /* Responsive adjustments */
+    @media (min-height: 700px) {
+      .touch-controls button {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+      }
+    }
+    
+    /* Collapsed state */
+    .touch-controls.collapsed {
+      height: 40px;
+      overflow: hidden;
+    }
+    
+    .touch-controls.collapsed .controls-container {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+  
   <div class="touch-controls">
-    <!-- Left side: Movement controls -->
-    <div class="controls-section movement-controls">
-      <!-- Option 1: D-pad Style -->
-      <div class="controls-row">
-        <button id="rotate-btn" aria-label="Rotate">↻</button>
-      </div>
-      <div class="controls-row">
-        <button id="left-btn" aria-label="Move Left">←</button>
-        <button id="down-btn" aria-label="Move Down">↓</button>
-        <button id="right-btn" aria-label="Move Right">→</button>
+    <!-- Drag handle -->
+    <div class="touch-controls-handle"></div>
+    
+    <!-- Layout toggle icon -->
+    <div class="layout-toggle-icon" aria-label="Toggle Layout">⇄</div>
+    
+    <!-- Controls container for better organization -->
+    <div class="controls-container">
+      <!-- Movement controls -->
+      <div class="controls-section movement-controls">
+        <!-- First row with rotation and left/right -->
+        <div class="controls-row">
+          <button id="left-btn" aria-label="Move Left">←</button>
+          <button id="rotate-btn" aria-label="Rotate">↻</button>
+          <button id="right-btn" aria-label="Move Right">→</button>
+        </div>
+        
+        <!-- Second row with hold, down and drop buttons in one line -->
+        <div class="controls-row action-row">
+          <button id="hold-btn" aria-label="Hold Piece">H</button>
+          <button id="down-btn" aria-label="Move Down">↓</button>
+          <button id="drop-btn" aria-label="Hard Drop">⤓</button>
+        </div>
+        
+        <!-- Option 2: Virtual Joystick (initially hidden, can be enabled via settings) -->
+        <div class="joystick-container" id="joystick-container" style="display: none;">
+          <div class="joystick" id="joystick"></div>
+        </div>
       </div>
       
-      <!-- Option 2: Virtual Joystick (initially hidden, can be enabled via settings) -->
-      <div class="joystick-container" id="joystick-container" style="display: none;">
-        <div class="joystick" id="joystick"></div>
-      </div>
-    </div>
-    
-    <!-- Right side: Action buttons -->
-    <div class="action-buttons">
-      <button id="hold-btn" aria-label="Hold Piece">H</button>
-      <button id="drop-btn" aria-label="Hard Drop">⤓</button>
-      <button id="pause-btn" aria-label="Pause Game">‖</button>
+      <!-- Removed drop button section since it's now in the second row -->
     </div>
   </div>
   
