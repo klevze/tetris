@@ -33,6 +33,7 @@ export const GAME_EVENTS = {
     
     // UI events
     WINDOW_RESIZE: 'window_resize',
+    LAYOUT_UPDATE: 'layout_update', // For handling orientation changes and layout refreshes
     MUSIC_TOGGLE: 'music_toggle',
     SOUND_TOGGLE: 'sound_toggle',
     

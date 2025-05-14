@@ -170,20 +170,65 @@ export function setCanvasSize() {
  * Handle device orientation changes
  */
 function handleOrientationChange() {
+    console.log('Orientation change detected');
+    
     // Cache DOM reference for better performance
     if (!handleOrientationChange.warning) {
         handleOrientationChange.warning = document.querySelector('.orientation-warning');
     }
     
     const orientationWarning = handleOrientationChange.warning;
-    if (!orientationWarning) return;
     
-    // Check if we're on a mobile device with landscape orientation and limited height
-    if (window.innerHeight < 450 && window.innerWidth > window.innerHeight) {
-        orientationWarning.style.display = 'flex';
-    } else {
-        orientationWarning.style.display = 'none';
+    // Get current orientation
+    const isLandscape = window.innerWidth > window.innerHeight;
+    const isPortrait = !isLandscape;
+    
+    // Show warning only for small height landscape mode
+    if (orientationWarning) {
+        if (window.innerHeight < 450 && isLandscape) {
+            orientationWarning.style.display = 'flex';
+        } else {
+            orientationWarning.style.display = 'none';
+        }
     }
+
+    // Reset canvas size based on new orientation
+    const dimensions = setCanvasSize();
+    
+    // Notify the game about orientation change with additional data
+    eventDispatcher.dispatchEvent(EVENTS.WINDOW_RESIZE, {
+        ...dimensions,
+        isLandscape,
+        isPortrait,
+        isOrientationChange: true
+    });
+    
+    // Force immediate UI update when orientation changes
+    setTimeout(() => {
+        if (window.game_state) {
+            console.log('Triggering full UI refresh after orientation change');
+            
+            // If we have the event bus available, emit a layout update event
+            if (window.eventBus && window.GAME_EVENTS) {
+                window.eventBus.emit(window.GAME_EVENTS.LAYOUT_UPDATE, {
+                    width: WIDTH,
+                    height: HEIGHT,
+                    isOrientationChange: true,
+                    orientation: isLandscape ? 'landscape' : 'portrait'
+                });
+            }
+            
+            // Force redraw of entire game state
+            if (typeof window.requestAnimationFrame === 'function') {
+                window.requestAnimationFrame(() => {
+                    // Force recalculation of all UI positions
+                    if (typeof window.calculateUIPositions === 'function') {
+                        window.UIPositionsCache = null; // Clear UI positions cache
+                    }
+                });
+            }
+        }
+    }, 100);
 }
 
 /**

@@ -33,6 +33,10 @@ import { initPWA, toggleFullscreen } from './utils/pwa.js';
 window.toggleGamePause = toggleGamePause;
 window.toggleFullscreen = toggleFullscreen; // Add fullscreen toggle for UI controls
 
+// Expose event bus and events globally to handle orientation changes
+window.eventBus = eventBus;
+window.GAME_EVENTS = GAME_EVENTS;
+
 /**
  * Initialize the game when the DOM is fully loaded
  * Sets up the canvas and starts the game initialization process

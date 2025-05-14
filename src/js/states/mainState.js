@@ -918,52 +918,130 @@ function calculateUIPositions() {
   const totalGridWidth = gridState.grid_width * gridState.block_width;
   const totalGridHeight = gridState.grid_height * gridState.block_width;
 
-  // Size and position of the stats panel - made wider and taller with higher border
-  const panelWidth = Math.max(gridState.block_width * 11, 280); // Increased from 9 to 11 blocks
-  const panelHeight = Math.max(gridState.block_width * 10, 290); // Further increased height for more space
-  const panelX = gridOriginX + totalGridWidth + gridState.block_width * 3;
-  const panelY = gridOriginY + totalGridHeight * 0.5 - panelHeight / 2; // Centered vertically with grid
+  // Determine current orientation
+  const isLandscape = canvasWidth > canvasHeight;
 
-  // Element spacing needs to be larger for the new layout (label + value below)
-  const elementSpacing = panelHeight / 4.8; // Adjusted for better vertical distribution with larger text
+  // Adjust layout based on orientation
+  if (isLandscape) {
+    // LANDSCAPE ORIENTATION LAYOUT
+    
+    // Next block position - above the grid, centered
+    const nextBlockWidth = gridState.block_width * 6; // Width of next block panel
+    const nextBlockX = gridOriginX + (totalGridWidth / 2) - (nextBlockWidth / 2);
+    const nextBlockY = gridOriginY - (gridState.block_width * 6) + 40;
+    
+    // Statistics position - to the left side of the grid
+    const statsBlockX = Math.max(10, gridOriginX - (gridState.block_width * 6));
+    const statsBlockY = gridOriginY;
+    
+    // Score panel position - to the right of the grid
+    const panelWidth = Math.max(gridState.block_width * 11, 280);
+    const panelHeight = Math.max(gridState.block_width * 10, 290);
+    const panelX = gridOriginX + totalGridWidth + gridState.block_width * 3;
+    const panelY = gridOriginY;
 
-  // Calculate UI element positions relative to grid position and block size
-  return {
-    // Position for the "Next" block preview - centered in the next block area above the grid
-    nextBlockX: gridOriginX + (gridState.block_width * 2.5),
-    nextBlockY: gridOriginY - (gridState.block_width * 6) + 100,
+    // Hold block position - below the score panel
+    const holdBlockX = panelX;
+    const holdBlockY = panelY + panelHeight + gridState.block_width * 2;
     
-    // Position for the "Hold" block preview - to the right of the grid
-    holdBlockX: gridOriginX + totalGridWidth + gridState.block_width * 3,
-    holdBlockY: gridOriginY + gridState.block_width * 2,
+    // Element spacing for score panel
+    const elementSpacing = panelHeight / 4.8;
+
+    return {
+      // Next block preview position
+      nextBlockX: nextBlockX,
+      nextBlockY: nextBlockY,
+      
+      // Hold block preview position
+      holdBlockX: holdBlockX,
+      holdBlockY: holdBlockY,
+      
+      // Panel dimensions for stats background
+      panelX,
+      panelY,
+      panelWidth,
+      panelHeight,
+      
+      // Label column positions
+      labelX: panelX + 65,
+      
+      // Value column positions
+      valueX: panelX + panelWidth - 65,
+      
+      // Vertical positions for each statistic
+      scoreY: panelY + elementSpacing * 0.9,
+      linesY: panelY + elementSpacing * 2,
+      levelY: panelY + elementSpacing * 3.1,
+      timerY: panelY + elementSpacing * 4.2,
+      
+      // Position for score addition animation
+      addScoreX: gridOriginX + totalGridWidth / 2,
+      addScoreY: gridOriginY + totalGridHeight / 2,
+      
+      // Position for blocks statistics panel
+      blocksStatsX: statsBlockX,
+      blocksStatsY: statsBlockY
+    };
+  } else {
+    // PORTRAIT ORIENTATION LAYOUT
     
-    // Panel dimensions for stats background
-    panelX,
-    panelY,
-    panelWidth,
-    panelHeight,
+    // Next block position - to the left of the grid
+    const nextBlockX = Math.max(10, gridOriginX - (gridState.block_width * 6));
+    const nextBlockY = gridOriginY;
     
-    // Label column positions with even more padding
-    labelX: panelX + 65, // Increased from 45 to 65
+    // Statistics position - above the grid
+    const statsBlockX = gridOriginX;
+    const statsBlockY = Math.max(10, gridOriginY - (gridState.block_width * 12));
     
-    // Value column positions with even more padding
-    valueX: panelX + panelWidth - 65, // Increased from 45 to 65
+    // Score panel position - below the grid
+    const panelWidth = Math.min(totalGridWidth, 280);
+    const panelHeight = Math.max(gridState.block_width * 6, 150);
+    const panelX = gridOriginX + (totalGridWidth - panelWidth) / 2;
+    const panelY = gridOriginY + totalGridHeight + gridState.block_width * 2;
     
-    // Vertical positions for each statistic pair (label & value) with more spacing
-    // Add padding at the top to start elements further down
-    scoreY: panelY + elementSpacing * 0.9,
-    linesY: panelY + elementSpacing * 2,
-    levelY: panelY + elementSpacing * 3.1,
-    timerY: panelY + elementSpacing * 4.2,
+    // Hold block position - to the right of the grid
+    const holdBlockX = gridOriginX + totalGridWidth + gridState.block_width * 2;
+    const holdBlockY = gridOriginY;
     
-    // Position for score addition animation
-    addScoreX: gridOriginX + totalGridWidth / 2,
-    addScoreY: gridOriginY + totalGridHeight / 2,
-    
-    // Position for blocks statistics panel - moved closer to the grid
-    blocksStatsX: gridOriginX - (gridState.block_width * 6),  // Changed from 9.5 to 6
-    blocksStatsY: gridOriginY
-  };
+    // Element spacing for score panel in portrait mode
+    const elementSpacing = panelHeight / 3;
+
+    return {
+      // Next block preview position
+      nextBlockX: nextBlockX,
+      nextBlockY: nextBlockY,
+      
+      // Hold block preview position
+      holdBlockX: holdBlockX,
+      holdBlockY: holdBlockY,
+      
+      // Panel dimensions for stats background
+      panelX,
+      panelY,
+      panelWidth,
+      panelHeight,
+      
+      // Label column positions - centered in portrait mode
+      labelX: panelX + panelWidth / 2,
+      
+      // Value column positions - centered in portrait mode
+      valueX: panelX + panelWidth / 2,
+      
+      // Vertical positions for each statistic
+      scoreY: panelY + elementSpacing * 0.6,
+      linesY: panelY + elementSpacing * 1.4,
+      levelY: panelY + elementSpacing * 2.2,
+      timerY: panelY + elementSpacing * 3.0,
+      
+      // Position for score addition animation
+      addScoreX: gridOriginX + totalGridWidth / 2,
+      addScoreY: gridOriginY + totalGridHeight / 2,
+      
+      // Position for blocks statistics panel
+      blocksStatsX: statsBlockX,
+      blocksStatsY: statsBlockY
+    };
+  }
 }
 
 /**
